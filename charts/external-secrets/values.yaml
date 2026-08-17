@@ -1,7 +1,7 @@
 namespace: external-secrets
 
 subscription:
-  channel: stable-v1
+  channel: stable
   name: external-secrets-operator
   source: community-operators
   sourceNamespace: openshift-marketplace

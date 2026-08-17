@@ -1,7 +1,7 @@
 namespace: open-cluster-management
 
 subscription:
-  channel: release-2.12
+  channel: release-2.17
   name: advanced-cluster-management
   source: redhat-operators
   sourceNamespace: openshift-marketplace
