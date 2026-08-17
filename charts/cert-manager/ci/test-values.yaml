@@ -1,0 +1,6 @@
+letsencrypt:
+  email: test@example.com
+
+aws:
+  hostedZoneID: Z0123456789EXAMPLE
+  roleArn: arn:aws:iam::123456789012:role/example-role

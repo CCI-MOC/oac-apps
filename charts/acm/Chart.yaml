@@ -1,0 +1,5 @@
+apiVersion: v2
+name: acm
+description: Advanced Cluster Management
+version: 0.1.0
+type: application

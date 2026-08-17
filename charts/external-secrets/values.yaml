@@ -1,0 +1,15 @@
+namespace: external-secrets
+
+subscription:
+  channel: stable-v1
+  name: external-secrets-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+aws:
+  region: us-east-1
+  roleArn: ""
+
+serviceAccount:
+  name: external-secrets-sa

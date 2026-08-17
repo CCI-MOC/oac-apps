@@ -1,0 +1,15 @@
+subscription:
+  channel: stable-v1
+  name: openshift-cert-manager-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+aws:
+  region: us-east-1
+  roleArn: ""
+  hostedZoneID: ""
+
+letsencrypt:
+  email: ""
+  server: https://acme-v02.api.letsencrypt.org/directory

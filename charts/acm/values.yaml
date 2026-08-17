@@ -1,0 +1,11 @@
+namespace: open-cluster-management
+
+subscription:
+  channel: release-2.12
+  name: advanced-cluster-management
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+multiClusterHub:
+  availabilityConfig: Basic

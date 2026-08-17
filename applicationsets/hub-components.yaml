@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: hub-components
+  namespace: openshift-gitops
+spec:
+  generators:
+    - list:
+        elements:
+          - component: external-secrets
+            syncWave: "0"
+          - component: cert-manager
+            syncWave: "1"
+          - component: cluster-config
+            syncWave: "2"
+          - component: acm
+            syncWave: "3"
+  template:
+    metadata:
+      name: "hub-{{component}}"
+      annotations:
+        argocd.argoproj.io/sync-wave: "{{syncWave}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{component}}"
+        helm:
+          valueFiles:
+            - "../../clusters/infra.oac.int.massopen.cloud/values-{{component}}.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

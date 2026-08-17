@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cert-manager
+description: Red Hat cert-manager operator with Let's Encrypt ClusterIssuer and Certificates
+version: 0.1.0
+type: application

@@ -1,0 +1,7 @@
+aws:
+  region: us-east-1
+  roleArn: "arn:aws:iam::574733721584:role/cert-manager-infra.oac.int.massopen.cloud" # Set after Terraform apply: module.openshift_oidc_oac_infra.cert_manager_role_arn
+  hostedZoneID: "Z07788262L24MNHAVE489" # Route53 zone ID for int.massopen.cloud
+letsencrypt:
+  email: admin@massopen.cloud
+  server: https://acme-staging-v02.api.letsencrypt.org/directory

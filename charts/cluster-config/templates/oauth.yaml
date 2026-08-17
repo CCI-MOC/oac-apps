@@ -1,0 +1,25 @@
+{{- if and .Values.keycloak.issuerUrl .Values.keycloak.clientId .Values.externalSecret.remoteKey }}
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  identityProviders:
+    - name: keycloak
+      mappingMethod: claim
+      type: OpenID
+      openID:
+        issuer: {{ .Values.keycloak.issuerUrl }}
+        clientID: {{ .Values.keycloak.clientId }}
+        clientSecret:
+          name: {{ .Values.keycloak.secretRef.name }}
+        claims:
+          preferredUsername:
+            - preferred_username
+          name:
+            - name
+          email:
+            - email
+{{- end }}
