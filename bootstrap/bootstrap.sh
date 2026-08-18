@@ -96,8 +96,8 @@ echo "=== Step 3: OpenShift GitOps operator ==="
 
 echo "Installing OpenShift GitOps operator..."
 helm template openshift-gitops "${REPO_ROOT}/charts/openshift-gitops" \
-  --show-only templates/subscription.yaml \
-  | oc apply -f -
+  --show-only templates/subscription.yaml |
+  oc apply -f -
 
 echo "Waiting for operator to become available..."
 until oc get deployment openshift-gitops-server -n openshift-gitops &>/dev/null; do
@@ -116,8 +116,8 @@ echo ""
 echo "=== Step 4: ArgoCD instance ==="
 
 echo "Applying ArgoCD configuration..."
-helm template openshift-gitops "${REPO_ROOT}/charts/openshift-gitops" \
-  | oc apply -f -
+helm template openshift-gitops "${REPO_ROOT}/charts/openshift-gitops" |
+  oc apply -f -
 
 echo "Waiting for ArgoCD to reconcile..."
 oc wait argocd/openshift-gitops -n openshift-gitops \
@@ -125,21 +125,14 @@ oc wait argocd/openshift-gitops -n openshift-gitops \
 echo "ArgoCD is ready."
 
 ## ---------------------------------------------------------------------------
-## Step 5: Apply hub ApplicationSet
+## Step 5: Apply bootstrap application
 ## ---------------------------------------------------------------------------
 #
 #echo ""
-#echo "=== Step 5: Hub ApplicationSet ==="
+#echo "=== Step 5: Bootstrap application ==="
 #
 #echo "Applying hub ApplicationSet..."
-#oc apply -f "${REPO_ROOT}/applicationsets/hub-components.yaml"
+#oc apply -f "${REPO_ROOT}/bootstrap/bootstrap.yaml"
 #
 #echo ""
 #echo "Hub bootstrap complete. ArgoCD will now manage hub cluster components."
-#echo "Once ACM is running, apply the managed cluster resources:"
-#echo ""
-#echo "  oc apply -f ${REPO_ROOT}/placements/"
-#echo "  oc apply -f ${REPO_ROOT}/applicationsets/managed-components.yaml"
-#echo ""
-#echo "Access the ArgoCD console:"
-#echo "  $(oc get route openshift-gitops-server -n openshift-gitops -o jsonpath='{.spec.host}' 2>/dev/null || echo '(route not yet available)')"
