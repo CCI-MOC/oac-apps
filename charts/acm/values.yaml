@@ -9,3 +9,9 @@ subscription:
 
 multiClusterHub:
   availabilityConfig: Basic
+
+cim:
+  enabled: false
+  agentservice_database_size: 100Gi
+  agentservice_filesystem_size: 500Gi
+  agentservice_image_size: 200Gi

@@ -1,0 +1,27 @@
+{{ if .Values.cim.enabled }}
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  databaseStorage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: {{ .Values.cim.agentservice_database_size }}
+  filesystemStorage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: {{ .Values.cim.agentservice_filesystem_size }}
+  imageStorage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: {{ .Values.cim.agentservice_image_size }}
+{{ end }}

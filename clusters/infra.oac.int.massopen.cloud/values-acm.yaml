@@ -1,2 +1,5 @@
 multiClusterHub:
   availabilityConfig: High
+
+cim:
+  enabled: true
