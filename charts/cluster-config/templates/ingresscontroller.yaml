@@ -1,0 +1,27 @@
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: default
+  namespace: openshift-ingress-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  clientTLS:
+    clientCA:
+      name: ""
+    clientCertificatePolicy: ""
+  closedClientConnectionPolicy: Continue
+  defaultCertificate:
+    name: {{ .Values.certificate.ingress_certificate_name }}
+  httpEmptyRequestsPolicy: Respond
+  httpErrorCodePages:
+    name: ""
+  idleConnectionTerminationPolicy: Immediate
+  replicas: 2
+  routeSelector:
+    matchExpressions:
+    - key: hypershift.openshift.io/hosted-control-plane
+      operator: DoesNotExist
+  tuningOptions:
+    reloadInterval: 0s
+  unsupportedConfigOverrides: null

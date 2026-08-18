@@ -10,3 +10,11 @@ keycloak:
 externalSecret:
   secretStore: aws-secrets-manager
   remoteKey: ""
+
+certificate:
+  api_certificate_name: default-api-certificate
+  ingress_certificate_name: default-ingress-certificate
+  issuer_name: letsencrypt-staging-dns01
+  issuer_kind: ClusterIssuer
+  duration: 2160h
+  renewBefore: 360h

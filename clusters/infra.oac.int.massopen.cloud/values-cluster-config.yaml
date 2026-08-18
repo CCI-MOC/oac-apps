@@ -4,3 +4,5 @@ keycloak:
   clientId: "" # OIDC client ID for this cluster
 externalSecret:
   remoteKey: "" # AWS Secrets Manager key containing the Keycloak client secret
+certificate:
+  issuer_name: letsencrypt-prod-dns01

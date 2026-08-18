@@ -1,0 +1,77 @@
+{{ if .Values.letsencrypt.cluster_issuers.enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-dns01
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  acme:
+    server: {{ .Values.letsencrypt.production_server }}
+    email: {{ required "letsencrypt.email is required" .Values.letsencrypt.email }}
+    privateKeySecretRef:
+      name: letsencrypt-prod-dns01
+    solvers:
+      - dns01:
+          route53:
+            region: {{ .Values.aws.region }}
+            hostedZoneID: {{ required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
+            role: {{ required "aws.roleArn is required" .Values.aws.roleArn }}
+            auth:
+              kubernetes:
+                serviceAccountRef:
+                  name: cert-manager
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging-dns01
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  acme:
+    server: {{ .Values.letsencrypt.staging_server }}
+    email: {{ required "letsencrypt.email is required" .Values.letsencrypt.email }}
+    privateKeySecretRef:
+      name: letsencrypt-staging-dns01
+    solvers:
+      - dns01:
+          route53:
+            region: {{ .Values.aws.region }}
+            hostedZoneID: {{ required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
+            role: {{ required "aws.roleArn is required" .Values.aws.roleArn }}
+            auth:
+              kubernetes:
+                serviceAccountRef:
+                  name: cert-manager
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-http01
+spec:
+  acme:
+    privateKeySecretRef:
+      name: letsencrypt-prod-http01
+    server: {{ .Values.letsencrypt.production_server }}
+    solvers:
+      - http01:
+          ingress:
+            class: openshift-default
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging-http01
+spec:
+  acme:
+    privateKeySecretRef:
+      name: letsencrypt-staging-http01
+    server: {{ .Values.letsencrypt.staging_server }}
+    solvers:
+      - http01:
+          ingress:
+            class: openshift-default
+{{ end }}

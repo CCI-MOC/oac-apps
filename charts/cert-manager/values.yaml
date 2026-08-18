@@ -12,4 +12,7 @@ aws:
 
 letsencrypt:
   email: ""
-  server: https://acme-v02.api.letsencrypt.org/directory
+  production_server: https://acme-v02.api.letsencrypt.org/directory
+  staging_server: https://acme-staging-v02.api.letsencrypt.org/directory
+  cluster_issuers:
+    enabled: false
