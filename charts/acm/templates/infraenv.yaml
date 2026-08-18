@@ -1,0 +1,35 @@
+{{ if .Values.cim.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.cim.inventory_namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  labels:
+    agentclusterinstalls.extensions.hive.openshift.io/location: {{ .Values.cim.location }}
+    networkType: dhcp
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  name: {{ .Values.cim.inventory_name }}
+  namespace: {{ .Values.cim.inventory_namespace }}
+spec:
+{{ if .Values.cim.additionalNTPSources }}
+  additionalNTPSources: {{ .Values.cim.additionalNTPSources | toJson }}
+{{ end }}
+  agentLabels:
+    agentclusterinstalls.extensions.hive.openshift.io/location: {{ .Values.cim.location }}
+  cpuArchitecture: x86_64
+  ipxeScriptType: DiscoveryImageAlways
+  nmStateConfigLabelSelector:
+    matchLabels:
+      infraenvs.agent-install.openshift.io: {{ .Values.cim.inventory_name }}
+  pullSecretRef:
+    name: {{ .Values.cim.pull_secret_name }}
+{{ if .Values.cim.sshAuthorizedKey }}
+  sshAuthorizedKey: {{ .Values.cim.sshAuthorizedKey }}
+{{ end }}
+{{ end }}

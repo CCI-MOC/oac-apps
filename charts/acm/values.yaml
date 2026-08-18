@@ -15,3 +15,9 @@ cim:
   agentservice_database_size: 100Gi
   agentservice_filesystem_size: 500Gi
   agentservice_image_size: 200Gi
+  pull_secret_name: pull-secret
+  location: DataCenter
+  inventory_namespace: hardware-inventory
+  inventory_name: hardware-inventory
+  additionalNTPSources:
+    - us.pool.ntp.org

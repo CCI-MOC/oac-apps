@@ -3,3 +3,5 @@ multiClusterHub:
 
 cim:
   enabled: true
+  sshAuthorizedKey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHpAU+8mOrIOixLg8hpMopBzHM9chWe+Fag+LozZVW4o oac-infra
+  location: MGHPCC
