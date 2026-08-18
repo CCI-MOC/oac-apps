@@ -95,7 +95,8 @@ echo ""
 echo "=== Step 3: OpenShift GitOps operator ==="
 
 echo "Installing OpenShift GitOps operator..."
-helm template openshift-gitops-operator "${REPO_ROOT}/charts/openshift-gitops-operator" \
+helm template openshift-gitops "${REPO_ROOT}/charts/openshift-gitops" \
+  --show-only templates/subscription.yaml \
   | oc apply -f -
 
 echo "Waiting for operator to become available..."
