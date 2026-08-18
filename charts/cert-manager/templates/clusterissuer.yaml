@@ -17,3 +17,7 @@ spec:
             region: {{ .Values.aws.region }}
             hostedZoneID: {{ required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
             role: {{ required "aws.roleArn is required" .Values.aws.roleArn }}
+            auth:
+              kubernetes:
+                serviceAccountRef:
+                  name: cert-manager
