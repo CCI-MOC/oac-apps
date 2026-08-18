@@ -1,0 +1,3 @@
+externalSecret:
+  secretStore: aws-secrets-manager
+  remoteKey: "cluster/oac-infra-dev/portworx"
