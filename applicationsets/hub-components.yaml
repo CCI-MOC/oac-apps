@@ -32,7 +32,7 @@ spec:
         path: "charts/{{component}}"
         helm:
           valueFiles:
-            - "../../clusters/infra.oac.int.massopen.cloud/values-{{component}}.yaml"
+            - "/clusters/infra.oac.int.massopen.cloud/values-{{component}}.yaml"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

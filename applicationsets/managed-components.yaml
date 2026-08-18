@@ -34,7 +34,7 @@ spec:
         path: "charts/{{component}}"
         helm:
           valueFiles:
-            - "../../clusters/{{name}}/values-{{component}}.yaml"
+            - "/clusters/{{name}}/values-{{component}}.yaml"
       destination:
         server: "{{server}}"
       syncPolicy:
