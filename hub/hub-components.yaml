@@ -19,6 +19,8 @@ spec:
             syncWave: "1"
           - component: github-group-sync
             syncWave: "1"
+          - component: oac-simple-rbac
+            syncWave: "1"
           - component: cluster-config
             syncWave: "2"
           - component: acm
