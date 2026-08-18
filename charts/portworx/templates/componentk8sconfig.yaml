@@ -1,0 +1,22 @@
+apiVersion: core.libopenstorage.org/v1
+kind: ComponentK8sConfig
+metadata:
+  name: px-pure-csi-k8s-config
+  namespace: portworx
+spec:
+  components:
+    - componentNames:
+        - PureCSIPlugin
+      workloadConfigs:
+        - annotations:
+            k8s.v1.cni.cncf.io/networks: storage-network
+          workloadNames:
+            - px-pure-csi-controller
+        - workloadNames:
+            - px-pure-csi-node
+    - componentNames:
+        - PureCSITelemetry
+      workloadConfigs:
+        - workloadNames:
+            - px-pure-csi-telemetry-registration
+            - px-pure-csi-telemetry

@@ -1,3 +1,20 @@
 externalSecret:
   secretStore: aws-secrets-manager
   remoteKey: "cluster/oac-infra-dev/portworx"
+
+nodes:
+  - name: moc-r4pac08u05-s3
+    interface: enp7s0f1np1
+  - name: moc-r4pac22u15-s1
+    interface: enp73s0f1np1
+  - name: moc-r4pac22u17-s1
+    interface: enp73s0f1np1
+
+network:
+  cidr: "10.9.0.0/24"
+  range:
+    start: "10.9.0.15"
+    end: "10.9.0.19"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.0.1

@@ -12,3 +12,5 @@ portworx:
   is_default_storage_class: true
   nfs_server: nfs-server
   nfs_policy: export-policy
+
+nodes: []
