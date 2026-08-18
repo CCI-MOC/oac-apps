@@ -1,0 +1,5 @@
+apiVersion: v2
+name: oac-simple-rbac
+description: Cluster reader + impersonation for a single group
+version: 0.1.0
+type: application

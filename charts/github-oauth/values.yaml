@@ -1,0 +1,14 @@
+clientID: ""
+
+secretName: github-oauth-client-secret
+
+mappingMethod: claim
+
+organizations: []
+
+teams: []
+
+externalSecret:
+  secretStore: aws-secrets-manager
+  secretStoreType: ClusterSecretStore
+  remoteKey: ""

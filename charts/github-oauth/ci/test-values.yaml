@@ -1,0 +1,4 @@
+clientID: my-github-client-id
+secretName: github-oauth-secret
+organizations:
+  - my-org

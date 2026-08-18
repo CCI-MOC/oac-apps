@@ -1,0 +1,15 @@
+clientID: "Ov23linBP0QU3oICQ1Mf"
+
+secretName: github-oauth-client-secret
+
+mappingMethod: claim
+
+organizations: []
+
+teams:
+  - CCI-MOC/open-accelerator
+
+externalSecret:
+  secretStore: aws-secrets-manager
+  secretStoreType: ClusterSecretStore
+  remoteKey: "cluster/oac-infra-dev/github-oauth-client-secret"

@@ -1,0 +1,33 @@
+{{- if and .Values.organizations .Values.teams }}
+{{- fail "cannot specify both organizations and teams; GitHub identity provider supports only one" }}
+{{- end }}
+{{- range .Values.teams }}
+{{- if not (contains "/" .) }}
+{{- fail (printf "team %q must be in <org>/<team> format" .) }}
+{{- end }}
+{{- end }}
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec:
+  identityProviders:
+    - name: github
+      mappingMethod: {{ .Values.mappingMethod }}
+      type: GitHub
+      github:
+        clientID: {{ .Values.clientID }}
+        clientSecret:
+          name: {{ .Values.secretName }}
+        {{- with .Values.organizations }}
+        organizations:
+          {{- range . }}
+          - {{ . | quote }}
+          {{- end }}
+        {{- end }}
+        {{- with .Values.teams }}
+        teams:
+          {{- range . }}
+          - {{ . | quote }}
+          {{- end }}
+        {{- end }}

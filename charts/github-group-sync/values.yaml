@@ -1,0 +1,20 @@
+namespace: group-sync-operator
+
+subscription:
+  channel: alpha
+  name: group-sync-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+organization: ""
+
+schedule: "*/30 * * * *"
+
+credentialsSecret:
+  name: github-group-sync
+
+externalSecret:
+  secretStore: aws-secrets-manager
+  secretStoreType: ClusterSecretStore
+  remoteKey: ""

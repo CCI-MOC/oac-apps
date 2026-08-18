@@ -15,6 +15,10 @@ spec:
             syncWave: "1"
           - component: portworx
             syncWave: "1"
+          - component: github-oauth
+            syncWave: "1"
+          - component: github-group-sync
+            syncWave: "1"
           - component: cluster-config
             syncWave: "2"
           - component: acm
