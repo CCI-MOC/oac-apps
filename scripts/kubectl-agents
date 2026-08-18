@@ -1,0 +1,16 @@
+#!/bin/bash
+
+CLOUDKIT_AGENT_NAMESPACE="${CLOUDKIT_AGENT_NAMESPACE:-hardware-inventory}"
+
+kubectl -n "$CLOUDKIT_AGENT_NAMESPACE" get agent \
+  -o "custom-columns=\
+ID:.metadata.name,\
+HOSTNAME:.spec.hostname,\
+APPROVED:.spec.approved,\
+ROLE:.status.role,\
+STAGE:.status.progress.currentStage,\
+CLUSTER:.spec.clusterDeploymentName.name,\
+MACHINE:.metadata.labels.agentMachineRef,\
+VALIDATED:.status.conditions[?(.type == 'Validated')].status,\
+CONNECTED:.status.conditions[?(.type == 'Connected')].status" \
+  "$@"
