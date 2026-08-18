@@ -1,0 +1,10 @@
+namespace: openshift-gitops
+
+clusterSet: default
+
+placement:
+  name: all-managed-clusters
+
+argoServer:
+  cluster: local-cluster
+  namespace: openshift-gitops
