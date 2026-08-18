@@ -1,9 +1,9 @@
 namespace: external-secrets
 
 subscription:
-  channel: stable
-  name: external-secrets-operator
-  source: community-operators
+  channel: stable-v1
+  name: openshift-external-secrets-operator
+  source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
 
