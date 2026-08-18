@@ -14,7 +14,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 echo "Checking prerequisites..."
 
-for cmd in oc aws jq; do
+for cmd in oc aws jq helm; do
   if ! command -v "${cmd}" &>/dev/null; then
     echo "ERROR: ${cmd} is not installed" >&2
     exit 1
@@ -94,39 +94,41 @@ fi
 echo ""
 echo "=== Step 3: OpenShift GitOps operator ==="
 
-if oc get subscription openshift-gitops-operator -n openshift-operators &>/dev/null; then
-  echo "OpenShift GitOps operator already installed."
-else
-  echo "Installing OpenShift GitOps operator..."
-  oc apply -f - <<'EOF'
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: openshift-gitops-operator
-  namespace: openshift-operators
-spec:
-  channel: latest
-  name: openshift-gitops-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-  installPlanApproval: Automatic
-EOF
-  echo "Waiting for operator to become available..."
-  until oc get deployment openshift-gitops-server -n openshift-gitops &>/dev/null; do
-    echo "  waiting for openshift-gitops-server deployment..."
-    sleep 10
-  done
-  oc wait deployment/openshift-gitops-server -n openshift-gitops \
-    --for=condition=Available --timeout=300s
-  echo "OpenShift GitOps operator is ready."
-fi
+echo "Installing OpenShift GitOps operator..."
+helm template openshift-gitops-operator "${REPO_ROOT}/charts/openshift-gitops-operator" \
+  | oc apply -f -
+
+echo "Waiting for operator to become available..."
+until oc get deployment openshift-gitops-server -n openshift-gitops &>/dev/null; do
+  echo "  waiting for openshift-gitops-server deployment..."
+  sleep 10
+done
+oc wait deployment/openshift-gitops-server -n openshift-gitops \
+  --for=condition=Available --timeout=300s
+echo "OpenShift GitOps operator is ready."
+
+# ---------------------------------------------------------------------------
+# Step 4: Configure ArgoCD instance
+# ---------------------------------------------------------------------------
+
+echo ""
+echo "=== Step 4: ArgoCD instance ==="
+
+echo "Applying ArgoCD configuration..."
+helm template openshift-gitops "${REPO_ROOT}/charts/openshift-gitops" \
+  | oc apply -f -
+
+echo "Waiting for ArgoCD to reconcile..."
+oc wait argocd/openshift-gitops -n openshift-gitops \
+  --for=jsonpath='{.status.phase}'=Available --timeout=300s
+echo "ArgoCD is ready."
 
 ## ---------------------------------------------------------------------------
-## Step 4: Apply hub ApplicationSet
+## Step 5: Apply hub ApplicationSet
 ## ---------------------------------------------------------------------------
 #
 #echo ""
-#echo "=== Step 4: Hub ApplicationSet ==="
+#echo "=== Step 5: Hub ApplicationSet ==="
 #
 #echo "Applying hub ApplicationSet..."
 #oc apply -f "${REPO_ROOT}/applicationsets/hub-components.yaml"
