@@ -9,7 +9,7 @@ subscription:
 
 organization: ""
 
-schedule: "*/30 * * * *"
+schedule: "*/15 * * * *"
 
 credentialsSecret:
   name: github-group-sync
