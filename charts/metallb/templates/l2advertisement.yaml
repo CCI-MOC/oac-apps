@@ -9,7 +9,7 @@ metadata:
 {{- if .Values.addressPool }}
 spec:
   ipAddressPools:
-    - {{ .Values.addressPool.name }}
+    - {{ required "addressPool.name is required when addressPool is defined" .Values.addressPool.name }}
 {{- else }}
 spec: {}
 {{- end }}
