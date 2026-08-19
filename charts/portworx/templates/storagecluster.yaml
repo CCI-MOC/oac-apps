@@ -11,6 +11,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    portworx.io/disable-storage-class: "true"
     portworx.io/install-source: "https://install.portworx.com/26.2?oem=px-csi&operator=true&ce=pure&csi=true&stork=false&kbver=1.34.0&ns=portworx&osft=true&c=px-cluster-121a130a-d350-417f-b240-e15510f5b316&tel=true"
     portworx.io/is-openshift: "true"
     portworx.io/misc-args: "--oem px-csi"
