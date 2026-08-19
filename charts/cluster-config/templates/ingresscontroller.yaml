@@ -18,10 +18,6 @@ spec:
     name: ""
   idleConnectionTerminationPolicy: Immediate
   replicas: 2
-  routeSelector:
-    matchExpressions:
-    - key: hypershift.openshift.io/hosted-control-plane
-      operator: DoesNotExist
   tuningOptions:
     reloadInterval: 0s
   unsupportedConfigOverrides: null
