@@ -7,7 +7,7 @@ subscription:
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
 
-clusterissuers:
+clustersecretstores:
   aws:
     enabled: true
     region: us-east-1
