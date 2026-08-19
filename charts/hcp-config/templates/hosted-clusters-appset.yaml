@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: hosted-clusters
+  namespace: openshift-gitops
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        revision: main
+        directories:
+          - path: hosted-clusters/*
+  template:
+    metadata:
+      name: "cluster-{{ "{{.path.basename}}" }}"
+      namespace: openshift-gitops
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "{{ "{{.path.path}}" }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: clusters
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

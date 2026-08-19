@@ -31,6 +31,8 @@ spec:
             syncWave: "2"
           - component: acm
             syncWave: "3"
+          - component: hcp-config
+            syncWave: "4"
           - component: acm-gitops-integration
             syncWave: "4"
   template:

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: hosted-clusters
+description: Install some support resources for hosted cluster deployment.
+type: application
+version: 0.1.0

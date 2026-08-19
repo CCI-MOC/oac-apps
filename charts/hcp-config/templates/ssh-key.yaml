@@ -1,0 +1,20 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: oac-ssh-key
+  namespace: clusters
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: oac-ssh-key
+  data:
+    - secretKey: id_ssh_key.pub
+      remoteRef:
+        key: cluster/oac-infra-dev/sshkey
+        property: publicKey
