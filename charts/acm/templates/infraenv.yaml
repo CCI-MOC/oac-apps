@@ -6,6 +6,30 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 ---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: pull-secret
+  namespace: {{ .Values.cim.inventory_namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: kubernetes-openshift-config
+    kind: ClusterSecretStore
+  target:
+    name: pull-secret
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: "{{ `{{ .pullSecret }}` }}"
+  data:
+    - secretKey: pullSecret
+      remoteRef:
+        key: pull-secret
+        property: .dockerconfigjson
+---
 apiVersion: agent-install.openshift.io/v1beta1
 kind: InfraEnv
 metadata:

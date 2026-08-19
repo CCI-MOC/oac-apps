@@ -1,5 +1,5 @@
 apiVersion: v2
 name: external-secrets
-description: External Secrets Operator with AWS Secrets Manager ClusterSecretStore
+description: External Secrets Operator with ClusterSecretStore configurations
 version: 0.1.0
 type: application

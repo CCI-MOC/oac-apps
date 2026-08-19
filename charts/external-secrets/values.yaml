@@ -7,9 +7,14 @@ subscription:
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
 
-aws:
-  region: us-east-1
-  roleArn: ""
+clusterissuers:
+  aws:
+    enabled: true
+    region: us-east-1
+    roleArn: ""
+
+  openshift-config:
+    enabled: false
 
 serviceAccount:
   name: external-secrets-sa

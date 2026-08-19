@@ -1,2 +1,4 @@
-aws:
-  roleArn: arn:aws:iam::123456789012:role/example-role
+clusterissuers:
+  aws:
+    enabled: true
+    roleArn: arn:aws:iam::123456789012:role/example-role

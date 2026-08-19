@@ -1,0 +1,37 @@
+{{- if index .Values.clusterissuers "openshift-config" "enabled" }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eso-openshift-config-reader
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eso-openshift-config-reader
+  namespace: openshift-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eso-openshift-config-reader
+  namespace: openshift-config
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+subjects:
+  - kind: ServiceAccount
+    name: eso-openshift-config-reader
+    namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eso-openshift-config-reader
+{{- end }}
