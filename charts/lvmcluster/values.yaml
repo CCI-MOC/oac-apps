@@ -1,0 +1,22 @@
+subscription:
+  name: lvms-operator
+  installPlanApproval: Automatic
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  channel: stable-4.21
+
+volumegroup:
+  name: vg0
+  fstype: ext4
+  forceWipe: false
+  pool:
+    name: pool0
+    sizePercent: 90
+    overprovisionRatio: 10
+    chunkSize: 128Ki
+    chunkSizeCalculationPolicy: Static
+  nodeSelector:
+    nodeSelectorTerms:
+      - matchExpressions:
+          - key: massopen.cloud/lvmcluster
+            operator: Exists

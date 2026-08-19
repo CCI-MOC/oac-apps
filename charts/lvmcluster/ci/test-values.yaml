@@ -1,0 +1,4 @@
+volumegroup:
+  devices:
+    - /dev/sda
+    - /dev/sdb

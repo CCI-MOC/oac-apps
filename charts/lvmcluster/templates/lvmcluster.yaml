@@ -1,0 +1,27 @@
+apiVersion: lvm.topolvm.io/v1alpha1
+kind: LVMCluster
+metadata:
+  name: lvmcluster-{{ .Values.volumegroup.name }}
+  namespace: openshift-storage
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  storage:
+    deviceClasses:
+    - name: {{ .Values.volumegroup.name }}
+      fstype: {{ .Values.volumegroup.fstype }}
+      default: true
+{{- if .Values.volumegroup.nodeSelector }}
+      nodeSelector:
+{{ .Values.volumegroup.nodeSelector | toYaml | indent 8 }}
+{{- end }}
+      deviceSelector:
+        optionalPaths: {{ required "list of device paths is required" .Values.volumegroup.devices | toJson }}
+        forceWipeDevicesAndDestroyAllData: {{ .Values.volumegroup.forceWipe }}
+      thinPoolConfig:
+        name: {{ .Values.volumegroup.pool.name }}
+        sizePercent: {{ .Values.volumegroup.pool.sizePercent }}
+        overprovisionRatio: {{ .Values.volumegroup.pool.overprovisionRatio }}
+        chunkSize: {{ .Values.volumegroup.pool.chunkSize }}
+        chunkSizeCalculationPolicy: {{ .Values.volumegroup.pool.chunkSizeCalculationPolicy }}
