@@ -14,7 +14,7 @@ spec:
   target:
     name: oac-ssh-key
   data:
-    - secretKey: id_ssh_key.pub
+    - secretKey: id_rsa.pub
       remoteRef:
         key: cluster/oac-infra-dev/sshkey
         property: publicKey
