@@ -1,0 +1,18 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ClusterGenerator
+metadata:
+  name: etcd-encryption-key
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  kind: Password
+  generator:
+    passwordSpec:
+      length: 32
+      symbols: 0
+      digits: 10
+      noUpper: false
+      allowRepeat: true
+      secretKeys:
+        - key
