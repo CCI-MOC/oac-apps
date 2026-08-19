@@ -13,8 +13,8 @@ nodes:
 network:
   cidr: "10.9.0.0/24"
   range:
-    start: "10.9.0.15"
-    end: "10.9.0.19"
+    start: "10.9.0.230"
+    end: "10.9.0.254"
   routes:
     - dst: 10.3.11.50/32
       gw: 10.9.0.1
