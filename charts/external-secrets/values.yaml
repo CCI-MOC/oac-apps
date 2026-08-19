@@ -12,6 +12,7 @@ clustersecretstores:
     enabled: true
     region: us-east-1
     roleArn: ""
+    conditions: []
 
   openshift-config:
     enabled: false
