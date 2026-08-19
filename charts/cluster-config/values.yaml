@@ -1,12 +1,5 @@
 clusterDomain: ""
 
-keycloak:
-  issuerUrl: ""
-  clientId: ""
-  secretRef:
-    name: keycloak-oidc-client-secret
-    key: clientSecret
-
 externalSecret:
   secretStore: aws-secrets-manager
   remoteKey: ""

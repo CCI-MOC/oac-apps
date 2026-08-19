@@ -1,8 +1,4 @@
 clusterDomain: example.cluster.local
 
-keycloak:
-  issuerUrl: https://keycloak.example.com/realms/example
-  clientId: example-client
-
 externalSecret:
   remoteKey: example/secret-key
