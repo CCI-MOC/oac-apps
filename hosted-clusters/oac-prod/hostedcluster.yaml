@@ -41,9 +41,9 @@ spec:
   services:
     - service: APIServer
       servicePublishingStrategy:
-        type: Route
-        route:
-          hostname: api-oac-prod.apps.infra.oac.int.massopen.cloud
+        type: NodePort
+        nodePort:
+          address: api-oac-prod.apps.infra.oac.int.massopen.cloud
     - service: Ignition
       servicePublishingStrategy:
         type: Route
