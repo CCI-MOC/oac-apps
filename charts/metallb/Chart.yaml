@@ -1,0 +1,5 @@
+apiVersion: v2
+name: metallb
+description: Deploy MetalLB with L2 advertisement
+type: application
+version: 0.1.0

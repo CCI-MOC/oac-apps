@@ -1,0 +1,13 @@
+{{- if .Values.addressPool }}
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: {{ .Values.addressPool.name }}
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  addresses:
+{{ required "addressPool.addresses is required when addressPool is defined" .Values.addressPool.addresses | toYaml | indent 4 }}
+{{- end }}
