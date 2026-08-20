@@ -16,4 +16,4 @@ spec:
     name: {{ .Values.certificate.issuer_name }}
     kind: {{ .Values.certificate.issuer_kind }}
   dnsNames:
-    - '*.apps.{{ $clusterDomain }}'
+    - '{{ .Values.clusterIngressDomainName | default (printf "apps.%s" $clusterDomain) }}'

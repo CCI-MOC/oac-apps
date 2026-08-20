@@ -14,6 +14,6 @@ spec:
   servingCerts:
     namedCertificates:
       - names:
-          - 'api.{{ $clusterDomain }}'
+          - '{{ .Values.clusterAPIDomainName | default (printf "api.%s" $clusterDomain) }}'
         servingCertificate:
           name: {{ .Values.certificate.api_certificate_name }}

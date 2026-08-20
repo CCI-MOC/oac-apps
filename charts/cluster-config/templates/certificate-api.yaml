@@ -16,4 +16,4 @@ spec:
     name: {{ .Values.certificate.issuer_name }}
     kind: {{ .Values.certificate.issuer_kind }}
   dnsNames:
-    - 'api.{{ $clusterDomain }}'
+    - '{{ .Values.clusterAPIDomainName | default (printf "api.%s" $clusterDomain) }}'
