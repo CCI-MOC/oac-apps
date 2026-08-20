@@ -1,4 +1,7 @@
 {{ if .Values.letsencrypt.cluster_issuers.enabled }}
+{{- $email := required "letsencrypt.email is required" .Values.letsencrypt.email }}
+{{- $hostedZoneID := required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
+{{- $roleArn := required "aws.roleArn is required" .Values.aws.roleArn }}
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -9,15 +12,15 @@ metadata:
 spec:
   acme:
     server: {{ .Values.letsencrypt.production_server }}
-    email: {{ required "letsencrypt.email is required" .Values.letsencrypt.email }}
+    email: {{ $email }}
     privateKeySecretRef:
       name: letsencrypt-prod-dns01
     solvers:
       - dns01:
           route53:
             region: {{ .Values.aws.region }}
-            hostedZoneID: {{ required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
-            role: {{ required "aws.roleArn is required" .Values.aws.roleArn }}
+            hostedZoneID: {{ $hostedZoneID }}
+            role: {{ $roleArn }}
             auth:
               kubernetes:
                 serviceAccountRef:
@@ -33,15 +36,15 @@ metadata:
 spec:
   acme:
     server: {{ .Values.letsencrypt.staging_server }}
-    email: {{ required "letsencrypt.email is required" .Values.letsencrypt.email }}
+    email: {{ $email }}
     privateKeySecretRef:
       name: letsencrypt-staging-dns01
     solvers:
       - dns01:
           route53:
             region: {{ .Values.aws.region }}
-            hostedZoneID: {{ required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
-            role: {{ required "aws.roleArn is required" .Values.aws.roleArn }}
+            hostedZoneID: {{ $hostedZoneID }}
+            role: {{ $roleArn }}
             auth:
               kubernetes:
                 serviceAccountRef:

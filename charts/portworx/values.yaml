@@ -13,4 +13,11 @@ portworx:
   nfs_server: nfs-server
   nfs_policy: export-policy
 
+network:
+  cidr: ""
+  range:
+    start: ""
+    end: ""
+  routes: []
+
 nodes: []

@@ -1,3 +1,4 @@
+{{- $devices := required "list of device paths is required" .Values.volumegroup.devices }}
 apiVersion: lvm.topolvm.io/v1alpha1
 kind: LVMCluster
 metadata:
@@ -17,7 +18,7 @@ spec:
 {{ .Values.volumegroup.nodeSelector | toYaml | indent 8 }}
 {{- end }}
       deviceSelector:
-        optionalPaths: {{ required "list of device paths is required" .Values.volumegroup.devices | toJson }}
+        optionalPaths: {{ $devices | toJson }}
         forceWipeDevicesAndDestroyAllData: {{ .Values.volumegroup.forceWipe }}
       thinPoolConfig:
         name: {{ .Values.volumegroup.pool.name }}

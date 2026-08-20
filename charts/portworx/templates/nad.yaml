@@ -1,3 +1,6 @@
+{{- $cidr := required "network.cidr is required" .Values.network.cidr }}
+{{- $rangeStart := required "network.range.start is required" .Values.network.range.start }}
+{{- $rangeEnd := required "network.range.end is required" .Values.network.range.end }}
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
@@ -12,9 +15,9 @@ spec:
       "bridge": "br-storage",
       "ipam": {
         "type": "whereabouts",
-        "range": "{{ required "network.cidr is required" .Values.network.cidr }}",
-        "range_start": "{{ required "network.range.start is required" .Values.network.range.start }}",
-        "range_end": "{{ required "network.range.end is required" .Values.network.range.end }}",
+        "range": "{{ $cidr }}",
+        "range_start": "{{ $rangeStart }}",
+        "range_end": "{{ $rangeEnd }}",
         "routes": {{ .Values.network.routes | default (list) | toJson }}
       }
     }

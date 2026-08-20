@@ -1,7 +1,8 @@
+{{- $group := required "group is required" .Values.group }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ required "group is required" .Values.group }}-cluster-reader
+  name: {{ $group }}-cluster-reader
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -9,4 +10,4 @@ roleRef:
 subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
-    name: {{ required "group is required" .Values.group }}
+    name: {{ $group }}
