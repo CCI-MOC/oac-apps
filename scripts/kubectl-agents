@@ -12,5 +12,6 @@ STAGE:.status.progress.currentStage,\
 CLUSTER:.spec.clusterDeploymentName.name,\
 MACHINE:.metadata.labels.agentMachineRef,\
 VALIDATED:.status.conditions[?(.type == 'Validated')].status,\
-CONNECTED:.status.conditions[?(.type == 'Connected')].status" \
+CONNECTED:.status.conditions[?(.type == 'Connected')].status,\
+STATE:.status.debugInfo.state" \
   "$@"
