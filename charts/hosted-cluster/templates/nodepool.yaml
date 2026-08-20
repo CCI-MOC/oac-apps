@@ -1,0 +1,24 @@
+{{ range .Values.nodepools }}
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: {{ .name }}
+  namespace: clusters
+spec:
+  arch: amd64
+  clusterName: oac-prod
+  management:
+    autoRepair: false
+    upgradeType: InPlace
+  nodeDrainTimeout: 0s
+  nodeVolumeDetachTimeout: 0s
+  platform:
+    agent:
+{{ if .agentLabelSelector }}
+      {{ .agentLabelSelector | toYaml | indent 6 }}
+{{ end }}
+    type: Agent
+  release:
+    image: {{ .releaseImage | default $.Values.releaseImage }}
+  replicas: {{ .count }}
+{{ end }}

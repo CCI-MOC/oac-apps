@@ -1,0 +1,70 @@
+{{- $clusterName := required ".Values.clusterName is required" .Values.clusterName }}
+{{- $baseDomain := required ".Values.baseDomain is required" .Values.baseDomain }}
+
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: {{ $clusterName }}
+  namespace: clusters
+  labels:
+    {{ .Values.clusterLabels | toYaml | indent 4 }}
+spec:
+  controllerAvailabilityPolicy: {{ .Values.controllerAvailabilityPolicy }}
+  dns:
+    baseDomain: {{ $baseDomain }}
+  etcd:
+    managed:
+      storage:
+        persistentVolume:
+          size: {{ .Values.etcd.storage_size }}
+          storageClassName: {{ .Values.etcd.storage_class }}
+        type: PersistentVolume
+    managementType: Managed
+  fips: false
+  networking:
+    clusterNetwork:
+      - cidr: {{ .Values.networking.clusterNetwork.cidr }}
+    networkType: OVNKubernetes
+    serviceNetwork:
+      - cidr: {{ .Values.networking.serviceNetwork.cidr }}
+  olmCatalogPlacement: management
+  platform:
+    agent:
+      agentNamespace: {{ .Values.agentNamespace }}
+    type: Agent
+  pullSecret:
+    name: pull-secret
+  release:
+    image: {{ .Values.releaseImage }}
+  secretEncryption:
+    aescbc:
+      activeKey:
+        name: {{ $clusterName }}-etcd-encryption-key
+    type: aescbc
+  services:
+    - service: APIServer
+      servicePublishingStrategy:
+        type: NodePort
+        nodePort:
+          address: {{ .Values.apiServerAddress | default (printf "api-%s.%s" $clusterName $baseDomain) }}
+    - service: Ignition
+      servicePublishingStrategy:
+        type: Route
+        route:
+          hostname: {{ .Values.ignitionServerAddress | default (printf "ignition-%s.%s" $clusterName $baseDomain) }}"
+    - service: Konnectivity
+      servicePublishingStrategy:
+        type: Route
+        route:
+          hostname: {{ .Values.konnectivityServerAddress | default (printf "konnectivity-%s.%s" $clusterName $baseDomain) }}"
+    - service: OAuthServer
+      servicePublishingStrategy:
+        type: Route
+        route:
+          hostname: {{ .Values.oauthServerAddress | default (printf "oauth-%s.%s" $clusterName $baseDomain) }}"
+    - service: OIDC
+      servicePublishingStrategy:
+        type: Route
+  issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/{{ $clusterName }}"
+  sshKey:
+    name: oac-ssh-key

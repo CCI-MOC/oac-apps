@@ -1,0 +1,12 @@
+clusterName: test-cluster
+baseDomain: example.com
+releaseImage: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
+
+nodepools:
+  - name: test-compute
+    count: 1
+
+metallb:
+  enabled: true
+  addresses:
+    - 192.168.1.0/24

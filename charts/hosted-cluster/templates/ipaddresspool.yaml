@@ -1,0 +1,15 @@
+{{ if .Values.metallb.enabled | default false }}
+{{- $clusterName := required ".Values.clusterName is required" .Values.clusterName }}
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: {{ $clusterName }}
+  namespace: metallb-system
+spec:
+  addresses:
+    {{ .Values.metallb.addresses | toYaml | indent 4 }}
+  serviceAllocation:
+    namespaceSelectors:
+      - matchLabels:
+          kubernetes.io/metadata.name: clusters-{{ $clusterName }}
+{{ end }}
