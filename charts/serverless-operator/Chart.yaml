@@ -1,0 +1,5 @@
+apiVersion: v2
+name: serverless-operator
+description: Install Red Hat OpenShift Serverless operator
+type: application
+version: 0.1.0

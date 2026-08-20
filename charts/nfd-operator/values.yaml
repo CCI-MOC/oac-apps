@@ -1,0 +1,6 @@
+subscription:
+  channel: stable
+  name: nfd
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

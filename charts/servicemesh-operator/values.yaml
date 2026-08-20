@@ -1,0 +1,6 @@
+subscription:
+  channel: stable
+  name: servicemeshoperator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

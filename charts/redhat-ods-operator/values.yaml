@@ -1,0 +1,6 @@
+subscription:
+  channel: stable-3.x
+  name: rhods-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

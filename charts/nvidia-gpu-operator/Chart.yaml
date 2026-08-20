@@ -1,0 +1,5 @@
+apiVersion: v2
+name: nvidia-gpu-operator
+description: Install NVIDIA GPU operator
+type: application
+version: 0.1.0

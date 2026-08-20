@@ -1,0 +1,5 @@
+apiVersion: v2
+name: redhat-ods-operator
+description: Install Red Hat OpenShift AI operator
+type: application
+version: 0.1.0
