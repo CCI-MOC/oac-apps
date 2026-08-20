@@ -1,0 +1,23 @@
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: oac-prod-gpu
+  namespace: clusters
+spec:
+  arch: amd64
+  clusterName: oac-prod
+  management:
+    autoRepair: false
+    upgradeType: InPlace
+  nodeDrainTimeout: 0s
+  nodeVolumeDetachTimeout: 0s
+  platform:
+    agent:
+      agentLabelSelector:
+        matchLabels:
+          openstack/resource-class: lenovo-sd665nv3-h100
+          massopen.cloud/cluster: oac-dev-workload0
+    type: Agent
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
+  replicas: 2
