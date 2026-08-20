@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: oac-prod-api-certificate
+  namespace: clusters
+spec:
+  dnsNames:
+    - api-oac-prod.apps.infra.oac.int.massopen.cloud
+  duration: 2160h
+  issuerRef:
+    kind: ClusterIssuer
+    name: letsencrypt-prod-dns01
+  renewBefore: 360h
+  secretName: oac-prod-api-certificate

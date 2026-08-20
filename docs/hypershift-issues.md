@@ -163,3 +163,28 @@ done
 ```
 
 This allows the Machines to finish deleting, which unblocks the rest of the deletion chain.
+
+## namedCertificates validation rejects certs for hostnames already in KAS SANs
+
+When a custom API serving certificate is configured via `spec.configuration.apiServer.servingCerts.namedCertificates`, HyperShift validates that the certificate's DNS names do not overlap with names already present in the auto-generated kube-apiserver certificate SANs. The `nodePort.address` hostname (e.g., `api-oac-prod.apps.infra.oac.int.massopen.cloud`) is automatically included in the KAS SANs, so adding a `namedCertificate` for the same hostname triggers the conflict.
+
+The validation was added in [PR #5875](https://github.com/openshift/hypershift/pull/5875) (OCPBUGS-53261) to protect the node-to-KAS TLS trust chain — if a named certificate uses a CA that nodes don't trust, node bootstrap fails.
+
+The validation runs in two rounds in `hypershift-operator/controllers/hostedcluster/validations/ocpapiserver.go` (`ValidateOCPAPIServerSANs`):
+
+1. **Round 1:** Checks named cert DNS names against a static SAN list (localhost, kubernetes.\*, openshift.\*, api.{name}.hypershift.local). This passes.
+2. **Round 2:** Reads the actual KAS TLS cert secrets (`kas-server-private-crt`, `kas-server-crt`) from the HCP namespace, extracts their SANs, and checks again. The external hostname is in these certs (added by `support/pki/kas.go` `GetKASServerCertificatesSANs`). This fails.
+
+The result is `ValidConfiguration: False`, `ReconciliationSucceeded: False`, and `Progressing: Blocked`. The API server continues serving the internal self-signed certificate.
+
+**Workaround:** Add the skip annotation to the HostedCluster:
+
+```yaml
+metadata:
+  annotations:
+    hypershift.openshift.io/skip-kas-conflict-san-validation: "true"
+```
+
+This causes the validation to return after Round 1, skipping the conflicting SAN check. This is safe when the named certificate uses a publicly trusted CA (e.g., Let's Encrypt), since nodes will trust it during bootstrap.
+
+**Alternative (OpenShift 4.19+/MCE 2.9+):** Use `spec.kubeAPIServerDNSName` with a different DNS name that is not in the KAS SANs, combined with `namedCertificates` for that new name. HyperShift generates a `<cluster>-custom-admin-kubeconfig` secret pointing to the custom DNS name. See the [HyperShift documentation on custom KAS DNS](https://hypershift.pages.dev/how-to/configure-ocp-components/custom-kas-kubeconfig/) and [PR #5968](https://github.com/openshift/hypershift/pull/5968) for the E2E test.
