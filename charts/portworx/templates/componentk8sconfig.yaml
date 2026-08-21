@@ -3,6 +3,9 @@ kind: ComponentK8sConfig
 metadata:
   name: px-pure-csi-k8s-config
   namespace: portworx
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   components:
     - componentNames:

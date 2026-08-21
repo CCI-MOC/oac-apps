@@ -5,3 +5,6 @@ extraPlacements:
   - name: github-oauth-clusters
     matchLabels:
       massopen.cloud/feature-github-oauth: "true"
+  - name: portworx-clusters
+    matchLabels:
+      massopen.cloud/feature-portworx: "true"
