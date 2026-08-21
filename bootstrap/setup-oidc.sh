@@ -7,15 +7,18 @@ SKIP_ISSUER_UPDATE=false
 FORCE_OVERWRITE=false
 while getopts "fn" opt; do
   case "${opt}" in
-    f) FORCE_OVERWRITE=true ;;
-    n) SKIP_ISSUER_UPDATE=true ;;
-    *) echo "Usage: $0 [-f] [-n]" >&2; exit 1 ;;
+  f) FORCE_OVERWRITE=true ;;
+  n) SKIP_ISSUER_UPDATE=true ;;
+  *)
+    echo "Usage: $0 [-f] [-n]" >&2
+    exit 1
+    ;;
   esac
 done
 shift $((OPTIND - 1))
 
-: "${S3_BUCKET:?S3_BUCKET is required}"
 : "${CLUSTER_NAME:?CLUSTER_NAME is required}"
+: "${S3_BUCKET:=oac-clusters-oidc}"
 : "${AWS_REGION:=us-east-1}"
 
 # ---------------------------------------------------------------------------
