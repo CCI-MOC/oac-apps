@@ -5,6 +5,8 @@ clusterSet: default
 placement:
   name: all-managed-clusters
 
+extraPlacements: []
+
 argoServer:
   cluster: local-cluster
   namespace: openshift-gitops

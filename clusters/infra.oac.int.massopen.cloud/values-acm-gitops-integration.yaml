@@ -1,1 +1,4 @@
-{}
+extraPlacements:
+  - name: github-oauth-clusters
+    matchLabels:
+      massopen.cloud/feature-github-oauth: "true"
