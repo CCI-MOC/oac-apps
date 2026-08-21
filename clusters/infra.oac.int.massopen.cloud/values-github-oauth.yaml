@@ -1,11 +1,7 @@
-clientID: "Ov23linBP0QU3oICQ1Mf"
-
+clientID: "1bd59d9431653b8aaccd"
 secretName: github-oauth-client-secret
-
 mappingMethod: claim
-
 organizations: []
-
 teams:
   - CCI-MOC/open-accelerator
 
