@@ -1,4 +1,5 @@
 clusterDomain: oac-prod.apps.infra.oac.int.massopen.cloud
-clusterAPIDomainName: api-oac-prod.apps.infra.oac.int.massopen.cloud
-certificate:
+certificates:
   issuer_name: letsencrypt-prod-dns01
+  api:
+    enabled: false

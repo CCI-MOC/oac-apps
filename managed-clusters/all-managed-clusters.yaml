@@ -21,6 +21,8 @@ spec:
                   syncWave: "0"
                 - component: cert-manager
                   syncWave: "1"
+                - component: cluster-certificates
+                  syncWave: "2"
   template:
     metadata:
       name: "{{name}}-{{component}}"
