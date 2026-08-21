@@ -7,6 +7,30 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
+  resourceHealthChecks:
+    - group: hypershift.openshift.io
+      kind: HostedCluster
+      check: |
+        hs = {}
+        if obj.status ~= nil and obj.status.conditions ~= nil then
+          for _, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Degraded" and condition.status == "True" then
+              hs.status = "Degraded"
+              hs.message = condition.message
+              return hs
+            end
+          end
+          for _, condition in ipairs(obj.status.conditions) do
+            if condition.type == "Available" and condition.status == "True" then
+              hs.status = "Healthy"
+              hs.message = condition.message
+              return hs
+            end
+          end
+        end
+        hs.status = "Progressing"
+        hs.message = "Waiting for hosted control plane to become available"
+        return hs
   applicationSet:
     resources:
       limits:
