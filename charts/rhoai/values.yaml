@@ -1,6 +1,6 @@
 namespace: redhat-ods-operator
 operatorgroup:
-  targetNamespaces: true
+  targetNamespaces: false
 subscription:
   channel: stable
   name: rhods-operator
