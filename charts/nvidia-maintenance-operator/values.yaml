@@ -1,3 +1,6 @@
+namespace: nvidia-maintenance-operator
+operatorgroup:
+  targetNamespaces: true
 subscription:
   channel: stable
   name: nvidia-maintenance-operator

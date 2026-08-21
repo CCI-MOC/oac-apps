@@ -3,3 +3,7 @@ name: serverless-operator
 description: Install Red Hat OpenShift Serverless operator
 type: application
 version: 0.1.0
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"

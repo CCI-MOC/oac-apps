@@ -1,8 +1,12 @@
-targetNamespace: portworx
-
+namespace: portworx
+operatorgroup:
+  targetNamespaces: true
 subscription:
   channel: stable
-  installPlanApproval: automatic
+  name: portworx-certified
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
 
 externalSecret:
   secretStore: aws-secrets-manager

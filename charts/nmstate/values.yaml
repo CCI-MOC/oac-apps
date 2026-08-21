@@ -1,3 +1,8 @@
+namespace: openshift-nmstate
+
+operatorgroup:
+  targetNamespaces: true
+
 subscription:
   channel: stable
   name: kubernetes-nmstate-operator

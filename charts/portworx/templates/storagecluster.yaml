@@ -7,7 +7,7 @@ kind: StorageCluster
 apiVersion: core.libopenstorage.org/v1
 metadata:
   name: px-cluster-121a130a-d350-417f-b240-e15510f5b316
-  namespace: "{{ .Values.targetNamespace | default .Release.Namespace }}"
+  namespace: "{{ .Values.namespace }}"
   annotations:
     argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true

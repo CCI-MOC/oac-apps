@@ -1,3 +1,8 @@
+namespace: openshift-storage
+
+operatorgroup:
+  targetNamespaces: true
+
 subscription:
   name: lvms-operator
   installPlanApproval: Automatic

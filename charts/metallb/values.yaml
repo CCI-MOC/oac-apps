@@ -1,3 +1,8 @@
+namespace: metallb-system
+
+operatorgroup:
+  targetNamespaces: false
+
 subscription:
   name: metallb-operator
   installPlanApproval: Automatic

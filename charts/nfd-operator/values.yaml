@@ -1,3 +1,6 @@
+namespace: openshift-nfd
+operatorgroup:
+  targetNamespaces: true
 subscription:
   channel: stable
   name: nfd

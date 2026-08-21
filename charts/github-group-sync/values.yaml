@@ -1,5 +1,8 @@
 namespace: group-sync-operator
 
+operatorgroup:
+  targetNamespaces: true
+
 subscription:
   channel: alpha
   name: group-sync-operator

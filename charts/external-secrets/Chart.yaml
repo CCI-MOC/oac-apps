@@ -3,3 +3,8 @@ name: external-secrets
 description: External Secrets Operator with ClusterSecretStore configurations
 version: 0.1.0
 type: application
+
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"

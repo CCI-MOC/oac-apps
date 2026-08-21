@@ -1,3 +1,6 @@
+namespace: openshift-serverless
+operatorgroup:
+  targetNamespaces: false
 subscription:
   channel: stable
   name: serverless-operator

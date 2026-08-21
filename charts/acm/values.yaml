@@ -1,5 +1,8 @@
 namespace: open-cluster-management
 
+operatorgroup:
+  targetNamespaces: true
+
 subscription:
   channel: release-2.17
   name: advanced-cluster-management

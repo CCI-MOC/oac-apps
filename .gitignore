@@ -2,3 +2,5 @@ kubeconfig
 password
 .envrc
 .env
+/charts/*/charts/
+/charts/*/Chart.lock

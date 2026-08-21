@@ -1,5 +1,8 @@
 namespace: external-secrets
 
+operatorgroup:
+  targetNamespaces: false
+
 subscription:
   channel: stable-v1
   name: openshift-external-secrets-operator
