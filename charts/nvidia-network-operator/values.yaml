@@ -1,0 +1,9 @@
+namespace: nvidia-network-operator
+operatorgroup:
+  targetNamespaces: true
+subscription:
+  channel: stable
+  name: nvidia-network-operator
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

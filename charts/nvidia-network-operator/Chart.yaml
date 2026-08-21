@@ -1,0 +1,9 @@
+apiVersion: v2
+name: nvidia-maintenance-operator
+description: Install NVIDIA Maintenance operator
+type: application
+version: 0.1.0
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"

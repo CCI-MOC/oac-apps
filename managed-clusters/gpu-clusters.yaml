@@ -19,6 +19,8 @@ spec:
                   syncWave: "0"
                 - component: nfd-operator
                   syncWave: "0"
+                - component: "nvidia-network-operator"
+                  syncWave: "0"
                 - component: serverless-operator
                   syncWave: "0"
                 - component: servicemesh-operator
