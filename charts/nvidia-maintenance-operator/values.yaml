@@ -1,0 +1,6 @@
+subscription:
+  channel: stable
+  name: nvidia-maintenance-operator
+  source: certified-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
