@@ -5,7 +5,7 @@ metadata:
   namespace: clusters
 spec:
   dnsNames:
-    - api-oac-prod.apps.infra.oac.int.massopen.cloud
+    - api.oac-prod.apps.infra.oac.int.massopen.cloud
   duration: 2160h
   issuerRef:
     kind: ClusterIssuer

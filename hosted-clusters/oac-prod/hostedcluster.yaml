@@ -3,11 +3,11 @@ kind: HostedCluster
 metadata:
   name: oac-prod
   namespace: clusters
-  annotations:
-    hypershift.openshift.io/skip-kas-conflict-san-validation: "true"
+  annotations: {}
   labels:
     lars-test-label: foo
 spec:
+  kubeAPIServerDNSName: api.oac-prod.apps.infra.oac.int.massopen.cloud
   controllerAvailabilityPolicy: HighlyAvailable
   dns:
     baseDomain: apps.infra.oac.int.massopen.cloud
@@ -72,6 +72,6 @@ spec:
       servingCerts:
         namedCertificates:
           - names:
-              - api-oac-prod.apps.infra.oac.int.massopen.cloud
+              - api.oac-prod.apps.infra.oac.int.massopen.cloud
             servingCertificate:
               name: oac-prod-api-certificate
