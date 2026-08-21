@@ -1,19 +1,20 @@
+{{ if .Values.certificates.api.enabled }}
 {{- $clusterDomain := required "clusterDomain is required" .Values.clusterDomain }}
 {{- include "cluster-config.validate-issuer-kind" . -}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ .Values.certificate.api_certificate_name }}
+  name: {{ .Values.certificates.api.certificate_name }}
   namespace: openshift-config
   annotations:
-    argocd.argoproj.io/sync-wave: "3"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  secretName: {{ .Values.certificate.api_certificate_name }}
-  duration: {{ .Values.certificate.duration }}
-  renewBefore: {{ .Values.certificate.renewBefore }}
+  secretName: {{ .Values.certificates.api.certificate_name }}
+  duration: {{ .Values.certificates.duration }}
+  renewBefore: {{ .Values.certificates.renewBefore }}
   issuerRef:
-    name: {{ .Values.certificate.issuer_name }}
-    kind: {{ .Values.certificate.issuer_kind }}
+    name: {{ .Values.certificates.issuer_name }}
+    kind: {{ .Values.certificates.issuer_kind }}
   dnsNames:
     - '{{ .Values.clusterAPIDomainName | default (printf "api.%s" $clusterDomain) }}'
+{{ end }}

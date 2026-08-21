@@ -27,7 +27,7 @@ spec:
             syncWave: "1"
           - component: oac-simple-rbac
             syncWave: "1"
-          - component: cluster-config
+          - component: cluster-certificates
             syncWave: "2"
           - component: acm
             syncWave: "3"

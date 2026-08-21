@@ -1,5 +1,0 @@
-apiVersion: v2
-name: cluster-config
-description: Cluster-level configuration including OAuth and ingress
-version: 0.1.0
-type: application

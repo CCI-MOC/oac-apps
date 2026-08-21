@@ -1,13 +1,10 @@
+{{ if .Values.certificates.api.enabled }}
 {{- $clusterDomain := required "clusterDomain is required" .Values.clusterDomain }}
 apiVersion: config.openshift.io/v1
 kind: APIServer
 metadata:
-  labels:
-    nerc.mghpcc.org/kustomized: "true"
   name: cluster
   namespace: openshift-config
-  annotations:
-    argocd.argoproj.io/sync-wave: "5"
 spec:
   audit:
     profile: Default
@@ -16,4 +13,5 @@ spec:
       - names:
           - '{{ .Values.clusterAPIDomainName | default (printf "api.%s" $clusterDomain) }}'
         servingCertificate:
-          name: {{ .Values.certificate.api_certificate_name }}
+          name: {{ .Values.certificates.api.certificate_name }}
+{{ end }}

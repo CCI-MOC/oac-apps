@@ -1,4 +1,0 @@
-clusterDomain: example.cluster.local
-
-externalSecret:
-  remoteKey: example/secret-key

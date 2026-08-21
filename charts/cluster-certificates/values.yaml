@@ -1,0 +1,15 @@
+clusterDomain: ""
+
+certificates:
+  issuer_kind: ClusterIssuer
+  issuer_name: letsencrypt-staging-dns01
+  duration: 2160h
+  renewBefore: 360h
+
+  api:
+    enabled: true
+    certificate_name: default-api-certificate
+
+  ingress:
+    enabled: true
+    certificate_name: default-ingress-certificate
