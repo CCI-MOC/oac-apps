@@ -19,6 +19,10 @@ spec:
                   syncWave: "0"
                 - component: nfd-operator
                   syncWave: "0"
+                - component: serverless-operator
+                  syncWave: "0"
+                - component: servicemesh-operator
+                  syncWave: "0"
   template:
     metadata:
       name: "{{name}}-{{component}}"
