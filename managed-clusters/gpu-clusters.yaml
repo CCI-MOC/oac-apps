@@ -25,6 +25,8 @@ spec:
                   syncWave: "0"
                 - component: servicemesh-operator
                   syncWave: "0"
+                - component: rhoai
+                  syncWave: "1"
   template:
     metadata:
       name: "{{name}}-{{component}}"
