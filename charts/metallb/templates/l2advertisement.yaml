@@ -6,11 +6,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     argocd.argoproj.io/sync-wave: "2"
-{{- if .Values.addressPool }}
-{{- $poolName := required "addressPool.name is required when addressPool is defined" .Values.addressPool.name }}
+{{- if .Values.addressPools }}
 spec:
   ipAddressPools:
-    - {{ $poolName }}
+{{- range .Values.addressPools }}
+    - {{ .name }}
+{{- end }}
 {{- else }}
 spec: {}
 {{- end }}

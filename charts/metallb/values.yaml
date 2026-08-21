@@ -5,7 +5,14 @@ subscription:
   sourceNamespace: openshift-marketplace
   channel: stable
 
-# addressPool:
-#   name: default
-#   addresses:
-#     - 192.168.1.100-192.168.1.200
+# addressPools:
+#   - name: default
+#     addresses:
+#       - 192.168.1.100-192.168.1.200
+#   - name: ingress
+#     addresses:
+#       - 192.168.1.50/32
+#     serviceAllocation:
+#       namespaceSelectors:
+#         - matchLabels:
+#             kubernetes.io/metadata.name: openshift-ingress

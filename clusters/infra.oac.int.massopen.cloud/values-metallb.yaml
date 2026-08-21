@@ -1,4 +1,4 @@
-addressPool:
-  name: default
-  addresses:
-    - 10.20.3.200-10.20.3.250
+addressPools:
+  - name: default
+    addresses:
+      - 10.20.3.200-10.20.3.250

@@ -66,6 +66,13 @@ spec:
       servicePublishingStrategy:
         type: Route
   issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/oac-dev-workload0"
+  operatorConfiguration:
+    ingressOperator:
+      endpointPublishingStrategy:
+        type: LoadBalancerService
+        loadBalancer:
+          scope: External
+          dnsManagementPolicy: Unmanaged
   sshKey:
     name: oac-ssh-key
   configuration:

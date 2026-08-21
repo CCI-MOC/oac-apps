@@ -1,15 +1,18 @@
-{{- if .Values.addressPool }}
-{{- $poolName := required "addressPool.name is required when addressPool is defined" .Values.addressPool.name }}
-{{- $addresses := required "addressPool.addresses is required when addressPool is defined" .Values.addressPool.addresses }}
+{{- range .Values.addressPools }}
+---
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
-  name: {{ $poolName }}
+  name: {{ required "addressPools[].name is required" .name }}
   namespace: metallb-system
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     argocd.argoproj.io/sync-wave: "2"
 spec:
   addresses:
-{{ $addresses | toYaml | indent 4 }}
+{{ required "addressPools[].addresses is required" .addresses | toYaml | indent 4 }}
+{{- if .serviceAllocation }}
+  serviceAllocation:
+{{ .serviceAllocation | toYaml | indent 4 }}
+{{- end }}
 {{- end }}
