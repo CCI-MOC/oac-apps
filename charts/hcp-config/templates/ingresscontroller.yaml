@@ -1,0 +1,26 @@
+{{- if .Values.ingressController }}
+{{- if .Values.ingressController.enabled }}
+apiVersion: operator.openshift.io/v1
+kind: IngressController
+metadata:
+  name: hosted-clusters
+  namespace: openshift-ingress-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  domain: {{ required "ingressController.domain is required" .Values.ingressController.domain }}
+  replicas: {{ .Values.ingressController.replicas | default 2 }}
+  routeSelector:
+    matchExpressions:
+      - key: hypershift.openshift.io/hosted-control-plane
+        operator: Exists
+  namespaceSelector:
+    matchLabels:
+      hypershift.openshift.io/hosted-control-plane: "true"
+  endpointPublishingStrategy:
+    type: LoadBalancerService
+    loadBalancer:
+      scope: External
+      dnsManagementPolicy: Unmanaged
+{{- end }}
+{{- end }}

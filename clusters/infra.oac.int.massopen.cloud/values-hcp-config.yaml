@@ -1,1 +1,7 @@
-{}
+ingressController:
+  enabled: true
+  # Must not overlap with the default IngressController's domain
+  # (apps.infra.oac.int.massopen.cloud) — OpenShift rejects both
+  # exact matches and subdomains. The hosted cluster routes have
+  # explicit hostnames, so this domain is not used for routing.
+  domain: hcp.infra.oac.int.massopen.cloud

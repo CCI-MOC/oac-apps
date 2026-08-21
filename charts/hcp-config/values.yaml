@@ -1,1 +1,4 @@
-{}
+ingressController:
+  enabled: false
+  domain: ""
+  replicas: 2
