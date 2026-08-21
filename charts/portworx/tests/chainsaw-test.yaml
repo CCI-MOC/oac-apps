@@ -1,0 +1,23 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: portworx-storage
+spec:
+  description: Verify that Portworx storage is functional by creating a PVC and mounting it in a pod
+  timeouts:
+    apply: 30s
+    assert: 120s
+    cleanup: 60s
+  steps:
+    - name: Create PVC and verify it binds
+      try:
+        - apply:
+            file: pvc.yaml
+        - assert:
+            file: pvc-bound.yaml
+    - name: Create pod and verify it runs with mounted volume
+      try:
+        - apply:
+            file: pod-with-pvc.yaml
+        - assert:
+            file: pod-running.yaml
