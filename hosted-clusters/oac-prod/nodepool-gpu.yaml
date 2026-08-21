@@ -3,6 +3,8 @@ kind: NodePool
 metadata:
   name: oac-prod-gpu
   namespace: clusters
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   arch: amd64
   clusterName: oac-prod

@@ -4,6 +4,7 @@ metadata:
   name: oac-prod-etcd-encryption-key
   namespace: clusters
   annotations:
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   refreshInterval: "0"

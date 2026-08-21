@@ -3,6 +3,8 @@ kind: Certificate
 metadata:
   name: oac-prod-api-certificate
   namespace: clusters
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   dnsNames:
     - api.oac-prod.apps.infra.oac.int.massopen.cloud
