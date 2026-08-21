@@ -7,3 +7,4 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"
   labels:
     massopen.cloud/feature-gpu: "true"
+    massopen.cloud/feature-github-oauth: "true"

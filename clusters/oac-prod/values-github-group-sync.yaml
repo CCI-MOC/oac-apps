@@ -1,0 +1,4 @@
+organization: CCI-MOC
+
+externalSecret:
+  remoteKey: cluster/oac-dev-workload0/github-group-sync
