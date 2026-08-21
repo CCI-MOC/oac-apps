@@ -69,6 +69,17 @@ spec:
   sshKey:
     name: oac-ssh-key
   configuration:
+    oauth:
+      identityProviders:
+        - name: github
+          mappingMethod: claim
+          type: GitHub
+          github:
+            clientID: "1bd59d9431653b8aaccd"
+            clientSecret:
+              name: oac-prod-github-oauth-client-secret
+            teams:
+              - CCI-MOC/open-accelerator
     apiServer:
       servingCerts:
         namedCertificates:
