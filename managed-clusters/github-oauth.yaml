@@ -17,6 +17,8 @@ spec:
               elements:
                 - component: github-group-sync
                   syncWave: "0"
+                - component: oac-simple-rbac
+                  syncWave: "1"
   template:
     metadata:
       name: "{{name}}-{{component}}"
