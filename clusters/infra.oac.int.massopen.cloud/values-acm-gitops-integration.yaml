@@ -1,4 +1,4 @@
 extraPlacements:
-  - name: github-oauth-clusters
+  - name: gpu-clusters
     matchLabels:
-      massopen.cloud/feature-github-oauth: "true"
+      massopen.cloud/feature-gpu: "true"
