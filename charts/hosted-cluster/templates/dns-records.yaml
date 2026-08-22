@@ -1,0 +1,26 @@
+{{- if .Values.dns.enabled }}
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- range .Values.dns.records }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-{{ .name }}-{{ $clusterName }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ .hostname | quote }}
+    {{- if and .target .targets }}
+    {{- fail (printf "dns record %q: specify either target or targets, not both" .name) }}
+    {{- else if and (not .target) (not .targets) }}
+    {{- fail (printf "dns record %q: one of target or targets is required" .name) }}
+    {{- end }}
+    {{- if .targets }}
+    external-dns.alpha.kubernetes.io/target: {{ .targets | join "," | quote }}
+    {{- else }}
+    external-dns.alpha.kubernetes.io/target: {{ .target | quote }}
+    {{- end }}
+spec:
+  type: ExternalName
+  externalName: placeholder.invalid
+{{- end }}
+{{- end }}

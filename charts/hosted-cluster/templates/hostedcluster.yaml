@@ -1,0 +1,123 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: {{ $clusterName }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  kubeAPIServerDNSName: api.{{ $clusterName }}.{{ .Values.baseDomain }}
+  controllerAvailabilityPolicy: {{ .Values.controllerAvailabilityPolicy }}
+  dns:
+    baseDomain: {{ .Values.baseDomain }}
+  etcd:
+    managed:
+      storage:
+        persistentVolume:
+          size: {{ .Values.etcd.storageSize }}
+          storageClassName: {{ .Values.etcd.storageClassName }}
+        type: PersistentVolume
+    managementType: Managed
+  fips: {{ .Values.fips }}
+  networking:
+    clusterNetwork:
+      {{- toYaml .Values.networking.clusterNetwork | nindent 6 }}
+    networkType: {{ .Values.networking.networkType }}
+    serviceNetwork:
+      {{- toYaml .Values.networking.serviceNetwork | nindent 6 }}
+  olmCatalogPlacement: {{ .Values.olmCatalogPlacement }}
+  platform:
+    agent:
+      agentNamespace: {{ .Values.platform.agentNamespace }}
+    type: Agent
+  pullSecret:
+    name: {{ .Values.pullSecret.name }}
+  release:
+    image: {{ .Values.release.image }}
+  secretEncryption:
+    aescbc:
+      activeKey:
+        name: {{ $clusterName }}-etcd-encryption-key
+    type: aescbc
+  services:
+    - service: APIServer
+      servicePublishingStrategy:
+        {{- with (dig "APIServer" "servicePublishingStrategy" nil .Values.services) }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
+        type: NodePort
+        nodePort:
+          address: api-{{ $clusterName }}.{{ .Values.baseDomain }}
+        {{- end }}
+    - service: Ignition
+      servicePublishingStrategy:
+        {{- with (dig "Ignition" "servicePublishingStrategy" nil .Values.services) }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
+        type: Route
+        route:
+          hostname: ignition-{{ $clusterName }}.{{ .Values.baseDomain }}
+        {{- end }}
+    - service: Konnectivity
+      servicePublishingStrategy:
+        {{- with (dig "Konnectivity" "servicePublishingStrategy" nil .Values.services) }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
+        type: Route
+        route:
+          hostname: konnectivity-{{ $clusterName }}.{{ .Values.baseDomain }}
+        {{- end }}
+    - service: OAuthServer
+      servicePublishingStrategy:
+        {{- with (dig "OAuthServer" "servicePublishingStrategy" nil .Values.services) }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
+        type: NodePort
+        nodePort:
+          address: oauth-{{ $clusterName }}.{{ .Values.baseDomain }}
+        {{- end }}
+    - service: OIDC
+      servicePublishingStrategy:
+        {{- with (dig "OIDC" "servicePublishingStrategy" nil .Values.services) }}
+        {{- toYaml . | nindent 8 }}
+        {{- else }}
+        type: Route
+        {{- end }}
+  {{- if .Values.issuerURL }}
+  issuerURL: {{ .Values.issuerURL | quote }}
+  {{- else }}
+  issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/{{ $clusterName }}"
+  {{- end }}
+  operatorConfiguration:
+    ingressOperator:
+      endpointPublishingStrategy:
+        type: {{ .Values.ingress.type }}
+        loadBalancer:
+          scope: {{ .Values.ingress.scope }}
+          dnsManagementPolicy: {{ .Values.ingress.dnsManagementPolicy }}
+  sshKey:
+    name: {{ .Values.sshKey.name }}
+  configuration:
+    {{- if .Values.oauth.github.enabled }}
+    oauth:
+      identityProviders:
+        - name: github
+          mappingMethod: {{ .Values.oauth.github.mappingMethod }}
+          type: GitHub
+          github:
+            clientID: {{ .Values.oauth.github.clientID | quote }}
+            clientSecret:
+              name: {{ $clusterName }}-github-oauth-client-secret
+            {{- with .Values.oauth.github.teams }}
+            teams:
+              {{- toYaml . | nindent 14 }}
+            {{- end }}
+    {{- end }}
+    apiServer:
+      servingCerts:
+        namedCertificates:
+          - names:
+              - api.{{ $clusterName }}.{{ .Values.baseDomain }}
+            servingCertificate:
+              name: {{ $clusterName }}-api-certificate

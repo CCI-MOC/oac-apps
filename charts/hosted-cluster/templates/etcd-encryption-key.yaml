@@ -1,0 +1,20 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: {{ $clusterName }}-etcd-encryption-key
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: "0"
+  target:
+    name: {{ $clusterName }}-etcd-encryption-key
+    creationPolicy: Owner
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ClusterGenerator
+          name: etcd-encryption-key

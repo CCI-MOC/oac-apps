@@ -1,0 +1,45 @@
+clusterName: oac-prod
+
+issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/oac-dev-workload0"
+
+services:
+  OAuthServer:
+    servicePublishingStrategy:
+      type: Route
+      route:
+        hostname: oauth-oac-prod.apps.infra.oac.int.massopen.cloud
+
+oauth:
+  github:
+    enabled: true
+    clientID: "1234567890abcdef0123"
+    secretPath: cluster/oac-infra-dev/hostedcluster/oac-prod/github-oauth-client-secret
+    teams:
+      - CCI-MOC/open-accelerator
+
+nodePools:
+  - name: compute
+    replicas: 3
+    agentLabelSelector:
+      openstack/resource-class: fc830
+      massopen.cloud/cluster: oac-prod
+  - name: gpu
+    replicas: 2
+    agentLabelSelector:
+      openstack/resource-class: lenovo-sd665nv3-h100
+      massopen.cloud/cluster: oac-dev-workload0
+
+clusterLabels:
+  - gpu
+  - github-oauth
+  - portworx
+
+dns:
+  enabled: true
+  records:
+    - name: api
+      hostname: api-oac-prod.apps.infra.oac.int.massopen.cloud
+      target: 192.168.1.1
+    - name: ingress
+      hostname: "*.apps.oac-prod.apps.infra.oac.int.massopen.cloud"
+      target: 192.168.1.1

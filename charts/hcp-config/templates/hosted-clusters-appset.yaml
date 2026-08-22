@@ -20,7 +20,10 @@ spec:
       source:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
         targetRevision: main
-        path: "{{ "{{.path.path}}" }}"
+        path: charts/hosted-cluster
+        helm:
+          valueFiles:
+            - "/{{ "{{.path.path}}" }}/values.yaml"
       destination:
         server: https://kubernetes.default.svc
         namespace: clusters

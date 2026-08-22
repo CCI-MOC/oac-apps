@@ -1,0 +1,69 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wait-for-managedcluster-{{ $clusterName }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wait-for-managedcluster-{{ $clusterName }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+rules:
+  - apiGroups:
+      - cluster.open-cluster-management.io
+    resources:
+      - managedclusters
+    resourceNames:
+      - {{ $clusterName }}
+    verbs:
+      - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wait-for-managedcluster-{{ $clusterName }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wait-for-managedcluster-{{ $clusterName }}
+subjects:
+  - kind: ServiceAccount
+    name: wait-for-managedcluster-{{ $clusterName }}
+    namespace: {{ .Values.namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wait-for-managedcluster-{{ $clusterName }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: HookSucceeded
+spec:
+  backoffLimit: 30
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      serviceAccountName: wait-for-managedcluster-{{ $clusterName }}
+      restartPolicy: Never
+      containers:
+        - name: wait
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command:
+            - bash
+            - -c
+            - |
+              echo "Waiting for ManagedCluster {{ $clusterName }} to exist..."
+              until oc get managedcluster {{ $clusterName }} 2>/dev/null; do
+                echo "ManagedCluster not found yet, retrying in 10s..."
+                sleep 10
+              done
+              echo "ManagedCluster {{ $clusterName }} exists"

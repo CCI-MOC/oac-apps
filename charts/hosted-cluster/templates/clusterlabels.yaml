@@ -1,0 +1,14 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  name: {{ $clusterName }}
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+    argocd.argoproj.io/sync-wave: "2"
+  {{- with .Values.clusterLabels }}
+  labels:
+    {{- range . }}
+    massopen.cloud/feature-{{ . }}: "true"
+    {{- end }}
+  {{- end }}

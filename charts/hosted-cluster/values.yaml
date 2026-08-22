@@ -1,0 +1,69 @@
+clusterName: ""
+
+namespace: clusters
+baseDomain: apps.infra.oac.int.massopen.cloud
+
+managementCluster: oac-infra-dev
+
+controllerAvailabilityPolicy: HighlyAvailable
+
+release:
+  image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
+
+platform:
+  agentNamespace: hardware-inventory
+
+fips: false
+olmCatalogPlacement: management
+
+etcd:
+  storageSize: 8Gi
+  storageClassName: lvms-vg0
+
+networking:
+  clusterNetwork:
+    - cidr: 10.132.0.0/14
+  networkType: OVNKubernetes
+  serviceNetwork:
+    - cidr: 172.31.0.0/16
+
+oauth:
+  github:
+    enabled: false
+    clientID: ""
+    secretPath: ""
+    mappingMethod: claim
+    teams: []
+
+nodePools: []
+
+clusterLabels: []
+
+sshKey:
+  name: oac-ssh-key
+
+pullSecret:
+  name: pull-secret
+
+certificate:
+  issuer: letsencrypt-prod-dns01
+  issuerKind: ClusterIssuer
+  duration: 2160h
+  renewBefore: 360h
+
+services: {}
+
+issuerURL: ""
+
+ingress:
+  type: LoadBalancerService
+  scope: External
+  dnsManagementPolicy: Unmanaged
+
+dns:
+  enabled: false
+  records: []
+
+secretStore:
+  name: aws-secrets-manager
+  kind: ClusterSecretStore

@@ -1,0 +1,17 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $clusterName }}-api-certificate
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  dnsNames:
+    - api.{{ $clusterName }}.{{ .Values.baseDomain }}
+  duration: {{ .Values.certificate.duration }}
+  issuerRef:
+    kind: {{ .Values.certificate.issuerKind }}
+    name: {{ .Values.certificate.issuer }}
+  renewBefore: {{ .Values.certificate.renewBefore }}
+  secretName: {{ $clusterName }}-api-certificate

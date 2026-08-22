@@ -1,0 +1,28 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- range .Values.nodePools }}
+---
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: {{ $clusterName }}-{{ .name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  arch: {{ .arch | default "amd64" }}
+  clusterName: {{ $clusterName }}
+  management:
+    autoRepair: {{ .autoRepair | default false }}
+    upgradeType: {{ .upgradeType | default "InPlace" }}
+  nodeDrainTimeout: 0s
+  nodeVolumeDetachTimeout: 0s
+  platform:
+    agent:
+      agentLabelSelector:
+        matchLabels:
+          {{- toYaml .agentLabelSelector | nindent 10 }}
+    type: Agent
+  release:
+    image: {{ $.Values.release.image }}
+  replicas: {{ .replicas }}
+{{- end }}
