@@ -1,6 +1,6 @@
 apiVersion: v2
-name: nvidia-maintenance-operator
-description: Install NVIDIA Maintenance operator
+name: nvidia-network-operator
+description: Install NVIDIA Network operator
 type: application
 version: 0.1.0
 dependencies:
