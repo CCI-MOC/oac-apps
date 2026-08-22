@@ -46,9 +46,8 @@ spec:
         {{- with (dig "APIServer" "servicePublishingStrategy" nil .Values.services) }}
         {{- toYaml . | nindent 8 }}
         {{- else }}
-        type: NodePort
-        nodePort:
-          address: api-{{ $clusterName }}.{{ .Values.baseDomain }}
+        {{- $_ := required "apiServerIP is required when using the default LoadBalancer publishing strategy for the APIServer" .Values.apiServerIP }}
+        type: LoadBalancer
         {{- end }}
     - service: Ignition
       servicePublishingStrategy:
