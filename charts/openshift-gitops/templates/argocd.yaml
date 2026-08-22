@@ -59,12 +59,7 @@ spec:
         return hs
   applicationSet:
     resources:
-      limits:
-        cpu: "2"
-        memory: 1Gi
-      requests:
-        cpu: 250m
-        memory: 512Mi
+      {{- toYaml .Values.applicationSet.resources | nindent 6 }}
     webhookServer:
       ingress:
         enabled: false
@@ -73,12 +68,7 @@ spec:
   controller:
     processors: {}
     resources:
-      limits:
-        cpu: "2"
-        memory: 2Gi
-      requests:
-        cpu: 250m
-        memory: 1Gi
+      {{- toYaml .Values.controller.resources | nindent 6 }}
     sharding: {}
   grafana:
     enabled: false
@@ -109,20 +99,10 @@ spec:
     scopes: '[groups]'
   redis:
     resources:
-      limits:
-        cpu: 500m
-        memory: 256Mi
-      requests:
-        cpu: 250m
-        memory: 128Mi
+      {{- toYaml .Values.redis.resources | nindent 6 }}
   repo:
     resources:
-      limits:
-        cpu: "1"
-        memory: 1Gi
-      requests:
-        cpu: 250m
-        memory: 256Mi
+      {{- toYaml .Values.repo.resources | nindent 6 }}
   resourceExclusions: |
     - apiGroups:
       - ""
@@ -208,12 +188,7 @@ spec:
     ingress:
       enabled: false
     resources:
-      limits:
-        cpu: 500m
-        memory: 256Mi
-      requests:
-        cpu: 125m
-        memory: 128Mi
+      {{- toYaml .Values.server.resources | nindent 6 }}
     route:
       enabled: true
     service:
@@ -222,12 +197,7 @@ spec:
     dex:
       openShiftOAuth: true
       resources:
-        limits:
-          cpu: 500m
-          memory: 256Mi
-        requests:
-          cpu: 250m
-          memory: 128Mi
+        {{- toYaml .Values.dex.resources | nindent 8 }}
     provider: dex
   tls:
     ca: {}
