@@ -1,0 +1,9 @@
+namespace: external-dns-operator
+operatorgroup:
+  targetNamespaces: true
+subscription:
+  channel: stable-v1
+  name: external-dns-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
