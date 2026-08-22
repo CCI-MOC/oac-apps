@@ -7,6 +7,8 @@ kind: Service
 metadata:
   name: dns-{{ .name }}-{{ $clusterName }}
   namespace: {{ $.Values.namespace }}
+  labels:
+    massopen.cloud/external-dns: "true"
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ .hostname | quote }}
     {{- if and .target .targets }}

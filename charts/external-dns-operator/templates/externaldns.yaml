@@ -30,6 +30,10 @@ spec:
     fqdnTemplate:
       {{- toYaml . | nindent 6 }}
     {{- end }}
+    {{- with .labelFilter }}
+    labelFilter:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     {{- with .service }}
     service:
       {{- toYaml . | nindent 6 }}

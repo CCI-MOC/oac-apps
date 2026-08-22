@@ -10,5 +10,8 @@ externaldns:
         matchType: Exact
         name: int.massopen.cloud
     hostnameAnnotation: Allow
+    labelFilter:
+      matchLabels:
+        massopen.cloud/external-dns: "true"
     zones:
       - Z07788262L24MNHAVE489
