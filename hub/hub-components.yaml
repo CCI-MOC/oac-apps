@@ -52,7 +52,7 @@ spec:
         path: "charts/{{component}}"
         helm:
           valueFiles:
-            - "/clusters/oac-dev-infra/values-{{component}}.yaml"
+            - "/values/oac-dev-infra/{{component}}.yaml"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:
