@@ -1,0 +1,41 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: github-oauth
+  namespace: openshift-gitops
+spec:
+  generators:
+    - matrix:
+        generators:
+          - clusterDecisionResource:
+              configMapRef: acm-placement
+              labelSelector:
+                matchLabels:
+                  cluster.open-cluster-management.io/placement: github-oauth-clusters
+              requeueAfterSeconds: 180
+          - list:
+              elements:
+                - component: github-group-sync
+                  syncWave: "0"
+                - component: oac-simple-rbac
+                  syncWave: "1"
+  template:
+    metadata:
+      name: "{{name}}-{{component}}"
+      annotations:
+        argocd.argoproj.io/sync-wave: "{{syncWave}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{component}}"
+        helm:
+          valueFiles:
+            - "/values/{{name}}/{{component}}.yaml"
+      destination:
+        server: "{{server}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
