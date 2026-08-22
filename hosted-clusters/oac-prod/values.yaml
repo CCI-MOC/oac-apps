@@ -46,3 +46,9 @@ dns:
     - name: ingress
       hostname: "*.apps.oac-prod.apps.infra.oac.int.massopen.cloud"
       target: 129.10.5.102
+    - name: api-internal
+      hostname: api-oac-prod.apps.infra.oac.int.massopen.cloud
+      targets:
+        - 10.20.2.110
+        - 10.20.2.206
+        - 10.20.2.141
