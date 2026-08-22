@@ -7,3 +7,20 @@ subscription:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+
+externaldns: []
+# - name: aws-externaldns
+#   credentials: aws-dns-credentials
+#   externalSecret:
+#     remoteKey: path/to/secret
+#     secretStore: aws-secrets-manager
+#     # secretStoreType: ClusterSecretStore
+#   # assumeRoleArn: arn:aws:iam::123456789012:role/external-dns
+#   # hostnameAnnotation: Allow
+#   # service: {}
+#   # domains:
+#   #   - filterType: Include
+#   #     matchType: Exact
+#   #     name: example.com
+#   # zones:
+#   #   - Z1234567890

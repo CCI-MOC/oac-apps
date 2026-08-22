@@ -1,0 +1,14 @@
+externaldns:
+  - name: aws-route53
+    credentials: aws-route53-credentials
+    externalSecret:
+      remoteKey: cluster/oac-infra-dev/external-dns/aws-route53-credentials
+      secretStore: aws-secrets-manager
+      secretStoreType: ClusterSecretStore
+    domains:
+      - filterType: Include
+        matchType: Exact
+        name: int.massopen.cloud
+    hostnameAnnotation: Allow
+    zones:
+      - Z07788262L24MNHAVE489

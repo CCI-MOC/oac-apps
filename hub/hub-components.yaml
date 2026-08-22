@@ -27,6 +27,8 @@ spec:
             syncWave: "1"
           - component: oac-simple-rbac
             syncWave: "1"
+          - component: external-dns-operator
+            syncWave: "2"
           - component: cluster-certificates
             syncWave: "2"
           - component: acm

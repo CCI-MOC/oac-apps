@@ -1,0 +1,45 @@
+{{- range .Values.externaldns }}
+---
+apiVersion: externaldns.olm.openshift.io/v1beta1
+kind: ExternalDNS
+metadata:
+  name: {{ .name }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  provider:
+    type: AWS
+    aws:
+      credentials:
+        name: {{ .credentials }}
+      {{- with .assumeRoleArn }}
+      assumeRole:
+        arn: {{ . }}
+      {{- end }}
+  source:
+    type: Service
+    {{- if .hostnameAnnotation }}
+    hostnameAnnotation: {{ .hostnameAnnotation }}
+    {{- else if .fqdnTemplate }}
+    hostnameAnnotation: Ignore
+    {{- else }}
+    hostnameAnnotation: Allow
+    {{- end }}
+    {{- with .fqdnTemplate }}
+    fqdnTemplate:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .service }}
+    service:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  {{- with .domains }}
+  domains:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .zones }}
+  zones:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
