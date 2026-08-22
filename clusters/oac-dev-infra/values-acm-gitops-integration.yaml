@@ -1,10 +1,1 @@
-extraPlacements:
-  - name: gpu-clusters
-    matchLabels:
-      massopen.cloud/feature-gpu: "true"
-  - name: github-oauth-clusters
-    matchLabels:
-      massopen.cloud/feature-github-oauth: "true"
-  - name: portworx-clusters
-    matchLabels:
-      massopen.cloud/feature-portworx: "true"
+{}
