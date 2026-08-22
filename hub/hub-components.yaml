@@ -37,6 +37,8 @@ spec:
             syncWave: "4"
           - component: acm-gitops-integration
             syncWave: "4"
+          - component: acm-placements
+            syncWave: "5"
   template:
     metadata:
       name: "hub-{{component}}"
