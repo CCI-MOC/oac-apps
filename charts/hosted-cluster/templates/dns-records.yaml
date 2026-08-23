@@ -33,10 +33,10 @@ spec:
   externalName: placeholder.invalid
 {{- end }}
 
-{{- /* External DNS: service with externalIpAddress.
-       APIServer uses kubeAPIServerDNSName; other services use the service hostname. */}}
-{{- if $serviceConfig.externalIpAddress }}
+{{- /* APIServer DNS: kubeAPIServerDNSName → externalIpAddress (preferred) or ipAddress */}}
 {{- if eq $serviceName "APIServer" }}
+{{- $apiTarget := or $serviceConfig.externalIpAddress $serviceConfig.ipAddress }}
+{{- if $apiTarget }}
 ---
 apiVersion: v1
 kind: Service
@@ -47,11 +47,15 @@ metadata:
     massopen.cloud/external-dns: "true"
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ $kubeAPIServerDNSName | quote }}
-    external-dns.alpha.kubernetes.io/target: {{ $serviceConfig.externalIpAddress | quote }}
+    external-dns.alpha.kubernetes.io/target: {{ $apiTarget | quote }}
 spec:
   type: ExternalName
   externalName: placeholder.invalid
-{{- else if $hostname }}
+{{- end }}
+{{- end }}
+
+{{- /* External DNS for non-APIServer services with externalIpAddress */}}
+{{- if and (ne $serviceName "APIServer") $serviceConfig.externalIpAddress $hostname }}
 ---
 apiVersion: v1
 kind: Service
@@ -66,7 +70,6 @@ metadata:
 spec:
   type: ExternalName
   externalName: placeholder.invalid
-{{- end }}
 {{- end }}
 
 {{- end }}
