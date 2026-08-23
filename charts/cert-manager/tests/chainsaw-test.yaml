@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: cert-manager-issuance
+spec:
+  description: Verify that cert-manager can issue a certificate using the selfsigned cluster issuer
+  timeouts:
+    apply: 30s
+    assert: 120s
+    cleanup: 60s
+  steps:
+    - name: Create certificate and verify it is issued
+      try:
+        - apply:
+            file: certificate.yaml
+        - assert:
+            file: certificate-ready.yaml
+        - assert:
+            file: secret-exists.yaml
