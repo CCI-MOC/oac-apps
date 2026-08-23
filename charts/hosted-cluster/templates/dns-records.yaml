@@ -1,5 +1,83 @@
 {{- if .Values.dns.enabled }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- $kubeAPIServerDNSName := .Values.kubeAPIServerDNSName | default (printf "api.%s.%s" $clusterName .Values.baseDomain) }}
+
+{{- if .Values.dns.autoGenerate }}
+{{- $defaultPrefixes := dict "APIServer" "api" "OAuthServer" "oauth" "Ignition" "ignition" "Konnectivity" "konnectivity" }}
+{{- range $serviceName, $serviceConfig := .Values.services }}
+
+{{- /* Derive the service hostname */}}
+{{- $hostname := dig "hostname" "" $serviceConfig }}
+{{- if not $hostname }}
+  {{- $prefix := index $defaultPrefixes $serviceName }}
+  {{- if $prefix }}
+    {{- $hostname = printf "%s-%s.%s" $prefix $clusterName $.Values.baseDomain }}
+  {{- end }}
+{{- end }}
+
+{{- $strategyType := dig "servicePublishingStrategy" "type" "" $serviceConfig }}
+
+{{- /* Internal DNS: LoadBalancer with ipAddress → service hostname points to internal IP.
+       Skipped for non-APIServer services when externalIpAddress is also set, since the
+       same hostname can only have one record. */}}
+{{- $hasExternal := $serviceConfig.externalIpAddress }}
+{{- $skipInternal := and $hasExternal (ne $serviceName "APIServer") }}
+{{- if and (eq $strategyType "LoadBalancer") $serviceConfig.ipAddress $hostname (not $skipInternal) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-{{ lower $serviceName }}-internal-{{ $clusterName }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    massopen.cloud/external-dns: "true"
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ $hostname | quote }}
+    external-dns.alpha.kubernetes.io/target: {{ $serviceConfig.ipAddress | quote }}
+spec:
+  type: ExternalName
+  externalName: placeholder.invalid
+{{- end }}
+
+{{- /* External DNS: service with externalIpAddress.
+       APIServer uses kubeAPIServerDNSName; other services use the service hostname. */}}
+{{- if $serviceConfig.externalIpAddress }}
+{{- if eq $serviceName "APIServer" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-api-{{ $clusterName }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    massopen.cloud/external-dns: "true"
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ $kubeAPIServerDNSName | quote }}
+    external-dns.alpha.kubernetes.io/target: {{ $serviceConfig.externalIpAddress | quote }}
+spec:
+  type: ExternalName
+  externalName: placeholder.invalid
+{{- else if $hostname }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-{{ lower $serviceName }}-external-{{ $clusterName }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    massopen.cloud/external-dns: "true"
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ $hostname | quote }}
+    external-dns.alpha.kubernetes.io/target: {{ $serviceConfig.externalIpAddress | quote }}
+spec:
+  type: ExternalName
+  externalName: placeholder.invalid
+{{- end }}
+{{- end }}
+
+{{- end }}
+{{- end }}
+
 {{- range .Values.dns.records }}
 ---
 apiVersion: v1

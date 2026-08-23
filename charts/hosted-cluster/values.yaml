@@ -51,6 +51,8 @@ certificate:
   duration: 2160h
   renewBefore: 360h
 
+kubeAPIServerDNSName: ""
+
 services: {}
 
 issuerURL: ""
@@ -62,6 +64,7 @@ ingress:
 
 dns:
   enabled: false
+  autoGenerate: false
   records: []
 
 secretStore:
