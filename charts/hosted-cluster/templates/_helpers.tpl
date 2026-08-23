@@ -16,7 +16,7 @@ Konnectivity:
   k8sServiceName: konnectivity-server
 OAuthServer:
   prefix: oauth
-  defaultType: NodePort
+  defaultType: Route
   k8sServiceName: oauth-openshift
 OIDC:
   prefix: ""

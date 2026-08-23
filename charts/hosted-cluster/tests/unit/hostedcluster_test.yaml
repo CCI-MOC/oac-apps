@@ -16,16 +16,16 @@ tests:
               nodePort:
                 address: api-test-cluster.apps.infra.oac.int.massopen.cloud
 
-  - it: should default OAuthServer to NodePort with derived hostname
+  - it: should default OAuthServer to Route with derived hostname
     asserts:
       - contains:
           path: spec.services
           content:
             service: OAuthServer
             servicePublishingStrategy:
-              type: NodePort
-              nodePort:
-                address: oauth-test-cluster.apps.infra.oac.int.massopen.cloud
+              type: Route
+              route:
+                hostname: oauth-test-cluster.apps.infra.oac.int.massopen.cloud
 
   - it: should use LoadBalancer with derived hostname when strategy type is LoadBalancer
     set:
