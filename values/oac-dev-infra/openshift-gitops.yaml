@@ -4,7 +4,7 @@ controller:
       cpu: "4"
       memory: 8Gi
     requests:
-      cpu: 1
+      cpu: "1"
       memory: 2Gi
 
 repo:
