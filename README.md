@@ -2,22 +2,34 @@
 
 ArgoCD-managed configuration for the OAC OpenShift clusters. A bootstrap Application discovers ApplicationSets, which deploy Helm charts to the hub and managed clusters using ACM placements.
 
+## Requirements
+
+If you are working with this repository you will need:
+
+- [helm](https://helm.sh)
+
+You may want:
+
+- [ct](https://github.com/helm/chart-testing) the chart testing tool
+- [kustomize](https://kustomize.io/) because everyone loves kustomize
+- [chainsaw](github.com/kyverno/chainsaw) for writing declarative tests of kubernetes
+
 ## Repository structure
 
-```
-bootstrap/              One-time setup: bootstrap Application and OIDC scripts
-applicationsets/        ArgoCD ApplicationSets (discovered by bootstrap)
-  hub/                  ApplicationSets targeting the hub cluster
-  managed/              ApplicationSets targeting managed (spoke) clusters via ACM
-charts/                 Helm charts, one per component
-  operator-library/     Shared library chart providing helpers for operator installation
-values/                 Per-cluster Helm values overrides
-  oac-dev-infra/        Values for the hub/infrastructure cluster
-  oac-prod/             Values for the oac-prod managed cluster
-hosted-clusters/        HyperShift hosted cluster definitions
-scripts/                Operational and CI scripts
-docs/                   Documentation
-```
+| Directory                  | Description                                                      |
+| -------------------------- | ---------------------------------------------------------------- |
+| `bootstrap/`               | One-time setup: bootstrap Application and OIDC scripts           |
+| `applicationsets/`         | ArgoCD ApplicationSets (discovered by bootstrap)                 |
+| `applicationsets/hub/`     | ApplicationSets targeting the hub cluster                        |
+| `applicationsets/managed/` | ApplicationSets targeting managed (spoke) clusters via ACM       |
+| `charts/`                  | Helm charts, one per component                                   |
+| `charts/operator-library/` | Shared library chart providing helpers for operator installation |
+| `values/`                  | Per-cluster Helm values overrides                                |
+| `values/oac-dev-infra/`    | Values for the hub/infrastructure cluster                        |
+| `values/oac-prod/`         | Values for the oac-prod managed cluster                          |
+| `hosted-clusters/`         | HyperShift hosted cluster definitions                            |
+| `scripts/`                 | Operational and CI scripts                                       |
+| `docs/`                    | Documentation                                                    |
 
 ## How it works
 
