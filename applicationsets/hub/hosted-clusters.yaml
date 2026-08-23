@@ -13,7 +13,7 @@ spec:
           - path: hosted-clusters/*
   template:
     metadata:
-      name: "cluster-{{ "{{.path.basename}}" }}"
+      name: "cluster-{{.path.basename}}"
       namespace: openshift-gitops
     spec:
       project: default
@@ -23,7 +23,7 @@ spec:
         path: charts/hosted-cluster
         helm:
           valueFiles:
-            - "/{{ "{{.path.path}}" }}/values.yaml"
+            - "/{{.path.path}}/values.yaml"
       destination:
         server: https://kubernetes.default.svc
         namespace: clusters
