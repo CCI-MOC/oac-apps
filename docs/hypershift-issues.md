@@ -1,5 +1,24 @@
 # HyperShift bugs encountered during oac-prod deployment
 
+## Issues by priority
+
+Ordered from most to least severe, weighing impact, how often the issue recurs
+in normal operation, and the quality of the available workaround.
+
+| # | Priority | Issue |
+|---|----------|-------|
+| 1 | P0 | [In-cluster API access fails with TLS error when using Route-based API publishing](#in-cluster-api-access-fails-with-tls-error-when-using-route-based-api-publishing) |
+| 2 | P0 | [CAPI MachineSet creates unbounded Machine objects when agents are installing](#capi-machineset-creates-unbounded-machine-objects-when-agents-are-installing) |
+| 3 | P0 | [NetworkPolicy blocks Route-published services](#networkpolicy-blocks-route-published-services) |
+| 4 | P0 | [Agents stuck reclaiming after HostedCluster destroy-and-recreate](#agents-stuck-reclaiming-after-hostedcluster-destroy-and-recreate) |
+| 5 | P1 | [namedCertificates with NodePort publishing breaks kubelet TLS trust](#namedcertificates-with-nodeport-publishing-breaks-kubelet-tls-trust) |
+| 6 | P2 | [Stale ignition CA due to race condition in assisted-service](#stale-ignition-ca-due-to-race-condition-in-assisted-service) |
+| 7 | P2 | [HostedCluster deletion stuck on AgentMachine pre-terminate hook](#hostedcluster-deletion-stuck-on-agentmachine-pre-terminate-hook) |
+| 8 | P2 | [namedCertificates validation rejects certs for hostnames already in KAS SANs](#namedcertificates-validation-rejects-certs-for-hostnames-already-in-kas-sans) |
+| 9 | P2 | [Default IngressController routeSelector excludes HCP routes](#default-ingresscontroller-routeselector-excludes-hcp-routes) |
+| 10 | P3 | [Missing labels on hosted control plane services prevents MetalLB targeting](#missing-labels-on-hosted-control-plane-services-prevents-metallb-targeting) |
+| 11 | P3 | [etcd peer certificates have IP addresses as DNS SANs instead of IP SANs](#etcd-peer-certificates-have-ip-addresses-as-dns-sans-instead-of-ip-sans) |
+
 ## NetworkPolicy blocks Route-published services
 
 When using the Agent platform with Route as the service publishing strategy, the HyperShift operator creates a `same-namespace` NetworkPolicy in the hosted control plane namespace (`clusters-oac-prod`) that restricts ingress to pods within the same namespace. This blocks the OpenShift router pods (in `openshift-ingress`) from reaching HCP service backends, causing Layer 4 timeouts for ignition-server-proxy, oauth, and konnectivity. Only kube-apiserver is unaffected because it has a separate `kas` NetworkPolicy that allows ingress from any source on port 6443.
