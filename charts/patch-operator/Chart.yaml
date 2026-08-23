@@ -1,0 +1,9 @@
+apiVersion: v2
+name: patch-operator
+description: Install patch-operator for enforcing resource labels and annotations
+type: application
+version: 0.1.0
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"
