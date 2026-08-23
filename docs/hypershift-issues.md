@@ -5,19 +5,18 @@
 Ordered from most to least severe, weighing impact, how often the issue recurs
 in normal operation, and the quality of the available workaround.
 
-| # | Priority | Issue |
-|---|----------|-------|
-| 1 | P0 | [In-cluster API access fails with TLS error when using Route-based API publishing](#in-cluster-api-access-fails-with-tls-error-when-using-route-based-api-publishing) |
-| 2 | P0 | [CAPI MachineSet creates unbounded Machine objects when agents are installing](#capi-machineset-creates-unbounded-machine-objects-when-agents-are-installing) |
-| 3 | P0 | [NetworkPolicy blocks Route-published services](#networkpolicy-blocks-route-published-services) |
-| 4 | P0 | [Agents stuck reclaiming after HostedCluster destroy-and-recreate](#agents-stuck-reclaiming-after-hostedcluster-destroy-and-recreate) |
-| 5 | P1 | [namedCertificates with NodePort publishing breaks kubelet TLS trust](#namedcertificates-with-nodeport-publishing-breaks-kubelet-tls-trust) |
-| 6 | P2 | [Stale ignition CA due to race condition in assisted-service](#stale-ignition-ca-due-to-race-condition-in-assisted-service) |
-| 7 | P2 | [HostedCluster deletion stuck on AgentMachine pre-terminate hook](#hostedcluster-deletion-stuck-on-agentmachine-pre-terminate-hook) |
-| 8 | P2 | [namedCertificates validation rejects certs for hostnames already in KAS SANs](#namedcertificates-validation-rejects-certs-for-hostnames-already-in-kas-sans) |
-| 9 | P2 | [Default IngressController routeSelector excludes HCP routes](#default-ingresscontroller-routeselector-excludes-hcp-routes) |
-| 10 | P3 | [Missing labels on hosted control plane services prevents MetalLB targeting](#missing-labels-on-hosted-control-plane-services-prevents-metallb-targeting) |
-| 11 | P3 | [etcd peer certificates have IP addresses as DNS SANs instead of IP SANs](#etcd-peer-certificates-have-ip-addresses-as-dns-sans-instead-of-ip-sans) |
+| Priority | Issue                                                                                                                                                                 |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0       | [In-cluster API access fails with TLS error when using Route-based API publishing](#in-cluster-api-access-fails-with-tls-error-when-using-route-based-api-publishing) |
+| P0       | [CAPI MachineSet creates unbounded Machine objects when agents are installing](#capi-machineset-creates-unbounded-machine-objects-when-agents-are-installing)         |
+| P0       | [NetworkPolicy blocks Route-published services](#networkpolicy-blocks-route-published-services)                                                                       |
+| P0       | [Agents stuck reclaiming after HostedCluster destroy-and-recreate](#agents-stuck-reclaiming-after-hostedcluster-destroy-and-recreate)                                 |
+| P1       | [namedCertificates with NodePort publishing breaks kubelet TLS trust](#namedcertificates-with-nodeport-publishing-breaks-kubelet-tls-trust)                           |
+| P2       | [Stale ignition CA due to race condition in assisted-service](#stale-ignition-ca-due-to-race-condition-in-assisted-service)                                           |
+| P2       | [HostedCluster deletion stuck on AgentMachine pre-terminate hook](#hostedcluster-deletion-stuck-on-agentmachine-pre-terminate-hook)                                   |
+| P2       | [namedCertificates validation rejects certs for hostnames already in KAS SANs](#namedcertificates-validation-rejects-certs-for-hostnames-already-in-kas-sans)         |
+| P3       | [Missing labels on hosted control plane services prevents MetalLB targeting](#missing-labels-on-hosted-control-plane-services-prevents-metallb-targeting)             |
+| P3       | [etcd peer certificates have IP addresses as DNS SANs instead of IP SANs](#etcd-peer-certificates-have-ip-addresses-as-dns-sans-instead-of-ip-sans)                   |
 
 ## NetworkPolicy blocks Route-published services
 
@@ -48,11 +47,15 @@ spec:
 
 This workaround must be applied per HCP namespace. Every new HostedCluster deploys its control plane into a new namespace with the same restrictive `same-namespace` NetworkPolicy, so this problem will recur for each cluster. The correct fix is in the HyperShift operator itself — it should either include an ingress-allowing NetworkPolicy when Route publishing is configured, or not create a policy that is incompatible with its own routes.
 
+<!--
+Removed because I'm not sure if this was hypershift or a copy-and-paste from an old config.
+
 ## Default IngressController routeSelector excludes HCP routes
 
 The HyperShift operator labels all HCP routes with `hypershift.openshift.io/hosted-control-plane`. If the management cluster's default IngressController has a `routeSelector` with `operator: DoesNotExist` for this label (as is the case when a dedicated HCP IngressController was previously configured), these routes are excluded from the default router. The routes appear admitted in their status, but the router does not serve them, and connections fall through to default TLS termination with the wildcard certificate.
 
 **Fix:** Remove the `routeSelector` exclusion from the default IngressController if no dedicated HCP IngressController exists.
+-->
 
 ## In-cluster API access fails with TLS error when using Route-based API publishing
 
