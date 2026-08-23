@@ -15,11 +15,13 @@ spec:
               requeueAfterSeconds: 180
           - list:
               elements:
-                - component: nvidia-gpu-operator
                 - component: nfd-operator
+                - component: nvidia-gpu-operator
+                - component: nvidia-maintenance-operator
                 - component: nvidia-network-operator
                 - component: serverless-operator
                 - component: servicemesh-operator
+                # component: sriov-network-operator
                 - component: rhoai
   template:
     metadata:
