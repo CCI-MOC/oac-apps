@@ -167,6 +167,44 @@ tests:
                 address: api-test-cluster.apps.infra.oac.int.massopen.cloud
                 port: 12345
 
+  - it: should not render labels when hostedCluster.labels is empty
+    asserts:
+      - notExists:
+          path: metadata.labels
+
+  - it: should render custom labels on the HostedCluster
+    set:
+      hostedCluster:
+        labels:
+          my-label: my-value
+          another-label: another-value
+    asserts:
+      - equal:
+          path: metadata.labels.my-label
+          value: my-value
+      - equal:
+          path: metadata.labels.another-label
+          value: another-value
+
+  - it: should always include the sync-wave annotation
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "0"
+
+  - it: should merge custom annotations with sync-wave
+    set:
+      hostedCluster:
+        annotations:
+          argocd.argoproj.io/sync-options: Replace=true
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "0"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: Replace=true
+
   - it: should let strategy-level hostname override derived hostname
     set:
       services:

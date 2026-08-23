@@ -1,6 +1,10 @@
 clusterName: ""
 
 namespace: clusters
+
+hostedCluster:
+  labels: {}
+  annotations: {}
 baseDomain: apps.infra.oac.int.massopen.cloud
 
 managementCluster: oac-infra-dev

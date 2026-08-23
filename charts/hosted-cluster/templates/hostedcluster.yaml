@@ -5,8 +5,15 @@ kind: HostedCluster
 metadata:
   name: {{ $clusterName }}
   namespace: {{ .Values.namespace }}
+  {{- with .Values.hostedCluster.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    {{- with .Values.hostedCluster.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   kubeAPIServerDNSName: {{ $kubeAPIServerDNSName }}
   controllerAvailabilityPolicy: {{ .Values.controllerAvailabilityPolicy }}
