@@ -16,18 +16,12 @@ spec:
           - list:
               elements:
                 - component: external-secrets
-                  syncWave: "0"
                 - component: metallb
-                  syncWave: "0"
                 - component: cert-manager
-                  syncWave: "1"
                 - component: cluster-certificates
-                  syncWave: "2"
   template:
     metadata:
       name: "{{name}}-{{component}}"
-      annotations:
-        argocd.argoproj.io/sync-wave: "{{syncWave}}"
     spec:
       project: default
       source:
@@ -43,3 +37,9 @@ spec:
         automated:
           prune: true
           selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m

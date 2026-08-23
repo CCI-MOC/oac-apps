@@ -16,14 +16,10 @@ spec:
           - list:
               elements:
                 - component: github-group-sync
-                  syncWave: "0"
                 - component: oac-simple-rbac
-                  syncWave: "1"
   template:
     metadata:
       name: "{{name}}-{{component}}"
-      annotations:
-        argocd.argoproj.io/sync-wave: "{{syncWave}}"
     spec:
       project: default
       source:
@@ -39,3 +35,9 @@ spec:
         automated:
           prune: true
           selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m

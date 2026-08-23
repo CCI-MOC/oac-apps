@@ -16,22 +16,14 @@ spec:
           - list:
               elements:
                 - component: nvidia-gpu-operator
-                  syncWave: "0"
                 - component: nfd-operator
-                  syncWave: "0"
-                - component: "nvidia-network-operator"
-                  syncWave: "0"
+                - component: nvidia-network-operator
                 - component: serverless-operator
-                  syncWave: "0"
                 - component: servicemesh-operator
-                  syncWave: "0"
                 - component: rhoai
-                  syncWave: "1"
   template:
     metadata:
       name: "{{name}}-{{component}}"
-      annotations:
-        argocd.argoproj.io/sync-wave: "{{syncWave}}"
     spec:
       project: default
       source:
@@ -47,3 +39,9 @@ spec:
         automated:
           prune: true
           selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m
