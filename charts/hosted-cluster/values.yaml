@@ -51,8 +51,6 @@ certificate:
   duration: 2160h
   renewBefore: 360h
 
-apiServerIP: ""
-
 services: {}
 
 issuerURL: ""

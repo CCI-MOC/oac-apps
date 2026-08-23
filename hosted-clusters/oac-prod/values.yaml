@@ -3,11 +3,6 @@ clusterName: oac-prod
 issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/oac-dev-workload0"
 
 services:
-  APIServer:
-    servicePublishingStrategy:
-      type: NodePort
-      nodePort:
-        address: api-oac-prod.apps.infra.oac.int.massopen.cloud
   OAuthServer:
     servicePublishingStrategy:
       type: Route
