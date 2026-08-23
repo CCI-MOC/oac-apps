@@ -1,1 +1,5 @@
+{{/*
+  This operator installs into the shared "openshift-operators" namespace, which
+  already exists and has a global OperatorGroup. We only need the subscription.
+*/}}
 {{ include "operator-library.subscription" . }}
