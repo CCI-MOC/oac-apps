@@ -1,0 +1,188 @@
+suite: DNS records template
+templates:
+  - templates/dns-records.yaml
+set:
+  clusterName: test-cluster
+  dns:
+    enabled: true
+    autoGenerate: true
+
+tests:
+  - it: should generate internal DNS for LoadBalancer service with ipAddress
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-apiserver-internal-test-cluster
+          any: true
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: "api-test-cluster.apps.infra.oac.int.massopen.cloud"
+        documentSelector:
+          path: metadata.name
+          value: dns-apiserver-internal-test-cluster
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/target"]
+          value: "10.20.5.10"
+        documentSelector:
+          path: metadata.name
+          value: dns-apiserver-internal-test-cluster
+
+  - it: should generate external DNS for APIServer with externalIpAddress
+    set:
+      services:
+        APIServer:
+          externalIpAddress: "129.10.5.101"
+          servicePublishingStrategy:
+            type: NodePort
+    asserts:
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-api-test-cluster
+          any: true
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: "api.test-cluster.apps.infra.oac.int.massopen.cloud"
+        documentSelector:
+          path: metadata.name
+          value: dns-api-test-cluster
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/target"]
+          value: "129.10.5.101"
+        documentSelector:
+          path: metadata.name
+          value: dns-api-test-cluster
+
+  - it: should use overridden kubeAPIServerDNSName for external APIServer DNS
+    set:
+      kubeAPIServerDNSName: api.custom.example.com
+      services:
+        APIServer:
+          externalIpAddress: "129.10.5.101"
+          servicePublishingStrategy:
+            type: NodePort
+    asserts:
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: "api.custom.example.com"
+        documentSelector:
+          path: metadata.name
+          value: dns-api-test-cluster
+
+  - it: should generate both internal and external DNS for APIServer
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+          externalIpAddress: "129.10.5.101"
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-apiserver-internal-test-cluster
+          any: true
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-api-test-cluster
+          any: true
+
+  - it: should skip internal DNS for non-APIServer when externalIpAddress is set
+    set:
+      services:
+        OAuthServer:
+          ipAddress: "10.20.5.11"
+          externalIpAddress: "129.10.5.101"
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-oauthserver-external-test-cluster
+          any: true
+
+  - it: should use custom hostname in DNS records
+    set:
+      services:
+        APIServer:
+          hostname: custom-api.example.com
+          ipAddress: "10.20.5.10"
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: "custom-api.example.com"
+        documentSelector:
+          path: metadata.name
+          value: dns-apiserver-internal-test-cluster
+
+  - it: should not generate auto DNS when autoGenerate is false
+    set:
+      dns:
+        enabled: true
+        autoGenerate: false
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render manual records alongside auto-generated ones
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+          servicePublishingStrategy:
+            type: LoadBalancer
+      dns:
+        enabled: true
+        autoGenerate: true
+        records:
+          - name: ingress
+            hostname: "*.apps.test-cluster.apps.infra.oac.int.massopen.cloud"
+            target: "10.20.5.100"
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-apiserver-internal-test-cluster
+          any: true
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-ingress-test-cluster
+          any: true
+
+  - it: should not generate any DNS when disabled
+    set:
+      dns:
+        enabled: false
+        autoGenerate: true
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - hasDocuments:
+          count: 0

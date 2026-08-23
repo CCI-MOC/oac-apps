@@ -1,0 +1,100 @@
+suite: IPAddressPool and L2Advertisement templates
+templates:
+  - templates/apiserver-ipaddresspool.yaml
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should not generate resources when no service has ipAddress
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should generate IPAddressPool and L2Advertisement for service with ipAddress
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          kind: IPAddressPool
+          apiVersion: metallb.io/v1beta1
+          name: test-cluster-apiserver
+          any: true
+      - containsDocument:
+          kind: L2Advertisement
+          apiVersion: metallb.io/v1beta1
+          name: test-cluster-apiserver
+          any: true
+
+  - it: should use the correct IP address in the pool
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - equal:
+          path: spec.addresses[0]
+          value: "10.20.5.10/32"
+        documentIndex: 0
+
+  - it: should reference the pool in the L2Advertisement
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - equal:
+          path: spec.ipAddressPools[0]
+          value: test-cluster-apiserver
+        documentIndex: 1
+
+  - it: should generate resources for multiple services with ipAddress
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+        OAuthServer:
+          ipAddress: "10.20.5.11"
+    asserts:
+      - hasDocuments:
+          count: 4
+      - containsDocument:
+          kind: IPAddressPool
+          apiVersion: metallb.io/v1beta1
+          name: test-cluster-apiserver
+          any: true
+      - containsDocument:
+          kind: IPAddressPool
+          apiVersion: metallb.io/v1beta1
+          name: test-cluster-oauthserver
+          any: true
+      - containsDocument:
+          kind: L2Advertisement
+          apiVersion: metallb.io/v1beta1
+          name: test-cluster-apiserver
+          any: true
+      - containsDocument:
+          kind: L2Advertisement
+          apiVersion: metallb.io/v1beta1
+          name: test-cluster-oauthserver
+          any: true
+
+  - it: should not generate resources for services without ipAddress
+    set:
+      services:
+        APIServer:
+          servicePublishingStrategy:
+            type: LoadBalancer
+        OAuthServer:
+          ipAddress: "10.20.5.11"
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          kind: IPAddressPool
+          apiVersion: metallb.io/v1beta1
+          name: test-cluster-oauthserver
+          any: true
