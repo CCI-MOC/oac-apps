@@ -296,3 +296,38 @@ metadata:
 This causes the validation to return after Round 1, skipping the conflicting SAN check. This is safe when the named certificate uses a publicly trusted CA (e.g., Let's Encrypt), since nodes will trust it during bootstrap.
 
 **Alternative (OpenShift 4.19+/MCE 2.9+):** Use `spec.kubeAPIServerDNSName` with a different DNS name that is not in the KAS SANs, combined with `namedCertificates` for that new name. HyperShift generates a `<cluster>-custom-admin-kubeconfig` secret pointing to the custom DNS name. See the [HyperShift documentation on custom KAS DNS](https://hypershift.pages.dev/how-to/configure-ocp-components/custom-kas-kubeconfig/) and [PR #5968](https://github.com/openshift/hypershift/pull/5968) for the E2E test.
+
+## CAPI MachineSet creates unbounded Machine objects when agents are installing
+
+When a new HostedCluster is created on the Agent platform, the CAPI MachineSet controller can enter a runaway loop, creating Machine objects far in excess of the NodePool's `spec.replicas`. During the `oac-dev-workload1` deployment (2026-08-23), a NodePool with `replicas: 2` resulted in over 19,000 Machine and AgentMachine objects within approximately 20 minutes, while the MachineSet consistently reported `DESIRED=2, REPLICAS=0`.
+
+The problem occurs while agents are legitimately progressing through their normal installation lifecycle (`installing-in-progress` / `Rebooting`). The MachineSet controller does not count Machines in blank or `Pending` phase as existing replicas toward its desired count. Because agents take time to complete installation, no Machines reach a phase that the controller recognizes as "existing," so it continuously creates new Machines to satisfy the shortfall.
+
+With 3 agents labeled for the cluster and thousands of AgentMachine objects competing to claim them, all 3 agents were bound — despite only 2 being requested. The excess Machine objects also place unnecessary load on the API server and etcd.
+
+The MachineSet status during the incident:
+
+```
+NAME                        CLUSTER                   DESIRED   REPLICAS   READY   AVAILABLE
+oac-dev-workload1-compute   oac-dev-workload1-878cj   2         0
+```
+
+Machine phase distribution (~19,000 total):
+
+| Phase | Count |
+|-------|-------|
+| *(blank)* | ~15,500 |
+| Pending | ~2,400 |
+| Provisioning/Running | 0 |
+
+The previous cluster deployment (`oac-prod`) did not exhibit this behavior — or at least not to a degree that was noticed.
+
+**Immediate response:** Scale the NodePool to 0 replicas to stop the creation loop:
+
+```bash
+oc scale nodepool oac-dev-workload1-compute -n clusters --replicas=0
+```
+
+The controller must then delete all accumulated Machine objects before the NodePool can be safely scaled back up.
+
+**Workaround:** None known. The root cause appears to be in the CAPI MachineSet controller's replica-counting logic, which does not account for Machines that exist but have not yet reached a recognized phase. Scaling up must be done carefully, monitoring for runaway Machine creation and scaling back to 0 if it recurs.
