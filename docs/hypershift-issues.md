@@ -252,6 +252,26 @@ This is the failure mode that the `ValidateOCPAPIServerSANs` validation (see nex
 
 **Note:** After removing the named certificate, the admin kubeconfig (which had no `certificate-authority-data` because the Let's Encrypt cert was publicly trusted) will fail TLS verification against the internal cert. Add `insecure-skip-tls-verify: true` to the kubeconfig cluster entry as a temporary workaround, or add the internal root-ca to `certificate-authority-data`.
 
+## Missing labels on hosted control plane services prevents MetalLB targeting
+
+HyperShift applies inconsistent labels to the services it creates in the hosted control plane namespace. Some services (e.g., `kube-apiserver`) have useful labels like `app=kube-apiserver` and `hypershift.openshift.io/control-plane-component=kube-apiserver`, while others (e.g., `oauth-openshift`) have no labels at all.
+
+Observed labels in `clusters-oac-prod` (2026-08-22):
+
+| Service | Labels |
+|---------|--------|
+| `kube-apiserver` | `app=kube-apiserver`, `hypershift.openshift.io/control-plane-component=kube-apiserver` |
+| `oauth-openshift` | *(none)* |
+| `router` | `app=private-router` |
+| `ignition-server` | *(none)* |
+| `konnectivity-server` | *(none)* |
+
+This creates a problem when using MetalLB to assign specific IP addresses to individual LoadBalancer services. MetalLB's `IPAddressPool` resource supports `serviceAllocation.serviceSelectors` to route a pool's addresses to services matching a label selector. When multiple services in the same namespace need distinct IP addresses, label-based selection is the only precise targeting mechanism — `serviceAllocation.namespaces` scopes to a namespace but cannot distinguish between services within it.
+
+Without labels on `oauth-openshift`, there is no way to create an `IPAddressPool` that targets only that service. The workaround is priority-based allocation: assign the labeled service (`kube-apiserver`) a pool with a `serviceSelector` and higher priority, then assign the unlabeled service a pool scoped only by namespace with lower priority. This works when exactly two LoadBalancer services exist in the namespace, but is fragile — any additional LoadBalancer service would be assigned the wrong IP.
+
+The correct fix is for the HyperShift operator to apply consistent, predictable labels (at minimum `app` and `hypershift.openshift.io/control-plane-component`) to all services it creates, not just a subset.
+
 ## namedCertificates validation rejects certs for hostnames already in KAS SANs
 
 When a custom API serving certificate is configured via `spec.configuration.apiServer.servingCerts.namedCertificates`, HyperShift validates that the certificate's DNS names do not overlap with names already present in the auto-generated kube-apiserver certificate SANs. The `nodePort.address` hostname (e.g., `api-oac-prod.apps.infra.oac.int.massopen.cloud`) is automatically included in the KAS SANs, so adding a `namedCertificate` for the same hostname triggers the conflict.

@@ -1,4 +1,5 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- $kubeAPIServerDNSName := .Values.kubeAPIServerDNSName | default (printf "api.%s.%s" $clusterName .Values.baseDomain) }}
 apiVersion: hypershift.openshift.io/v1beta1
 kind: HostedCluster
 metadata:
@@ -7,7 +8,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  kubeAPIServerDNSName: api.{{ $clusterName }}.{{ .Values.baseDomain }}
+  kubeAPIServerDNSName: {{ $kubeAPIServerDNSName }}
   controllerAvailabilityPolicy: {{ .Values.controllerAvailabilityPolicy }}
   dns:
     baseDomain: {{ .Values.baseDomain }}
@@ -41,49 +42,26 @@ spec:
         name: {{ $clusterName }}-etcd-encryption-key
     type: aescbc
   services:
-    - service: APIServer
+    {{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
+    {{- range $serviceName := list "APIServer" "Ignition" "Konnectivity" "OAuthServer" "OIDC" }}
+    {{- $svcDef := index $allDefaults $serviceName }}
+    {{- $serviceConfig := dig $serviceName dict $.Values.services }}
+    {{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "clusterName" $clusterName "baseDomain" $.Values.baseDomain) }}
+    {{- $strategyType := dig "servicePublishingStrategy" "type" $svcDef.defaultType $serviceConfig }}
+    {{- $autoStrategy := dict "type" $strategyType }}
+    {{- if and $hostname (eq $strategyType "NodePort") }}
+      {{- $_ := set $autoStrategy "nodePort" (dict "address" $hostname) }}
+    {{- else if and $hostname (eq $strategyType "LoadBalancer") }}
+      {{- $_ := set $autoStrategy "loadBalancer" (dict "hostname" $hostname) }}
+    {{- else if and $hostname (eq $strategyType "Route") }}
+      {{- $_ := set $autoStrategy "route" (dict "hostname" $hostname) }}
+    {{- end }}
+    {{- $userStrategy := dig "servicePublishingStrategy" dict $serviceConfig }}
+    {{- $finalStrategy := mustMergeOverwrite (deepCopy $autoStrategy) $userStrategy }}
+    - service: {{ $serviceName }}
       servicePublishingStrategy:
-        {{- with (dig "APIServer" "servicePublishingStrategy" nil .Values.services) }}
-        {{- toYaml . | nindent 8 }}
-        {{- else }}
-        type: NodePort
-        nodePort:
-          address: api-{{ $clusterName }}.{{ .Values.baseDomain }}
-        {{- end }}
-    - service: Ignition
-      servicePublishingStrategy:
-        {{- with (dig "Ignition" "servicePublishingStrategy" nil .Values.services) }}
-        {{- toYaml . | nindent 8 }}
-        {{- else }}
-        type: Route
-        route:
-          hostname: ignition-{{ $clusterName }}.{{ .Values.baseDomain }}
-        {{- end }}
-    - service: Konnectivity
-      servicePublishingStrategy:
-        {{- with (dig "Konnectivity" "servicePublishingStrategy" nil .Values.services) }}
-        {{- toYaml . | nindent 8 }}
-        {{- else }}
-        type: Route
-        route:
-          hostname: konnectivity-{{ $clusterName }}.{{ .Values.baseDomain }}
-        {{- end }}
-    - service: OAuthServer
-      servicePublishingStrategy:
-        {{- with (dig "OAuthServer" "servicePublishingStrategy" nil .Values.services) }}
-        {{- toYaml . | nindent 8 }}
-        {{- else }}
-        type: NodePort
-        nodePort:
-          address: oauth-{{ $clusterName }}.{{ .Values.baseDomain }}
-        {{- end }}
-    - service: OIDC
-      servicePublishingStrategy:
-        {{- with (dig "OIDC" "servicePublishingStrategy" nil .Values.services) }}
-        {{- toYaml . | nindent 8 }}
-        {{- else }}
-        type: Route
-        {{- end }}
+        {{- toYaml $finalStrategy | nindent 8 }}
+    {{- end }}
   {{- if .Values.issuerURL }}
   issuerURL: {{ .Values.issuerURL | quote }}
   {{- else }}
@@ -118,6 +96,6 @@ spec:
       servingCerts:
         namedCertificates:
           - names:
-              - api.{{ $clusterName }}.{{ .Values.baseDomain }}
+              - {{ $kubeAPIServerDNSName }}
             servingCertificate:
               name: {{ $clusterName }}-api-certificate

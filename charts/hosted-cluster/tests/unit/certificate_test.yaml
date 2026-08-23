@@ -1,0 +1,20 @@
+suite: API certificate template
+templates:
+  - templates/certificate-api.yaml
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should default dnsNames from clusterName and baseDomain
+    asserts:
+      - equal:
+          path: spec.dnsNames[0]
+          value: api.test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should use overridden kubeAPIServerDNSName
+    set:
+      kubeAPIServerDNSName: api.custom.example.com
+    asserts:
+      - equal:
+          path: spec.dnsNames[0]
+          value: api.custom.example.com

@@ -1,0 +1,186 @@
+suite: HostedCluster template
+templates:
+  - templates/hostedcluster.yaml
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should default APIServer to NodePort with derived hostname
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: NodePort
+              nodePort:
+                address: api-test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should default OAuthServer to NodePort with derived hostname
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: OAuthServer
+            servicePublishingStrategy:
+              type: NodePort
+              nodePort:
+                address: oauth-test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should use LoadBalancer with derived hostname when strategy type is LoadBalancer
+    set:
+      services:
+        APIServer:
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: LoadBalancer
+              loadBalancer:
+                hostname: api-test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should use custom hostname in LoadBalancer strategy
+    set:
+      services:
+        APIServer:
+          hostname: custom-api.example.com
+          servicePublishingStrategy:
+            type: LoadBalancer
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: LoadBalancer
+              loadBalancer:
+                hostname: custom-api.example.com
+
+  - it: should use custom hostname in NodePort strategy
+    set:
+      services:
+        APIServer:
+          hostname: custom-api.example.com
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: NodePort
+              nodePort:
+                address: custom-api.example.com
+
+  - it: should use custom hostname in Route strategy
+    set:
+      services:
+        OAuthServer:
+          hostname: custom-oauth.example.com
+          servicePublishingStrategy:
+            type: Route
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: OAuthServer
+            servicePublishingStrategy:
+              type: Route
+              route:
+                hostname: custom-oauth.example.com
+
+  - it: should default Ignition and Konnectivity to Route with derived hostnames
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: Ignition
+            servicePublishingStrategy:
+              type: Route
+              route:
+                hostname: ignition-test-cluster.apps.infra.oac.int.massopen.cloud
+      - contains:
+          path: spec.services
+          content:
+            service: Konnectivity
+            servicePublishingStrategy:
+              type: Route
+              route:
+                hostname: konnectivity-test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should default OIDC to Route with no hostname
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: OIDC
+            servicePublishingStrategy:
+              type: Route
+
+  - it: should default kubeAPIServerDNSName from clusterName and baseDomain
+    asserts:
+      - equal:
+          path: spec.kubeAPIServerDNSName
+          value: api.test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should allow overriding kubeAPIServerDNSName
+    set:
+      kubeAPIServerDNSName: api.custom.example.com
+    asserts:
+      - equal:
+          path: spec.kubeAPIServerDNSName
+          value: api.custom.example.com
+
+  - it: should use kubeAPIServerDNSName in named certificate
+    asserts:
+      - equal:
+          path: spec.configuration.apiServer.servingCerts.namedCertificates[0].names[0]
+          value: api.test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should use overridden kubeAPIServerDNSName in named certificate
+    set:
+      kubeAPIServerDNSName: api.custom.example.com
+    asserts:
+      - equal:
+          path: spec.configuration.apiServer.servingCerts.namedCertificates[0].names[0]
+          value: api.custom.example.com
+
+  - it: should preserve additional strategy fields from values
+    set:
+      services:
+        APIServer:
+          servicePublishingStrategy:
+            type: NodePort
+            nodePort:
+              port: 12345
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: NodePort
+              nodePort:
+                address: api-test-cluster.apps.infra.oac.int.massopen.cloud
+                port: 12345
+
+  - it: should let strategy-level hostname override derived hostname
+    set:
+      services:
+        APIServer:
+          servicePublishingStrategy:
+            type: LoadBalancer
+            loadBalancer:
+              hostname: explicit.example.com
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: LoadBalancer
+              loadBalancer:
+                hostname: explicit.example.com

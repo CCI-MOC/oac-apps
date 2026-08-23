@@ -1,0 +1,23 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- range $serviceName, $serviceConfig := .Values.services }}
+{{- if $serviceConfig.ipAddress }}
+---
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: {{ $clusterName }}-{{ lower $serviceName }}
+  namespace: metallb-system
+spec:
+  addresses:
+    - {{ $serviceConfig.ipAddress }}/32
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: {{ $clusterName }}-{{ lower $serviceName }}
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - {{ $clusterName }}-{{ lower $serviceName }}
+{{- end }}
+{{- end }}

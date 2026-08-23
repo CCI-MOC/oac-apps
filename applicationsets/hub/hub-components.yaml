@@ -19,6 +19,8 @@ spec:
             syncWave: "1"
           - component: cert-manager
             syncWave: "1"
+          - component: patch-operator
+            syncWave: "1"
           - component: portworx
             syncWave: "1"
           - component: github-oauth

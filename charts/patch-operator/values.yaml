@@ -1,0 +1,9 @@
+namespace: patch-operator
+operatorgroup:
+  targetNamespaces: false
+subscription:
+  channel: alpha
+  name: patch-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

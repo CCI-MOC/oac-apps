@@ -1,0 +1,128 @@
+suite: Service patches template
+templates:
+  - templates/service-patches.yaml
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should not generate resources when no service has ipAddress
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should generate RBAC and Patch CR for service with ipAddress
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - hasDocuments:
+          count: 4
+      - containsDocument:
+          kind: ServiceAccount
+          apiVersion: v1
+          name: test-cluster-patch-operator
+          any: true
+      - containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: test-cluster-patch-operator
+          any: true
+      - containsDocument:
+          kind: RoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: test-cluster-patch-operator
+          any: true
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: test-cluster-apiserver-metallb
+          any: true
+
+  - it: should create resources in the HCP namespace
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: clusters-test-cluster
+        documentSelector:
+          path: kind
+          value: ServiceAccount
+      - equal:
+          path: metadata.namespace
+          value: clusters-test-cluster
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should target the correct k8s service name for APIServer
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - equal:
+          path: spec.patches.metallb-pool.targetObjectRef.name
+          value: kube-apiserver
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should target oauth-openshift for OAuthServer
+    set:
+      services:
+        OAuthServer:
+          ipAddress: "10.20.5.11"
+    asserts:
+      - equal:
+          path: spec.patches.metallb-pool.targetObjectRef.name
+          value: oauth-openshift
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should reference the correct IPAddressPool in the annotation
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - matchRegex:
+          path: spec.patches.metallb-pool.patchTemplate
+          pattern: "metallb.universe.tf/address-pool: test-cluster-apiserver"
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should fail for service with ipAddress but no k8s service mapping
+    set:
+      services:
+        OIDC:
+          ipAddress: "10.20.5.12"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'service "OIDC" has ipAddress but no known k8s service name mapping'
+
+  - it: should generate one Patch CR per service with ipAddress
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+        OAuthServer:
+          ipAddress: "10.20.5.11"
+    asserts:
+      - hasDocuments:
+          count: 5
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: test-cluster-apiserver-metallb
+          any: true
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: test-cluster-oauthserver-metallb
+          any: true
