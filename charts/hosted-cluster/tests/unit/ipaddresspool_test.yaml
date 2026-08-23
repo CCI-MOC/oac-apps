@@ -1,6 +1,6 @@
 suite: IPAddressPool and L2Advertisement templates
 templates:
-  - templates/apiserver-ipaddresspool.yaml
+  - templates/ipaddresspool.yaml
 set:
   clusterName: test-cluster
 

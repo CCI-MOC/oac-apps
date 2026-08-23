@@ -97,6 +97,15 @@ tests:
           path: kind
           value: Patch
 
+  - it: should fail for service with ipAddress but no k8s service mapping
+    set:
+      services:
+        OIDC:
+          ipAddress: "10.20.5.12"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'service "OIDC" has ipAddress but no known k8s service name mapping'
+
   - it: should generate one Patch CR per service with ipAddress
     set:
       services:

@@ -42,33 +42,25 @@ spec:
         name: {{ $clusterName }}-etcd-encryption-key
     type: aescbc
   services:
-    {{- $serviceDefaults := list
-      (dict "name" "APIServer" "prefix" "api" "defaultType" "NodePort")
-      (dict "name" "Ignition" "prefix" "ignition" "defaultType" "Route")
-      (dict "name" "Konnectivity" "prefix" "konnectivity" "defaultType" "Route")
-      (dict "name" "OAuthServer" "prefix" "oauth" "defaultType" "NodePort")
-      (dict "name" "OIDC" "prefix" "" "defaultType" "Route")
-    }}
-    {{- range $svc := $serviceDefaults }}
-    {{- $serviceConfig := dig $svc.name dict $.Values.services }}
-    {{- $hostname := dig "hostname" "" $serviceConfig }}
-    {{- if and (not $hostname) $svc.prefix }}
-      {{- $hostname = printf "%s-%s.%s" $svc.prefix $clusterName $.Values.baseDomain }}
+    {{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
+    {{- range $serviceName := list "APIServer" "Ignition" "Konnectivity" "OAuthServer" "OIDC" }}
+    {{- $svcDef := index $allDefaults $serviceName }}
+    {{- $serviceConfig := dig $serviceName dict $.Values.services }}
+    {{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "clusterName" $clusterName "baseDomain" $.Values.baseDomain) }}
+    {{- $strategyType := dig "servicePublishingStrategy" "type" $svcDef.defaultType $serviceConfig }}
+    {{- $autoStrategy := dict "type" $strategyType }}
+    {{- if and $hostname (eq $strategyType "NodePort") }}
+      {{- $_ := set $autoStrategy "nodePort" (dict "address" $hostname) }}
+    {{- else if and $hostname (eq $strategyType "LoadBalancer") }}
+      {{- $_ := set $autoStrategy "loadBalancer" (dict "hostname" $hostname) }}
+    {{- else if and $hostname (eq $strategyType "Route") }}
+      {{- $_ := set $autoStrategy "route" (dict "hostname" $hostname) }}
     {{- end }}
-    {{- $strategyType := dig "servicePublishingStrategy" "type" $svc.defaultType $serviceConfig }}
-    - service: {{ $svc.name }}
+    {{- $userStrategy := dig "servicePublishingStrategy" dict $serviceConfig }}
+    {{- $finalStrategy := mustMergeOverwrite (deepCopy $autoStrategy) $userStrategy }}
+    - service: {{ $serviceName }}
       servicePublishingStrategy:
-        type: {{ $strategyType }}
-        {{- if and $hostname (eq $strategyType "NodePort") }}
-        nodePort:
-          address: {{ $hostname }}
-        {{- else if and $hostname (eq $strategyType "LoadBalancer") }}
-        loadBalancer:
-          hostname: {{ $hostname }}
-        {{- else if and $hostname (eq $strategyType "Route") }}
-        route:
-          hostname: {{ $hostname }}
-        {{- end }}
+        {{- toYaml $finalStrategy | nindent 8 }}
     {{- end }}
   {{- if .Values.issuerURL }}
   issuerURL: {{ .Values.issuerURL | quote }}

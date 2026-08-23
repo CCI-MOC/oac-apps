@@ -3,17 +3,11 @@
 {{- $kubeAPIServerDNSName := .Values.kubeAPIServerDNSName | default (printf "api.%s.%s" $clusterName .Values.baseDomain) }}
 
 {{- if .Values.dns.autoGenerate }}
-{{- $defaultPrefixes := dict "APIServer" "api" "OAuthServer" "oauth" "Ignition" "ignition" "Konnectivity" "konnectivity" }}
+{{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
 
-{{- /* Derive the service hostname */}}
-{{- $hostname := dig "hostname" "" $serviceConfig }}
-{{- if not $hostname }}
-  {{- $prefix := index $defaultPrefixes $serviceName }}
-  {{- if $prefix }}
-    {{- $hostname = printf "%s-%s.%s" $prefix $clusterName $.Values.baseDomain }}
-  {{- end }}
-{{- end }}
+{{- $svcDef := dig $serviceName dict $allDefaults }}
+{{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" (dig "prefix" "" $svcDef) "clusterName" $clusterName "baseDomain" $.Values.baseDomain) }}
 
 {{- $strategyType := dig "servicePublishingStrategy" "type" "" $serviceConfig }}
 

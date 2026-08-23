@@ -147,3 +147,40 @@ tests:
       - equal:
           path: spec.configuration.apiServer.servingCerts.namedCertificates[0].names[0]
           value: api.custom.example.com
+
+  - it: should preserve additional strategy fields from values
+    set:
+      services:
+        APIServer:
+          servicePublishingStrategy:
+            type: NodePort
+            nodePort:
+              port: 12345
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: NodePort
+              nodePort:
+                address: api-test-cluster.apps.infra.oac.int.massopen.cloud
+                port: 12345
+
+  - it: should let strategy-level hostname override derived hostname
+    set:
+      services:
+        APIServer:
+          servicePublishingStrategy:
+            type: LoadBalancer
+            loadBalancer:
+              hostname: explicit.example.com
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: LoadBalancer
+              loadBalancer:
+                hostname: explicit.example.com

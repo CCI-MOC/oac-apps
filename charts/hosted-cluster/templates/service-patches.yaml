@@ -1,6 +1,6 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- $hcpNamespace := printf "%s-%s" .Values.namespace $clusterName }}
-{{- $serviceMap := dict "APIServer" "kube-apiserver" "OAuthServer" "oauth-openshift" "Ignition" "ignition-server" "Konnectivity" "konnectivity-server" }}
+{{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
 {{- $hasPatches := false }}
 {{- range $serviceConfig := .Values.services }}
 {{- if $serviceConfig.ipAddress }}
@@ -46,7 +46,11 @@ subjects:
     namespace: {{ $hcpNamespace }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.ipAddress }}
-{{- $k8sServiceName := index $serviceMap $serviceName }}
+{{- $svcDef := dig $serviceName dict $allDefaults }}
+{{- $k8sServiceName := dig "k8sServiceName" "" $svcDef }}
+{{- if not $k8sServiceName }}
+  {{- fail (printf "service %q has ipAddress but no known k8s service name mapping" $serviceName) }}
+{{- end }}
 ---
 apiVersion: redhatcop.redhat.io/v1alpha1
 kind: Patch
