@@ -1,0 +1,21 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: lvmcluster-storage
+spec:
+  description: Verify that LVM storage is functional by creating a PVC and mounting it in a pod
+  timeouts:
+    apply: 30s
+    assert: 120s
+    cleanup: 60s
+  steps:
+    - name: Create PVC and pod, verify both are ready
+      try:
+        - apply:
+            file: pvc.yaml
+        - apply:
+            file: pod-with-pvc.yaml
+        - assert:
+            file: pvc-bound.yaml
+        - assert:
+            file: pod-running.yaml

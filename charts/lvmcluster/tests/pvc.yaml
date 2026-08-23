@@ -5,7 +5,7 @@ metadata:
 spec:
   accessModes:
     - "ReadWriteOnce"
-  storageClassName: "pure-fb-nfsv4"
+  storageClassName: "lvms-vg0"
   resources:
     requests:
       storage: "1Gi"
