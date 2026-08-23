@@ -24,6 +24,11 @@ fi
 
 echo "Logged in as $(oc whoami) to $(oc whoami --show-server)"
 
+# The openshift-gitops chart depends on the operator-library chart, which
+# must be vendored into charts/ before "helm template" can render it.
+echo "Building chart dependencies..."
+helm dependency build "${REPO_ROOT}/charts/openshift-gitops"
+
 # ---------------------------------------------------------------------------
 # Step 1: Install OpenShift GitOps operator
 # ---------------------------------------------------------------------------
@@ -33,7 +38,7 @@ echo "=== Step 1: OpenShift GitOps operator ==="
 
 echo "Installing OpenShift GitOps operator..."
 helm template openshift-gitops "${REPO_ROOT}/charts/openshift-gitops" \
-  --show-only templates/subscription.yaml |
+  --show-only templates/operator.yaml |
   oc apply -f -
 
 echo "Waiting for operator to become available..."

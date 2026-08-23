@@ -1,3 +1,5 @@
+namespace: openshift-operators
+
 subscription:
   channel: latest
   name: openshift-gitops-operator
