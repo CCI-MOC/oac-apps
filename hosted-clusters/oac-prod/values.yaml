@@ -15,7 +15,7 @@ oauth:
     clientID: "1bd59d9431653b8aaccd"
     secretPath: cluster/oac-infra-dev/hostedcluster/oac-prod/github-oauth-client-secret
     teams:
-      - CCI-MOC/open-accelerator
+      - CCI-MOC/open-accelerator-admins
 
 nodePools:
   - name: compute
