@@ -9,6 +9,8 @@ data:
     {{- if .Values.proxy.access_log }}
       log stdout format raw local0
     {{- end }}
+      maxconn {{ .Values.proxy.maxconn }}
+      nbthread {{ .Values.proxy.threads }}
 
     defaults
       mode http
@@ -16,9 +18,13 @@ data:
       log global
       option httplog
     {{- end }}
-      timeout connect 5s
-      timeout client 30s
-      timeout server 30s
+      http-reuse safe
+      timeout connect {{ .Values.proxy.timeouts.connect }}
+      timeout client {{ .Values.proxy.timeouts.client }}
+      timeout server {{ .Values.proxy.timeouts.server }}
+      timeout http-request {{ .Values.proxy.timeouts.httpRequest }}
+      timeout http-keep-alive {{ .Values.proxy.timeouts.httpKeepAlive }}
+      timeout queue {{ .Values.proxy.timeouts.queue }}
 
     frontend ft_storage_insecure
       bind *:8080
@@ -34,13 +40,13 @@ data:
     {{- if .Values.backend.host }}
       http-request set-header Host {{ .Values.backend.host }}
     {{- end }}
-      server storage "{{ required "backend.address is required" .Values.backend.address }}:80"
+      server storage "{{ required "backend.address is required" .Values.backend.address }}:80"{{ if .Values.proxy.backendCheck }} check inter 5s{{ end }} maxconn {{ .Values.proxy.maxconn }}
 
     backend bk_storage_secure
     {{- if .Values.backend.host }}
       http-request set-header Host {{ .Values.backend.host }}
     {{- end }}
-      server storage "{{ required "backend.address is required" .Values.backend.address }}:443" ssl {{ if .Values.backend.verify }}verify required{{ if .Values.backend.cacert }} ca-file /usr/local/etc/haproxy/backend-ca.crt{{ end }}{{ else }}verify none{{ end }}{{ if .Values.backend.host }} sni str({{ .Values.backend.host }}){{ end }}
+      server storage "{{ required "backend.address is required" .Values.backend.address }}:443" ssl {{ if .Values.backend.verify }}verify required{{ if .Values.backend.cacert }} ca-file /usr/local/etc/haproxy/backend-ca.crt{{ end }}{{ else }}verify none{{ end }}{{ if .Values.backend.host }} sni str({{ .Values.backend.host }}){{ end }}{{ if .Values.proxy.backendCheck }} check inter 5s{{ end }} maxconn {{ .Values.proxy.maxconn }}
 {{- if and .Values.backend.verify .Values.backend.cacert }}
   backend-ca.crt: |
 {{ .Values.backend.cacert | indent 4 }}

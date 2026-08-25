@@ -32,7 +32,9 @@ Proxy (`templates/deployment.yaml`)
   across nodes. It terminates TLS on 8443 and serves plain HTTP on 8080,
   forwarding to the backend. `/healthz` backs the liveness and readiness
   probes. An init container concatenates the certificate and key into the
-  single bundle HAProxy expects.
+  single bundle HAProxy expects. Timeouts, thread count, connection limits
+  and resource requests/limits are tuned for object storage transfers via
+  the `proxy` values.
 
 Service (`templates/service.yaml`)
 : A ClusterIP Service with a pinned `clusterIP` (default `172.31.0.53`),
@@ -75,6 +77,11 @@ Secondary network (`templates/nad.yaml`)
 | `proxy.replicas` | Number of HAProxy replicas. |
 | `proxy.image` | HAProxy image. |
 | `proxy.access_log` | Enables HAProxy access logging to stdout. |
+| `proxy.threads` | HAProxy worker threads. Set to match the CPU limit. |
+| `proxy.maxconn` | Maximum concurrent connections, global and per backend server. |
+| `proxy.backendCheck` | Adds a TCP health check to the backend server. |
+| `proxy.timeouts` | Connect, client, server, http-request, http-keep-alive and queue timeouts. Client and server are inactivity timeouts; raise them for large transfers. |
+| `proxy.resources` | Resource requests and limits for the HAProxy container. |
 
 ## Operational notes
 

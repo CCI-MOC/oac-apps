@@ -42,7 +42,7 @@ spec:
               mountPath: /etc/haproxy/certs
       containers:
         - name: haproxy
-          image: docker.io/haproxy:lts-alpine
+          image: {{ .Values.proxy.image }}
           ports:
             - name: http
               containerPort: 8080
@@ -69,6 +69,8 @@ spec:
               port: http
             initialDelaySeconds: 2
             periodSeconds: 5
+          resources:
+            {{- toYaml .Values.proxy.resources | nindent 12 }}
       volumes:
         - name: haproxy-config
           configMap:

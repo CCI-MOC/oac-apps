@@ -11,4 +11,4 @@ externalSecret:
   remoteKey: path/to/key
 
 service:
-  clusterIp: 4.3.2.1
+  clusterIP: 4.3.2.1

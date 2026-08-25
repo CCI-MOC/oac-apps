@@ -26,6 +26,36 @@ proxy:
   image: docker.io/haproxy:lts-alpine
   # Log requests to stdout (haproxy access logging).
   access_log: true
+  # Number of HAProxy worker threads. Set this to match the CPU limit:
+  # HAProxy counts host CPUs, not the cgroup limit, so leaving it to
+  # auto-detect oversubscribes threads on a limited container.
+  threads: 2
+  # Maximum concurrent connections, applied globally and per backend
+  # server. Memory scales roughly with maxconn, so raise the memory
+  # limit if you increase this.
+  maxconn: 2000
+  # Add a TCP health check to the backend server so HAProxy detects an
+  # unreachable backend instead of failing live requests.
+  backendCheck: true
+  # HAProxy timeouts. client and server are inactivity timeouts; raise
+  # them for large object transfers, especially over slow links.
+  timeouts:
+    connect: 5s
+    client: 300s
+    server: 300s
+    httpRequest: 10s
+    httpKeepAlive: 10s
+    queue: 30s
+  # Resource requests and limits for the HAProxy container. HAProxy is
+  # memory-light and CPU-bound on TLS; scale cpu with throughput and
+  # memory with maxconn.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 128Mi
+    limits:
+      cpu: "2"
+      memory: 512Mi
 
 service:
   clusterIP: 172.31.0.53
