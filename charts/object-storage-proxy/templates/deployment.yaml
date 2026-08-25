@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: object-storage-proxy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: object-storage-proxy
+spec:
+  replicas: {{ .Values.proxy.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: object-storage-proxy
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: object-storage-proxy
+      annotations:
+        k8s.v1.cni.cncf.io/networks: {{ .Values.network.name }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: object-storage-proxy
+              topologyKey: kubernetes.io/hostname
+      initContainers:
+        - name: bundle-cert
+          image: {{ .Values.proxy.image }}
+          command:
+            [
+              "sh",
+              "-c",
+              "cat /etc/haproxy/tls/tls.crt /etc/haproxy/tls/tls.key > /etc/haproxy/certs/bundle.pem",
+            ]
+          volumeMounts:
+            - name: serving-cert
+              mountPath: /etc/haproxy/tls
+              readOnly: true
+            - name: cert-bundle
+              mountPath: /etc/haproxy/certs
+      containers:
+        - name: haproxy
+          image: docker.io/haproxy:lts-alpine
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          volumeMounts:
+            - name: haproxy-config
+              mountPath: /usr/local/etc/haproxy
+              readOnly: true
+            - name: cert-bundle
+              mountPath: /etc/haproxy/certs
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+      volumes:
+        - name: haproxy-config
+          configMap:
+            name: haproxy-config
+        - name: serving-cert
+          secret:
+            secretName: object-storage-certificate
+        - name: cert-bundle
+          emptyDir: {}

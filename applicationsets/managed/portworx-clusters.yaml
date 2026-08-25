@@ -16,7 +16,11 @@ spec:
           - list:
               elements:
                 - component: nmstate
+                  namespace: openshift-nmstate
                 - component: portworx
+                  namespace: portworx
+                - component: object-storage-proxy
+                  namespace: object-storage-proxy
   template:
     metadata:
       name: "{{name}}-{{component}}"
@@ -31,10 +35,13 @@ spec:
             - "/values/{{name}}/{{component}}.yaml"
       destination:
         server: "{{server}}"
+        namespace: "{{namespace}}"
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
         retry:
           limit: 5
           backoff:

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: haproxy-config
+  namespace: {{ .Release.Namespace }}
+data:
+  haproxy.cfg: |
+    global
+    {{- if .Values.proxy.access_log }}
+      log stdout format raw local0
+    {{- end }}
+
+    defaults
+      mode http
+    {{- if .Values.proxy.access_log }}
+      log global
+      option httplog
+    {{- end }}
+      timeout connect 5s
+      timeout client 30s
+      timeout server 30s
+
+    frontend ft_storage_insecure
+      bind *:8080
+      monitor-uri /healthz
+      default_backend bk_storage_insecure
+
+    frontend ft_storage_secure
+      bind *:8443 ssl crt /etc/haproxy/certs/bundle.pem
+      monitor-uri /healthz
+      default_backend bk_storage_secure
+
+    backend bk_storage_insecure
+    {{- if .Values.backend.host }}
+      http-request set-header Host {{ .Values.backend.host }}
+    {{- end }}
+      server storage "{{ required "backend.address is required" .Values.backend.address }}:80"
+
+    backend bk_storage_secure
+    {{- if .Values.backend.host }}
+      http-request set-header Host {{ .Values.backend.host }}
+    {{- end }}
+      server storage "{{ required "backend.address is required" .Values.backend.address }}:443" ssl {{ if .Values.backend.verify }}verify required{{ if .Values.backend.cacert }} ca-file /usr/local/etc/haproxy/backend-ca.crt{{ end }}{{ else }}verify none{{ end }}{{ if .Values.backend.host }} sni str({{ .Values.backend.host }}){{ end }}
+{{- if and .Values.backend.verify .Values.backend.cacert }}
+  backend-ca.crt: |
+{{ .Values.backend.cacert | indent 4 }}
+{{- end }}

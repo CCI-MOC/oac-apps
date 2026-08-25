@@ -24,6 +24,7 @@ spec:
           - component: hcp-config
           - component: acm-gitops-integration
           - component: acm-placements
+          - component: object-storage-certificate
   template:
     metadata:
       name: "hub-{{component}}"

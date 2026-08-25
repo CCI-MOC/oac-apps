@@ -1,0 +1,34 @@
+{{- /*
+The Route53 DNS-01 solver authenticates via a projected ServiceAccount token
+(auth.kubernetes.serviceAccountRef). cert-manager mints that token using the
+TokenRequest API, which requires permission to create the serviceaccounts/token
+subresource for the referenced ServiceAccount.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: object-storage-certificate-token-request
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["object-storage-certificate"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: object-storage-certificate-token-request
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: object-storage-certificate-token-request
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.certManager.serviceAccountName }}
+    namespace: {{ .Values.certManager.namespace }}

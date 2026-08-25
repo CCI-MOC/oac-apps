@@ -1,0 +1,5 @@
+apiVersion: v2
+name: object-storage-certificate
+description: cert-manager Issuer and Certificate for storage.massopen.cloud using a Route53 DNS-01 solver
+version: 0.1.0
+type: application

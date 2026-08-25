@@ -1,0 +1,31 @@
+externalSecret:
+  secretStore: aws-secrets-manager
+  secretStoreType: ClusterSecretStore
+  remoteKey: ""
+
+backend:
+  address: ""
+  # Override the Host header (and TLS SNI for the secure backend) sent
+  # to the backend. When empty, requests are forwarded with the Host
+  # header from the incoming client request unchanged.
+  host: ""
+  # Whether HAProxy verifies the backend's TLS certificate on the secure
+  # backend. Defaults to false, which preserves the previous behaviour of
+  # not validating the upstream certificate.
+  verify: false
+  # Custom CA certificate (PEM) to validate the backend certificate
+  # against. Only used when backend.verify is true; when empty, HAProxy
+  # verifies against its default trust store.
+  cacert: ""
+
+network:
+  name: storage-network
+
+proxy:
+  replicas: 2
+  image: docker.io/haproxy:lts-alpine
+  # Log requests to stdout (haproxy access logging).
+  access_log: true
+
+service:
+  clusterIP: 172.31.0.53

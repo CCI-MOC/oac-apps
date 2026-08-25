@@ -1,0 +1,14 @@
+network:
+  cidr: "192.168.1.0/24"
+  range:
+    start: "192.168.1.10"
+    end: "192.168.1.254"
+
+backend:
+  address: 1.2.3.4
+
+externalSecret:
+  remoteKey: path/to/key
+
+service:
+  clusterIp: 4.3.2.1

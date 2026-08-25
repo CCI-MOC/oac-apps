@@ -1,0 +1,5 @@
+apiVersion: v2
+name: object-storage-proxy
+description: Proxy access to object storage server
+version: 0.1.0
+type: application

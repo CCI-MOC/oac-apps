@@ -1,0 +1,23 @@
+{{- $cidr := required "network.cidr is required" .Values.network.cidr }}
+{{- $rangeStart := required "network.range.start is required" .Values.network.range.start }}
+{{- $rangeEnd := required "network.range.end is required" .Values.network.range.end }}
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: storage-network
+  namespace: {{ .Release.Namespace }}
+spec:
+  config: |-
+    {
+      "cniVersion": "0.3.1",
+      "name": "br-storage",
+      "type": "bridge",
+      "bridge": "br-storage",
+      "ipam": {
+        "type": "whereabouts",
+        "range": "{{ $cidr }}",
+        "range_start": "{{ $rangeStart }}",
+        "range_end": "{{ $rangeEnd }}",
+        "routes": {{ .Values.network.routes | default (list) | toJson }}
+      }
+    }

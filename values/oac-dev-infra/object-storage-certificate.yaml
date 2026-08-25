@@ -1,0 +1,13 @@
+aws:
+  roleArn: "arn:aws:iam::574733721584:role/object-storage-certificate-oac-infra-dev"
+  hostedZoneID: "Z07246491XT60591PYHTQ"
+
+letsencrypt:
+  server: https://acme-v02.api.letsencrypt.org/directory
+  email: "contact@massopen.cloud"
+
+certificate:
+  dnsName: storage.massopen.cloud
+  secretName: object-storage-certificate
+  duration: 2160h
+  renewBefore: 360h

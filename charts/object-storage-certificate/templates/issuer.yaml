@@ -1,0 +1,27 @@
+{{- $email := required "letsencrypt.email is required" .Values.letsencrypt.email }}
+{{- $hostedZoneID := required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
+{{- $roleArn := required "aws.roleArn is required" .Values.aws.roleArn }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: object-storage-certificate
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  acme:
+    server: {{ .Values.letsencrypt.server }}
+    email: {{ $email }}
+    privateKeySecretRef:
+      name: object-storage-certificate-acme
+    solvers:
+      - dns01:
+          route53:
+            region: {{ .Values.aws.region }}
+            hostedZoneID: {{ $hostedZoneID }}
+            role: {{ $roleArn }}
+            auth:
+              kubernetes:
+                serviceAccountRef:
+                  name: object-storage-certificate

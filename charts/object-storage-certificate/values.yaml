@@ -1,0 +1,34 @@
+namespace: object-storage-certificate
+
+aws:
+  # ARN of the IAM role associated with the ServiceAccount (required).
+  roleArn: ""
+  region: us-east-1
+  # Route53 hosted zone ID for massopen.cloud (required).
+  hostedZoneID: ""
+
+letsencrypt:
+  server: https://acme-staging-v02.api.letsencrypt.org/directory
+  email: ""
+
+# Location of the cert-manager controller ServiceAccount. It is granted
+# permission to request tokens for the object-storage-certificate ServiceAccount
+# so the Route53 DNS-01 solver can authenticate to AWS.
+certManager:
+  namespace: cert-manager
+  serviceAccountName: cert-manager
+
+certificate:
+  dnsName: storage.massopen.cloud
+  secretName: object-storage-certificate
+  duration: 2160h
+  renewBefore: 360h
+
+# Push the generated certificate back to AWS Secrets Manager via
+# external-secrets.
+pushSecret:
+  enabled: true
+  remoteKey: cluster/common/object-storage-proxy/certificate
+  secretStore:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
