@@ -16,6 +16,7 @@ spec:
         app.kubernetes.io/name: object-storage-proxy
       annotations:
         k8s.v1.cni.cncf.io/networks: {{ .Values.network.name }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
       affinity:
         podAntiAffinity:
