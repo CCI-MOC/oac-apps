@@ -1,12 +1,11 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: object-storage-proxy
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: object-storage-proxy
 spec:
-  replicas: {{ .Values.proxy.replicas }}
   selector:
     matchLabels:
       app.kubernetes.io/name: object-storage-proxy
@@ -18,13 +17,6 @@ spec:
         k8s.v1.cni.cncf.io/networks: {{ .Values.network.name }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: object-storage-proxy
-              topologyKey: kubernetes.io/hostname
       initContainers:
         - name: bundle-cert
           image: {{ .Values.proxy.image }}

@@ -27,9 +27,9 @@ inside the cluster.
 
 ## Components
 
-Proxy (`templates/deployment.yaml`)
-: An HAProxy deployment (2 replicas by default) with pod anti-affinity
-  across nodes. It terminates TLS on 8443 and serves plain HTTP on 8080,
+Proxy (`templates/daemonset.yaml`)
+: An HAProxy DaemonSet, running one instance per node. It terminates TLS
+  on 8443 and serves plain HTTP on 8080,
   forwarding to the backend. `/healthz` backs the liveness and readiness
   probes. An init container concatenates the certificate and key into the
   single bundle HAProxy expects. Timeouts, thread count, connection limits
@@ -74,7 +74,6 @@ Secondary network (`templates/nad.yaml`)
 | `network.routes` | Optional routes added to the secondary interface. |
 | `externalSecret.remoteKey` | Secrets Manager key holding the certificate. Enables the ExternalSecret. |
 | `externalSecret.secretStore`, `externalSecret.secretStoreType` | Secret store the certificate is pulled from. |
-| `proxy.replicas` | Number of HAProxy replicas. |
 | `proxy.image` | HAProxy image. |
 | `proxy.access_log` | Enables HAProxy access logging to stdout. |
 | `proxy.threads` | HAProxy worker threads. Set to match the CPU limit. |

@@ -22,7 +22,6 @@ network:
   name: storage-network
 
 proxy:
-  replicas: 2
   image: docker.io/haproxy:lts-alpine
   # Log requests to stdout (haproxy access logging).
   access_log: true
