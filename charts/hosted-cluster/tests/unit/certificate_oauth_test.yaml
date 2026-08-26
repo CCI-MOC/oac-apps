@@ -1,0 +1,31 @@
+suite: OAuth certificate template
+templates:
+  - templates/certificate-oauth.yaml
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should default dnsNames from clusterName and baseDomain
+    asserts:
+      - equal:
+          path: spec.dnsNames[0]
+          value: oauth-test-cluster.apps.infra.oac.int.massopen.cloud
+
+  - it: should use the OAuthServer route hostname override
+    set:
+      services:
+        OAuthServer:
+          hostname: oauth.custom.example.com
+    asserts:
+      - equal:
+          path: spec.dnsNames[0]
+          value: oauth.custom.example.com
+
+  - it: should name the secret after the cluster
+    asserts:
+      - equal:
+          path: spec.secretName
+          value: test-cluster-oauth-certificate
+      - equal:
+          path: metadata.name
+          value: test-cluster-oauth-certificate

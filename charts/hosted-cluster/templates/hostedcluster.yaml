@@ -1,5 +1,6 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- $kubeAPIServerDNSName := .Values.kubeAPIServerDNSName | default (printf "api.%s.%s" $clusterName .Values.baseDomain) }}
+{{- $oauthHostname := include "hosted-cluster.oauthHostname" . }}
 apiVersion: hypershift.openshift.io/v1beta1
 kind: HostedCluster
 metadata:
@@ -106,3 +107,7 @@ spec:
               - {{ $kubeAPIServerDNSName }}
             servingCertificate:
               name: {{ $clusterName }}-api-certificate
+          - names:
+              - {{ $oauthHostname }}
+            servingCertificate:
+              name: {{ $clusterName }}-oauth-certificate

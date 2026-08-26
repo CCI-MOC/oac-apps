@@ -38,3 +38,15 @@ Returns the hostname string, or empty string if none can be derived.
 {{- end -}}
 {{- $hostname -}}
 {{- end -}}
+
+{{/*
+Derive the OAuth server hostname from the root context (.).
+Mirrors the derivation used for the OAuthServer service publishing strategy.
+*/}}
+{{- define "hosted-cluster.oauthHostname" -}}
+{{- $clusterName := required "clusterName is required" .Values.clusterName -}}
+{{- $defaults := include "hosted-cluster.serviceDefaults" . | fromYaml -}}
+{{- $svcDef := index $defaults "OAuthServer" -}}
+{{- $serviceConfig := dig "OAuthServer" dict .Values.services -}}
+{{- include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "clusterName" $clusterName "baseDomain" .Values.baseDomain) -}}
+{{- end -}}
