@@ -1,0 +1,24 @@
+clusterName: oac-dev-workload1
+
+services:
+  APIServer:
+    ipAddress: 10.20.3.11
+    servicePublishingStrategy:
+      type: LoadBalancer
+
+  OAuthServer:
+    servicePublishingStrategy:
+      type: Route
+
+nodePools:
+  - name: compute
+    replicas: 2
+    agentLabelSelector:
+      massopen.cloud/cluster: oac-dev-workload1
+
+clusterLabels:
+  - portworx
+
+dns:
+  enabled: true
+  autoGenerate: true
