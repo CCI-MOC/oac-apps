@@ -40,6 +40,17 @@ tests:
           value: "10.20.5.10/32"
         documentIndex: 0
 
+  - it: should disable autoAssign so the address is reserved for the annotated service
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - equal:
+          path: spec.autoAssign
+          value: false
+        documentIndex: 0
+
   - it: should reference the pool in the L2Advertisement
     set:
       services:

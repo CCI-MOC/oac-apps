@@ -8,6 +8,7 @@ metadata:
   name: {{ $clusterName }}-{{ lower $serviceName }}
   namespace: metallb-system
 spec:
+  autoAssign: false
   addresses:
     - {{ $serviceConfig.ipAddress }}/32
 ---
