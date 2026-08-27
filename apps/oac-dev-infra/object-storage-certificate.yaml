@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hub-object-storage-certificate
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/CCI-MOC/oac-apps.git
+    targetRevision: main
+    path: charts/object-storage-certificate
+    helm:
+      ignoreMissingValueFiles: true
+      valueFiles:
+        - /values/oac-dev-infra/object-storage-certificate.yaml
+        - /values/oac-dev-infra/local-cluster/object-storage-certificate.yaml
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
