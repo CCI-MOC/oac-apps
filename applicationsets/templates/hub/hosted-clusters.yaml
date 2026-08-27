@@ -25,6 +25,10 @@ spec:
         helm:
           ignoreMissingValueFiles: true
           valueFiles:
+            # Hub-level defaults (e.g. baseDomain, managementCluster) shared by
+            # every hosted cluster on this hub, layered under the per-cluster
+            # values.yaml so a cluster may still override them.
+            - "/hosted-clusters/{{ $hub }}/values.yaml"
             - "/{{`{{.path.path}}`}}/values.yaml"
       destination:
         server: https://kubernetes.default.svc

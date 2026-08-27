@@ -1,4 +1,22 @@
 {{/*
+Return the hub-level base domain, failing if it has not been set.
+baseDomain is a per-hub value with no safe default; it must be supplied via a
+hub-level values file (hosted-clusters/<hub>/values.yaml).
+*/}}
+{{- define "hosted-cluster.baseDomain" -}}
+{{- required "baseDomain must be set (supply it in the hub-level values file hosted-clusters/<hub>/values.yaml)" .Values.baseDomain -}}
+{{- end -}}
+
+{{/*
+Return the hub's management cluster name, failing if it has not been set.
+managementCluster is a per-hub value with no safe default; it must be supplied
+via a hub-level values file (hosted-clusters/<hub>/values.yaml).
+*/}}
+{{- define "hosted-cluster.managementCluster" -}}
+{{- required "managementCluster must be set (supply it in the hub-level values file hosted-clusters/<hub>/values.yaml)" .Values.managementCluster -}}
+{{- end -}}
+
+{{/*
 Service metadata shared across templates.
 */}}
 {{- define "hosted-cluster.serviceDefaults" -}}
@@ -48,5 +66,5 @@ Mirrors the derivation used for the OAuthServer service publishing strategy.
 {{- $defaults := include "hosted-cluster.serviceDefaults" . | fromYaml -}}
 {{- $svcDef := index $defaults "OAuthServer" -}}
 {{- $serviceConfig := dig "OAuthServer" dict .Values.services -}}
-{{- include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "clusterName" $clusterName "baseDomain" .Values.baseDomain) -}}
+{{- include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "clusterName" $clusterName "baseDomain" (include "hosted-cluster.baseDomain" .)) -}}
 {{- end -}}

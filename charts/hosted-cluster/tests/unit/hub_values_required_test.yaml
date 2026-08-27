@@ -1,0 +1,43 @@
+suite: hub-level values are required (fail closed, no dev defaults)
+# baseDomain and managementCluster have no chart default; they must be supplied
+# by the hub-level values file. These tests guard against a dev-specific value
+# silently sneaking back in as a default.
+#
+# Note: helm-unittest renders the whole chart, so the missing-value error
+# surfaces in the first template that consumes it (hostedcluster.yaml for
+# baseDomain, pushsecret.yaml for managementCluster). The other templates that
+# consume baseDomain go through the same shared helper and are covered by their
+# own positive tests.
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should fail closed when baseDomain is not supplied by the hub
+    set:
+      managementCluster: oac-infra-dev
+    templates:
+      - templates/hostedcluster.yaml
+    asserts:
+      - failedTemplate:
+          errorMessage: "baseDomain must be set (supply it in the hub-level values file hosted-clusters/<hub>/values.yaml)"
+
+  - it: should fail closed when managementCluster is not supplied by the hub
+    set:
+      baseDomain: apps.infra.oac.int.massopen.cloud
+    templates:
+      - templates/pushsecret.yaml
+    asserts:
+      - failedTemplate:
+          errorMessage: "managementCluster must be set (supply it in the hub-level values file hosted-clusters/<hub>/values.yaml)"
+
+  - it: should render pushsecret with the supplied managementCluster in the remoteKey
+    set:
+      baseDomain: apps.infra.oac.int.massopen.cloud
+      managementCluster: oac-infra-dev
+    templates:
+      - templates/pushsecret.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.data[0].match.remoteRef.remoteKey
+          value: cluster/oac-infra-dev/hostedcluster/test-cluster/kubeadmin

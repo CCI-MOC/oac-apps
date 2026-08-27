@@ -3,6 +3,7 @@ templates:
   - templates/hostedcluster.yaml
 set:
   clusterName: test-cluster
+  baseDomain: apps.infra.oac.int.massopen.cloud
 
 tests:
   - it: should default APIServer to NodePort with derived hostname

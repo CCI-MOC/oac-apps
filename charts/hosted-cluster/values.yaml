@@ -5,9 +5,12 @@ namespace: clusters
 hostedCluster:
   labels: {}
   annotations: {}
-baseDomain: apps.infra.oac.int.massopen.cloud
+# baseDomain and managementCluster are per-hub values with no safe default.
+# They are supplied by the hub-level values file (hosted-clusters/<hub>/values.yaml)
+# and enforced with `required` in the templates, so they fail closed if unset.
+baseDomain: ""
 
-managementCluster: oac-infra-dev
+managementCluster: ""
 
 controllerAvailabilityPolicy: HighlyAvailable
 

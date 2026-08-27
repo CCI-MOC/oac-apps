@@ -1,0 +1,6 @@
+# Hub-level values shared by every hosted cluster on the oac-dev-infra hub.
+# The hosted-clusters ApplicationSet layers each cluster's own
+# hosted-clusters/oac-dev-infra/<cluster>/values.yaml on top of this file, so
+# per-cluster files may override any of these values.
+baseDomain: apps.infra.oac.int.massopen.cloud
+managementCluster: oac-infra-dev
