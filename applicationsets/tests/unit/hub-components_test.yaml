@@ -1,0 +1,45 @@
+suite: hub-components ApplicationSet
+templates:
+  - templates/hub/hub-components.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should render the hub-components ApplicationSet
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: ApplicationSet
+          apiVersion: argoproj.io/v1alpha1
+          name: hub-components
+
+  - it: should template the child app name and chart path from the component
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.metadata.name
+          value: "hub-{{component}}"
+      - equal:
+          path: spec.template.spec.source.path
+          value: "charts/{{component}}"
+
+  - it: should layer hub-wide then local-cluster value files, both optional
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.spec.source.helm.ignoreMissingValueFiles
+          value: true
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[0]
+          value: "/values/hub/oac-dev-infra/{{component}}.yaml"
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[1]
+          value: "/values/hub/oac-dev-infra/local-cluster/{{component}}.yaml"

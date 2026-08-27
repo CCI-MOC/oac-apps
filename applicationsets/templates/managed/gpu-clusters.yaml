@@ -1,3 +1,4 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -25,18 +26,20 @@ spec:
                 - component: rhoai
   template:
     metadata:
-      name: "{{name}}-{{component}}"
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
     spec:
       project: default
       source:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
         targetRevision: main
-        path: "charts/{{component}}"
+        path: "charts/{{`{{component}}`}}"
         helm:
+          ignoreMissingValueFiles: true
           valueFiles:
-            - "/values/{{name}}/{{component}}.yaml"
+            - "/values/hub/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/hub/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
       destination:
-        server: "{{server}}"
+        server: "{{`{{server}}`}}"
       syncPolicy:
         automated:
           prune: true

@@ -74,7 +74,7 @@ echo "ArgoCD is ready."
 #echo "=== Step 3: Bootstrap application ==="
 #
 #echo "Applying hub ApplicationSet..."
-#oc apply -f "${REPO_ROOT}/bootstrap/bootstrap.yaml"
+#helm template bootstrap "${REPO_ROOT}/bootstrap" --set hubName=<hub> | oc apply -f -
 #
 #echo ""
 #echo "Hub bootstrap complete. ArgoCD will now manage hub cluster components."

@@ -1,3 +1,4 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -27,16 +28,18 @@ spec:
           - component: object-storage-certificate
   template:
     metadata:
-      name: "hub-{{component}}"
+      name: "hub-{{`{{component}}`}}"
     spec:
       project: default
       source:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
         targetRevision: main
-        path: "charts/{{component}}"
+        path: "charts/{{`{{component}}`}}"
         helm:
+          ignoreMissingValueFiles: true
           valueFiles:
-            - "/values/oac-dev-infra/{{component}}.yaml"
+            - "/values/hub/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/hub/{{ $hub }}/local-cluster/{{`{{component}}`}}.yaml"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:

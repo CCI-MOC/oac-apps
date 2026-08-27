@@ -1,0 +1,4 @@
+# hubName identifies the hub this ArgoCD instance manages. It is supplied
+# per-hub by the bootstrap Application and has no safe default, so it is
+# left empty here and enforced with `required` in every template.
+hubName: ""

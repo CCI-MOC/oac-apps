@@ -9,8 +9,12 @@ spec:
     repoURL: https://github.com/CCI-MOC/oac-apps.git
     targetRevision: main
     path: applicationsets
-    directory:
-      recurse: true
+    helm:
+      parameters:
+        # This value flows into the applicationsets chart at sync time; the
+        # `required` guard fails the render if hubName is unset or empty.
+        - name: hubName
+          value: {{ required "hubName must be set" .Values.hubName | quote }}
   destination:
     server: https://kubernetes.default.svc
     namespace: openshift-gitops

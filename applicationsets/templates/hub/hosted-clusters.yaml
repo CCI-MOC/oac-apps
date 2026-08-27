@@ -1,3 +1,4 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -10,12 +11,10 @@ spec:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
         revision: main
         directories:
-          - path: hosted-clusters/*
-  syncPolicy:
-    preserveResourcesOnDeletion: true
+          - path: "hosted-clusters/{{ $hub }}/*"
   template:
     metadata:
-      name: "cluster-{{.path.basename}}"
+      name: "cluster-{{`{{.path.basename}}`}}"
       namespace: openshift-gitops
     spec:
       project: default
@@ -24,8 +23,9 @@ spec:
         targetRevision: main
         path: charts/hosted-cluster
         helm:
+          ignoreMissingValueFiles: true
           valueFiles:
-            - "/{{.path.path}}/values.yaml"
+            - "/{{`{{.path.path}}`}}/values.yaml"
       destination:
         server: https://kubernetes.default.svc
         namespace: clusters

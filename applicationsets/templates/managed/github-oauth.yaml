@@ -1,7 +1,8 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: portworx-clusters
+  name: github-oauth
   namespace: openshift-gitops
 spec:
   generators:
@@ -11,37 +12,32 @@ spec:
               configMapRef: acm-placement
               labelSelector:
                 matchLabels:
-                  cluster.open-cluster-management.io/placement: portworx-clusters
+                  cluster.open-cluster-management.io/placement: github-oauth-clusters
               requeueAfterSeconds: 180
           - list:
               elements:
-                - component: nmstate
-                  namespace: openshift-nmstate
-                - component: portworx
-                  namespace: portworx
-                - component: object-storage-proxy
-                  namespace: object-storage-proxy
+                - component: github-group-sync
+                - component: oac-simple-rbac
   template:
     metadata:
-      name: "{{name}}-{{component}}"
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
     spec:
       project: default
       source:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
         targetRevision: main
-        path: "charts/{{component}}"
+        path: "charts/{{`{{component}}`}}"
         helm:
+          ignoreMissingValueFiles: true
           valueFiles:
-            - "/values/{{name}}/{{component}}.yaml"
+            - "/values/hub/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/hub/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
       destination:
-        server: "{{server}}"
-        namespace: "{{namespace}}"
+        server: "{{`{{server}}`}}"
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
-        syncOptions:
-          - CreateNamespace=true
         retry:
           limit: 5
           backoff:

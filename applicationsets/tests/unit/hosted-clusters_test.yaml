@@ -1,0 +1,45 @@
+suite: hosted-clusters ApplicationSet
+templates:
+  - templates/hub/hosted-clusters.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should render the hosted-clusters ApplicationSet
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: ApplicationSet
+          apiVersion: argoproj.io/v1alpha1
+          name: hosted-clusters
+
+  - it: should use a hub-scoped git directory generator
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.goTemplate
+          value: true
+      - equal:
+          path: spec.generators[0].git.directories[0].path
+          value: "hosted-clusters/oac-dev-infra/*"
+
+  - it: should read per-cluster values optionally and target the clusters namespace
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.spec.source.helm.ignoreMissingValueFiles
+          value: true
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[0]
+          value: "/{{.path.path}}/values.yaml"
+      - equal:
+          path: spec.template.spec.destination.namespace
+          value: clusters

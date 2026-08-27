@@ -1,0 +1,53 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: portworx-clusters
+  namespace: openshift-gitops
+spec:
+  generators:
+    - matrix:
+        generators:
+          - clusterDecisionResource:
+              configMapRef: acm-placement
+              labelSelector:
+                matchLabels:
+                  cluster.open-cluster-management.io/placement: portworx-clusters
+              requeueAfterSeconds: 180
+          - list:
+              elements:
+                - component: nmstate
+                  namespace: openshift-nmstate
+                - component: portworx
+                  namespace: portworx
+                - component: object-storage-proxy
+                  namespace: object-storage-proxy
+  template:
+    metadata:
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{`{{component}}`}}"
+        helm:
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - "/values/hub/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/hub/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
+      destination:
+        server: "{{`{{server}}`}}"
+        namespace: "{{`{{namespace}}`}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m

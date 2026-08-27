@@ -1,0 +1,5 @@
+# hubName has no default and MUST be set at deploy time, e.g.
+#   helm template bootstrap ./bootstrap --set hubName=oac-dev-infra | oc apply -f -
+# The `required` guard in templates/bootstrap.yaml fails the render if it is
+# unset or empty, so an unparameterized deploy fails closed.
+hubName: ""

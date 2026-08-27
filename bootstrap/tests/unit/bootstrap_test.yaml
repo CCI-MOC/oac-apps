@@ -1,0 +1,53 @@
+suite: bootstrap Application template
+templates:
+  - templates/bootstrap.yaml
+
+tests:
+  - it: should fail closed when hubName is not set (chart default is empty)
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should fail closed when hubName is explicitly empty
+    set:
+      hubName: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should render a single bootstrap Application when hubName is set
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: Application
+          apiVersion: argoproj.io/v1alpha1
+          name: bootstrap
+
+  - it: should point at the applicationsets chart
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.source.path
+          value: applicationsets
+
+  - it: should pass hubName through as a Helm parameter
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.source.helm.parameters[0].name
+          value: hubName
+      - equal:
+          path: spec.source.helm.parameters[0].value
+          value: oac-dev-infra
+
+  - it: should not use a directory recurse source
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - notExists:
+          path: spec.source.directory
