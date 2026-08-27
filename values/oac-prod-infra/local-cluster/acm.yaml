@@ -1,0 +1,7 @@
+multiClusterHub:
+  availabilityConfig: High
+
+cim:
+  enabled: true
+  sshAuthorizedKey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBXc7uABh/s9o728/pZgAl5meQLhgNwml43eQedwQ7xM
+  location: MGHPCC
