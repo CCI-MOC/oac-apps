@@ -1,0 +1,3 @@
+clusterDomain: infra.oac.ocp.massopen.cloud
+certificates:
+  issuer_name: letsencrypt-prod-dns01
