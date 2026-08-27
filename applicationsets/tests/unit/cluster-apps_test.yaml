@@ -1,0 +1,45 @@
+suite: cluster-apps Application
+templates:
+  - templates/hub/cluster-apps.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should render a single cluster-apps Application
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: Application
+          apiVersion: argoproj.io/v1alpha1
+          name: cluster-apps
+
+  - it: should watch the always-present apps root, hub-scoped via include glob
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.source.path
+          value: apps
+      - equal:
+          path: spec.source.directory.recurse
+          value: true
+      - equal:
+          path: spec.source.directory.include
+          value: "oac-dev-infra/*"
+
+  - it: should create child Applications in the hub's gitops namespace
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.destination.server
+          value: https://kubernetes.default.svc
+      - equal:
+          path: spec.destination.namespace
+          value: openshift-gitops

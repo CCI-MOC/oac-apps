@@ -1,0 +1,8 @@
+# This file keeps the apps/ directory present in git so the per-hub cluster-apps
+# Application (applicationsets/templates/hub/cluster-apps.yaml) always has a
+# valid source path, even for hubs that have no drop-in apps yet.
+#
+# Drop-in apps live under apps/<hub>/. Each file is a raw ArgoCD manifest
+# (typically an Application) applied verbatim to that hub. Subdirectories under
+# apps/<hub>/ are for your own organization only -- nothing consumes their
+# names; a manifest's own spec.destination is what routes it to a cluster.

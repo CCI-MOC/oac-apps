@@ -1,0 +1,47 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+{{/*
+cluster-apps is an "app of apps": a single ArgoCD Application that applies any
+manifests found under apps/<hub>/ verbatim. Drop a raw Application manifest into
+apps/<hub>/ (organize into subdirectories however you like) and it is deployed
+to this hub's ArgoCD, no chart or values plumbing required. Each dropped
+Application carries its own source and destination, so it may target the hub
+itself or any managed/hosted cluster.
+
+The source path is the always-present apps/ root, scoped to this hub with an
+include glob, rather than apps/<hub>/ directly. This matters:
+
+  * A directory-type Application errors if source.path is missing, so pointing
+    at apps/<hub>/ would require creating that directory for every hub. Pointing
+    at apps/ (which always exists) means a hub with no apps yet simply renders
+    zero resources and stays healthy -- no per-hub scaffolding.
+  * ArgoCD matches include against each file's path relative to source.path and
+    compiles the glob with no path separator, so a single "*" spans "/". Thus
+    "<hub>/*" matches every file at any depth under apps/<hub>/.
+*/}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cluster-apps
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/CCI-MOC/oac-apps.git
+    targetRevision: main
+    path: apps
+    directory:
+      recurse: true
+      include: "{{ $hub }}/*"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: openshift-gitops
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m

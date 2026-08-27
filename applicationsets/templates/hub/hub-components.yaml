@@ -16,8 +16,6 @@ spec:
           - component: cert-manager
           - component: patch-operator
           - component: portworx
-          - component: github-oauth
-          - component: github-group-sync
           - component: oac-simple-rbac
           - component: external-dns-operator
           - component: cluster-certificates

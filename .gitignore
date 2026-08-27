@@ -4,3 +4,4 @@ password
 .env
 /charts/*/charts/
 /charts/*/Chart.lock
+/.worktrees/

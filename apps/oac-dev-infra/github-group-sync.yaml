@@ -1,0 +1,35 @@
+# Hub-side github-group-sync, deployed only to oac-dev-infra. Formerly a member
+# of the common hub-components set; now a per-hub drop-in so hubs without the
+# corresponding values (e.g. oac-prod-infra) do not receive it. Mirrors the
+# child Application that hub-components generates for a hub component: same chart
+# path and the same optional hub-wide -> local-cluster values layering.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hub-github-group-sync
+  namespace: openshift-gitops
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/CCI-MOC/oac-apps.git
+    targetRevision: main
+    path: charts/github-group-sync
+    helm:
+      ignoreMissingValueFiles: true
+      valueFiles:
+        - /values/oac-dev-infra/github-group-sync.yaml
+        - /values/oac-dev-infra/local-cluster/github-group-sync.yaml
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m

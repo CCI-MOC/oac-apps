@@ -30,6 +30,19 @@ tests:
           path: spec.template.spec.source.path
           value: "charts/{{component}}"
 
+  - it: should not include per-hub drop-in components in the common set
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - notContains:
+          path: spec.generators[0].list.elements
+          content:
+            component: github-oauth
+      - notContains:
+          path: spec.generators[0].list.elements
+          content:
+            component: github-group-sync
+
   - it: should layer hub-wide then local-cluster value files, both optional
     set:
       hubName: oac-dev-infra
