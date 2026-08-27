@@ -1,0 +1,5 @@
+volumegroup:
+  devices:
+    - /dev/disk/by-id/scsi-SHGST_HUSMR3216ASS200_75V2HGYX
+    - /dev/disk/by-id/scsi-SSAMSUNG_MZILT1T6HAJQ0D3_S40ENX0M806451
+    - /dev/disk/by-id/scsi-SSAMSUNG_MZILS1T6HEJH0D3_S3FXNX0K301212
