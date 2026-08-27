@@ -2,7 +2,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: github-oauth
+  name: github-oauth-clusters
   namespace: openshift-gitops
 spec:
   generators:
