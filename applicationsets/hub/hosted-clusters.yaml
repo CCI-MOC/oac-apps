@@ -11,6 +11,8 @@ spec:
         revision: main
         directories:
           - path: hosted-clusters/*
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: "cluster-{{.path.basename}}"
