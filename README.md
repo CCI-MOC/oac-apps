@@ -25,8 +25,8 @@ You may want:
 | `charts/`                  | Helm charts, one per component                                   |
 | `charts/operator-library/` | Shared library chart providing helpers for operator installation |
 | `values/`                  | Per-hub, per-cluster Helm values overrides (optional)            |
-| `values/hub/<hub>/`        | Hub-wide defaults, applied to every cluster in that hub          |
-| `values/hub/<hub>/<cluster>/` | Per-cluster overrides (`local-cluster` = the hub itself)      |
+| `values/<hub>/`        | Hub-wide defaults, applied to every cluster in that hub          |
+| `values/<hub>/<cluster>/` | Per-cluster overrides (`local-cluster` = the hub itself)      |
 | `hosted-clusters/`         | HyperShift hosted cluster definitions                            |
 | `scripts/`                 | Operational and CI scripts                                       |
 | `docs/`                    | Documentation                                                    |
@@ -35,7 +35,7 @@ You may want:
 
 `bootstrap/` is a small Helm chart that renders an ArgoCD Application pointing at `applicationsets/`. Deploy it per hub with `helm template bootstrap ./bootstrap --set hubName=<hub> | oc apply -f -`; `hubName` has no default, so an unparameterized render fails closed. The hub name flows through to the bootstrap Application's `hubName` parameter, and ArgoCD discovers all ApplicationSets under that directory:
 
-- `applicationsets/templates/hub/hub-components.yaml` deploys charts to the hub cluster. Each Application lists a hub-wide values file (`values/hub/<hub>/<component>.yaml`) then a per-cluster file (`values/hub/<hub>/local-cluster/<component>.yaml`), both optional via `ignoreMissingValueFiles`.
+- `applicationsets/templates/hub/hub-components.yaml` deploys charts to the hub cluster. Each Application lists a hub-wide values file (`values/<hub>/<component>.yaml`) then a per-cluster file (`values/<hub>/local-cluster/<component>.yaml`), both optional via `ignoreMissingValueFiles`.
 - `applicationsets/templates/hub/hosted-clusters.yaml` uses a Git directory generator to deploy the `hosted-cluster` chart once per directory under `hosted-clusters/<hub>/`, creating a HyperShift HostedCluster on the hub for each. Its hub-side prerequisites (the `clusters` namespace, pull secret, SSH key, and IngressController) are installed by the `hcp-config` chart.
 - `applicationsets/templates/managed/*.yaml` use ACM Placements to deploy charts to spoke clusters. Each Application lists a hub-wide values file then a per-cluster file, both optional via `ignoreMissingValueFiles`.
 
@@ -66,15 +66,15 @@ Each chart under `charts/` installs a single component. Many use the `operator-l
 1. Create a chart under `charts/`.
 2. Add the component to the appropriate ApplicationSet template under
    `applicationsets/templates/`.
-3. Only if the chart needs overrides, add `values/hub/<hub>/<component>.yaml`
-   (hub-wide) and/or `values/hub/<hub>/<cluster>/<component>.yaml` (per-cluster).
+3. Only if the chart needs overrides, add `values/<hub>/<component>.yaml`
+   (hub-wide) and/or `values/<hub>/<cluster>/<component>.yaml` (per-cluster).
    Charts with no overrides need no values file at all.
 
 ## Onboarding a new hub
 
 1. Render and apply the bootstrap Application with the new hub's name:
    `helm template bootstrap ./bootstrap --set hubName=<newhub> | oc apply -f -`.
-2. Create `values/hub/<newhub>/` and per-cluster subdirectories only where a
+2. Create `values/<newhub>/` and per-cluster subdirectories only where a
    chart needs an override.
 3. Add `hosted-clusters/<newhub>/` if that hub runs HyperShift hosted clusters.
 

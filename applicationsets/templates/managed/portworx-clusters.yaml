@@ -34,8 +34,8 @@ spec:
         helm:
           ignoreMissingValueFiles: true
           valueFiles:
-            - "/values/hub/{{ $hub }}/{{`{{component}}`}}.yaml"
-            - "/values/hub/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
       destination:
         server: "{{`{{server}}`}}"
         namespace: "{{`{{namespace}}`}}"

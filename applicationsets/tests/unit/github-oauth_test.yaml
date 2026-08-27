@@ -1,6 +1,6 @@
 suite: github-oauth ApplicationSet
 templates:
-  - templates/managed/github-oauth.yaml
+  - templates/managed/github-oauth-clusters.yaml
 
 tests:
   - it: should fail closed when hubName is not set
@@ -17,13 +17,13 @@ tests:
       - containsDocument:
           kind: ApplicationSet
           apiVersion: argoproj.io/v1alpha1
-          name: github-oauth
+          name: github-oauth-clusters
       - equal:
           path: spec.template.spec.source.helm.ignoreMissingValueFiles
           value: true
       - equal:
           path: spec.template.spec.source.helm.valueFiles[0]
-          value: "/values/hub/oac-dev-infra/{{component}}.yaml"
+          value: "/values/oac-dev-infra/{{component}}.yaml"
       - equal:
           path: spec.template.spec.source.helm.valueFiles[1]
-          value: "/values/hub/oac-dev-infra/{{name}}/{{component}}.yaml"
+          value: "/values/oac-dev-infra/{{name}}/{{component}}.yaml"

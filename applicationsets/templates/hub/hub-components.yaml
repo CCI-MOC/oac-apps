@@ -38,8 +38,8 @@ spec:
         helm:
           ignoreMissingValueFiles: true
           valueFiles:
-            - "/values/hub/{{ $hub }}/{{`{{component}}`}}.yaml"
-            - "/values/hub/{{ $hub }}/local-cluster/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/local-cluster/{{`{{component}}`}}.yaml"
       destination:
         server: https://kubernetes.default.svc
       syncPolicy:
