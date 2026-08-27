@@ -1,0 +1,5 @@
+keycloak:
+  clientID: oac-prod-infra
+
+externalSecret:
+  remoteKey: cluster/oac-prod-infra/keycloak-oidc

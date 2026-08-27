@@ -13,7 +13,7 @@ spec:
       openID:
         clientID: {{ $clientID }}
         clientSecret:
-          name: {{ .Values.keycloak.client_secret_name }}
+          name: {{ .Values.keycloak.secretName }}
         claims:
           preferredUsername:
             - preferred_username
