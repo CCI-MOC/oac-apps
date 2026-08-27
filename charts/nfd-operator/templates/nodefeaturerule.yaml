@@ -1,0 +1,41 @@
+apiVersion: nfd.openshift.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: nvidia-pci-labels-and-taints
+spec:
+  rules:
+    - name: "NVIDIA pci-10de-<device>.present labels"
+      labelsTemplate: |
+        {{`{{ range .pci.device }}`}}pci-{{`{{ .vendor }}`}}-device={{`{{ .device }}`}}
+        {{`{{ end }}`}}
+      matchFeatures:
+        - feature: pci.device
+          matchExpressions:
+            vendor:
+              op: In
+              value: ["10de"]
+            class:
+              op: In
+              value: ["0300", "0302"]
+
+{{- range .Values.gpuDevices }}
+    - name: "NVIDIA nvidia-gpu.product labels ({{ .name }})"
+      labelsTemplate: |
+        nvidia-gpu.product={{ .name }}
+      matchFeatures:
+        - feature: pci.device
+          matchExpressions:
+            vendor:
+              op: In
+              value: ["10de"]
+            class:
+              op: In
+              value: ["0302"]
+            device:
+              op: In
+              value: ["{{ .deviceId }}"]
+      taints:
+        - effect: NoSchedule
+          key: nvidia.com/gpu.product
+          value: {{ .name }}
+{{- end }}
