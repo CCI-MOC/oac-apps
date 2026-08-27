@@ -1,0 +1,77 @@
+suite: Let's Encrypt ClusterIssuers
+templates:
+  - templates/clusterissuers/letsencrypt.yaml
+set:
+  letsencrypt:
+    cluster_issuers:
+      enabled: true
+    email: test@example.com
+  aws:
+    roleArn: arn:aws:iam::123456789012:role/example-role
+
+tests:
+  - it: should render the route53 hostedZoneID when set
+    set:
+      aws:
+        hostedZoneID: Z0123456789EXAMPLE
+    asserts:
+      - equal:
+          path: spec.acme.solvers[0].dns01.route53.hostedZoneID
+          value: Z0123456789EXAMPLE
+        documentSelector:
+          path: metadata.name
+          value: letsencrypt-prod-dns01
+      - equal:
+          path: spec.acme.solvers[0].dns01.route53.hostedZoneID
+          value: Z0123456789EXAMPLE
+        documentSelector:
+          path: metadata.name
+          value: letsencrypt-staging-dns01
+
+  - it: should omit the route53 hostedZoneID when unset (auto-discovery)
+    asserts:
+      - notExists:
+          path: spec.acme.solvers[0].dns01.route53.hostedZoneID
+        documentSelector:
+          path: metadata.name
+          value: letsencrypt-prod-dns01
+      - notExists:
+          path: spec.acme.solvers[0].dns01.route53.hostedZoneID
+        documentSelector:
+          path: metadata.name
+          value: letsencrypt-staging-dns01
+      # the rest of the route53 config is still rendered
+      - equal:
+          path: spec.acme.solvers[0].dns01.route53.role
+          value: arn:aws:iam::123456789012:role/example-role
+        documentSelector:
+          path: metadata.name
+          value: letsencrypt-prod-dns01
+
+  - it: should still require roleArn
+    set:
+      aws:
+        roleArn: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: aws.roleArn is required
+
+  - it: should still require email
+    set:
+      letsencrypt:
+        cluster_issuers:
+          enabled: true
+        email: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: letsencrypt.email is required
+
+  - it: should render nothing when cluster_issuers are disabled
+    set:
+      letsencrypt:
+        cluster_issuers:
+          enabled: false
+        email: test@example.com
+    asserts:
+      - hasDocuments:
+          count: 0

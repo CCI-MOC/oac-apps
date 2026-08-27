@@ -1,0 +1,32 @@
+suite: Self-signed ClusterIssuer
+templates:
+  - templates/clusterissuers/selfsigned.yaml
+
+tests:
+  - it: should render the selfsigned ClusterIssuer
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ClusterIssuer
+      - equal:
+          path: metadata.name
+          value: selfsigned
+      - exists:
+          path: spec.selfSigned
+
+  # Without SkipDryRunOnMissingResource, ArgoCD's pre-sync dry-run fails on a
+  # cluster where the cert-manager.io CRDs are not yet installed, which aborts
+  # the entire sync (including the operator Subscription that installs those
+  # CRDs). This must match the other cert-manager.io resources.
+  - it: should skip the dry-run when the CRD is missing
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  - it: should sync in the same wave as the other ClusterIssuers
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
