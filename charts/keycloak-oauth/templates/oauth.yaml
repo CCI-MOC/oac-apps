@@ -7,7 +7,7 @@ metadata:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
   identityProviders:
-    - name: keycloak
+    - name: {{ .Values.keycloak.name }}
       mappingMethod: {{ .Values.keycloak.mappingMethod }}
       type: OpenID
       openID:

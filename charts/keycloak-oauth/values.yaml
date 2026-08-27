@@ -1,4 +1,5 @@
 keycloak:
+  name: mocsso
   mappingMethod: claim
   clientID: ""
   secretName: keycloak-client-secret
