@@ -13,6 +13,9 @@ subscription:
 aws:
   region: us-east-1
   roleArn: ""
+  # Optional. When left empty, cert-manager auto-discovers the Route53
+  # hosted zone via ListHostedZonesByName. Set this to pin a specific zone
+  # (e.g. to disambiguate public/private zones with the same name).
   hostedZoneID: ""
 
 letsencrypt:

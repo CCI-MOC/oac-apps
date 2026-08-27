@@ -1,6 +1,5 @@
 {{ if .Values.letsencrypt.cluster_issuers.enabled }}
 {{- $email := required "letsencrypt.email is required" .Values.letsencrypt.email }}
-{{- $hostedZoneID := required "aws.hostedZoneID is required" .Values.aws.hostedZoneID }}
 {{- $roleArn := required "aws.roleArn is required" .Values.aws.roleArn }}
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -19,7 +18,9 @@ spec:
       - dns01:
           route53:
             region: {{ .Values.aws.region }}
-            hostedZoneID: {{ $hostedZoneID }}
+            {{- with .Values.aws.hostedZoneID }}
+            hostedZoneID: {{ . }}
+            {{- end }}
             role: {{ $roleArn }}
             auth:
               kubernetes:
@@ -43,7 +44,9 @@ spec:
       - dns01:
           route53:
             region: {{ .Values.aws.region }}
-            hostedZoneID: {{ $hostedZoneID }}
+            {{- with .Values.aws.hostedZoneID }}
+            hostedZoneID: {{ . }}
+            {{- end }}
             role: {{ $roleArn }}
             auth:
               kubernetes:
