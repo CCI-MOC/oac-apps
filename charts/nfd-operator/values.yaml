@@ -7,3 +7,10 @@ subscription:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+gpuDevices:
+  - name: Tesla-V100-PCIE-32GB
+    deviceId: "1db6"
+  - name: NVIDIA-A100-SXM4-40GB
+    deviceId: "20b0"
+  - name: NVIDIA-H100-80GB-HBM3
+    deviceId: "2330"
