@@ -1,0 +1,2 @@
+sshKey:
+  aws_secret_name: cluster/oac-infra-dev/sshkey

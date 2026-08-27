@@ -2,3 +2,6 @@ ingressController:
   enabled: false
   domain: ""
   replicas: 2
+
+sshKey:
+  aws_secret_name: ""

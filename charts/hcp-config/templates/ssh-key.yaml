@@ -16,5 +16,5 @@ spec:
   data:
     - secretKey: id_rsa.pub
       remoteRef:
-        key: cluster/oac-infra-dev/sshkey
+        key: {{ required "sshKey.aws_secret_name is required" .Values.sshKey.aws_secret_name }}
         property: publicKey
