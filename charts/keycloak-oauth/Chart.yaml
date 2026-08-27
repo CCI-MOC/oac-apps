@@ -1,0 +1,5 @@
+apiVersion: v2
+name: keycloak-oauth
+description: OpenShift OAuth configuration for Keycloak identity provider
+version: 0.1.0
+type: application

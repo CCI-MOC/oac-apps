@@ -1,0 +1,28 @@
+{{- $clientID := required "keycloak.aclientID is required" .Values.keycloak.clientID }}
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+spec:
+  identityProviders:
+    - name: keycloak
+      mappingMethod: {{ .Values.keycloak.mappingMethod }}
+      type: OpenID
+      openID:
+        clientID: {{ $clientID }}
+        clientSecret:
+          name: {{ .Values.keycloak.client_secret_name }}
+        claims:
+          preferredUsername:
+            - preferred_username
+            - username
+          name:
+            - name
+            - full name
+          email:
+            - email
+          groups:
+            - groups
+        issuer: {{ .Values.keycloak.issuer }}

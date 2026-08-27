@@ -1,0 +1,60 @@
+suite: keycloak-oauth chart
+# Note: helm-unittest renders the WHOLE chart for every test; the per-test
+# `templates:` field only filters which rendered documents assertions apply to.
+# So the missing-clientID error surfaces in oauth.yaml (which consumes it via
+# `required`), and the externalsecret positive tests must also supply clientID
+# so oauth.yaml doesn't error first.
+
+tests:
+  - it: should fail closed when keycloak.clientID is not provided
+    # clientID defaults to "" in values.yaml; required must reject the empty value
+    templates:
+      - templates/oauth.yaml
+    asserts:
+      - failedTemplate:
+          errorMessage: "keycloak.aclientID is required"
+
+  - it: should render the OAuth resource when keycloak.clientID is provided
+    set:
+      keycloak:
+        clientID: my-client
+    templates:
+      - templates/oauth.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: kind
+          value: OAuth
+      - equal:
+          path: spec.identityProviders[0].openID.clientID
+          value: my-client
+
+  - it: should not render an ExternalSecret when externalSecret.remoteKey is not provided
+    # remoteKey defaults to "" in values.yaml, so the template is guarded off
+    set:
+      keycloak:
+        clientID: my-client
+    templates:
+      - templates/externalsecret.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render an ExternalSecret when externalSecret.remoteKey is provided
+    set:
+      keycloak:
+        clientID: my-client
+      externalSecret:
+        remoteKey: path/to/key
+    templates:
+      - templates/externalsecret.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: kind
+          value: ExternalSecret
+      - equal:
+          path: spec.data[0].remoteRef.key
+          value: path/to/key

@@ -1,0 +1,11 @@
+keycloak:
+  mappingMethod: claim
+  clientID: ""
+  secretName: keycloak-client-secret
+  issuer: https://sso.massopen.cloud/realms/moc
+
+externalSecret:
+  secretStore: aws-secrets-manager
+  secretStoreType: ClusterSecretStore
+  remoteProperty: client_secret
+  remoteKey: ""
