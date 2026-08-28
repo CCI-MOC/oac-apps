@@ -4,6 +4,7 @@ templates:
 set:
   clusterName: test-cluster
   baseDomain: apps.infra.oac.int.massopen.cloud
+  hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
 
 tests:
   - it: should default APIServer to NodePort with derived hostname
@@ -17,7 +18,7 @@ tests:
               nodePort:
                 address: api-test-cluster.apps.infra.oac.int.massopen.cloud
 
-  - it: should default OAuthServer to Route with derived hostname
+  - it: should default OAuthServer to Route with external-domain hostname
     asserts:
       - contains:
           path: spec.services
@@ -26,7 +27,7 @@ tests:
             servicePublishingStrategy:
               type: Route
               route:
-                hostname: oauth-test-cluster.apps.infra.oac.int.massopen.cloud
+                hostname: oauth-test-cluster.hcp.infra.oac.int.massopen.cloud
 
   - it: should use LoadBalancer with derived hostname when strategy type is LoadBalancer
     set:
@@ -93,7 +94,7 @@ tests:
               route:
                 hostname: custom-oauth.example.com
 
-  - it: should default Ignition and Konnectivity to Route with derived hostnames
+  - it: should default Ignition and Konnectivity to Route with internal-domain hostnames
     asserts:
       - contains:
           path: spec.services
@@ -102,7 +103,7 @@ tests:
             servicePublishingStrategy:
               type: Route
               route:
-                hostname: ignition-test-cluster.apps.infra.oac.int.massopen.cloud
+                hostname: ignition-test-cluster.hcp.infra.oac.int.massopen.cloud
       - contains:
           path: spec.services
           content:
@@ -110,7 +111,7 @@ tests:
             servicePublishingStrategy:
               type: Route
               route:
-                hostname: konnectivity-test-cluster.apps.infra.oac.int.massopen.cloud
+                hostname: konnectivity-test-cluster.hcp.infra.oac.int.massopen.cloud
 
   - it: should default OIDC to Route with no hostname
     asserts:
@@ -153,7 +154,7 @@ tests:
     asserts:
       - equal:
           path: spec.configuration.apiServer.servingCerts.namedCertificates[1].names[0]
-          value: oauth-test-cluster.apps.infra.oac.int.massopen.cloud
+          value: oauth-test-cluster.hcp.infra.oac.int.massopen.cloud
       - equal:
           path: spec.configuration.apiServer.servingCerts.namedCertificates[1].servingCertificate.name
           value: test-cluster-oauth-certificate

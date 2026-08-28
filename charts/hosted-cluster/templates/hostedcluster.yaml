@@ -55,7 +55,7 @@ spec:
     {{- range $serviceName := list "APIServer" "Ignition" "Konnectivity" "OAuthServer" "OIDC" }}
     {{- $svcDef := index $allDefaults $serviceName }}
     {{- $serviceConfig := dig $serviceName dict $.Values.services }}
-    {{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "clusterName" $clusterName "baseDomain" $baseDomain) }}
+    {{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "facing" $svcDef.facing "clusterName" $clusterName "ctx" $) }}
     {{- $strategyType := dig "servicePublishingStrategy" "type" $svcDef.defaultType $serviceConfig }}
     {{- $autoStrategy := dict "type" $strategyType }}
     {{- if and $hostname (eq $strategyType "NodePort") }}

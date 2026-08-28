@@ -1,3 +1,7 @@
+baseDomain: apps.infra.oac.int.massopen.cloud
+managementCluster: oac-infra-dev
+hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
+
 clusterName: oac-prod
 
 issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/oac-dev-workload0"

@@ -34,6 +34,7 @@ tests:
     set:
       baseDomain: apps.infra.oac.int.massopen.cloud
       managementCluster: oac-infra-dev
+      hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
     templates:
       - templates/pushsecret.yaml
     documentIndex: 0
@@ -41,3 +42,15 @@ tests:
       - equal:
           path: spec.data[0].match.remoteRef.remoteKey
           value: cluster/oac-infra-dev/hostedcluster/test-cluster/kubeadmin
+
+  - it: should fail closed when hcpInternalDomain is not supplied by the hub
+    set:
+      baseDomain: apps.infra.oac.int.massopen.cloud
+      managementCluster: oac-infra-dev
+      services:
+        OAuthServer: {}
+    templates:
+      - templates/hostedcluster.yaml
+    asserts:
+      - failedTemplate:
+          errorMessage: "hcpInternalDomain must be set (supply it in the hub-level values file hosted-clusters/<hub>/values.yaml)"

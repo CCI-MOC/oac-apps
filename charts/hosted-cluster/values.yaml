@@ -12,6 +12,13 @@ baseDomain: ""
 
 managementCluster: ""
 
+# hcpInternalDomain is a per-hub value with no safe default (fail-closed like
+# baseDomain). hcpExternalDomain is optional and inherits hcpInternalDomain when
+# empty; they differ only when the shared router serves both externally-NAT'd
+# and internal-only names. See docs/superpowers/specs/2026-08-28-hosted-cluster-address-dns-design.md
+hcpInternalDomain: ""
+hcpExternalDomain: ""
+
 controllerAvailabilityPolicy: HighlyAvailable
 
 release:

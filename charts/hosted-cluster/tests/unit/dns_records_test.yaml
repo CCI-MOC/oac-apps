@@ -4,6 +4,7 @@ templates:
 set:
   clusterName: test-cluster
   baseDomain: apps.infra.oac.int.massopen.cloud
+  hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
   dns:
     enabled: true
     autoGenerate: true

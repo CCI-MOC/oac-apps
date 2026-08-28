@@ -8,7 +8,7 @@
 {{- range $serviceName, $serviceConfig := .Values.services }}
 
 {{- $svcDef := dig $serviceName dict $allDefaults }}
-{{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" (dig "prefix" "" $svcDef) "clusterName" $clusterName "baseDomain" $baseDomain) }}
+{{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" (dig "prefix" "" $svcDef) "facing" (dig "facing" "internal" $svcDef) "clusterName" $clusterName "ctx" $) }}
 
 {{- $strategyType := dig "servicePublishingStrategy" "type" "" $serviceConfig }}
 

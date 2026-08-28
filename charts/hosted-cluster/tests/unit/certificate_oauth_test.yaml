@@ -4,13 +4,14 @@ templates:
 set:
   clusterName: test-cluster
   baseDomain: apps.infra.oac.int.massopen.cloud
+  hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
 
 tests:
-  - it: should default dnsNames from clusterName and baseDomain
+  - it: should default dnsNames from clusterName and external domain
     asserts:
       - equal:
           path: spec.dnsNames[0]
-          value: oauth-test-cluster.apps.infra.oac.int.massopen.cloud
+          value: oauth-test-cluster.hcp.infra.oac.int.massopen.cloud
 
   - it: should use the OAuthServer route hostname override
     set:
