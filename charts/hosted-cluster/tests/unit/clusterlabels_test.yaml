@@ -1,0 +1,126 @@
+suite: ManagedCluster feature labels
+templates:
+  - templates/clusterlabels.yaml
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should render nothing when no clusterLabels are set
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render the SA, RBAC, and Patch when clusterLabels are set
+    set:
+      clusterLabels:
+        - gpu
+        - portworx
+    asserts:
+      - hasDocuments:
+          count: 4
+      - containsDocument:
+          kind: ServiceAccount
+          apiVersion: v1
+          name: test-cluster-managedcluster-patch
+          any: true
+      - containsDocument:
+          kind: ClusterRole
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: test-cluster-managedcluster-patch
+          any: true
+      - containsDocument:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: test-cluster-managedcluster-patch
+          any: true
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: test-cluster-cluster-labels
+          any: true
+
+  - it: should grant patch on only the named ManagedCluster
+    set:
+      clusterLabels:
+        - gpu
+    asserts:
+      - equal:
+          path: rules[0].resourceNames
+          value: ["test-cluster"]
+        documentSelector:
+          path: kind
+          value: ClusterRole
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "patch"]
+        documentSelector:
+          path: kind
+          value: ClusterRole
+      - equal:
+          path: rules[1].verbs
+          value: ["list"]
+        documentSelector:
+          path: kind
+          value: ClusterRole
+
+  - it: should place the Patch and ServiceAccount in the clusters namespace
+    set:
+      namespace: clusters
+      clusterLabels:
+        - gpu
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: clusters
+        documentSelector:
+          path: kind
+          value: ServiceAccount
+      - equal:
+          path: metadata.namespace
+          value: clusters
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should target the ManagedCluster by name with a strategic merge patch
+    set:
+      clusterLabels:
+        - gpu
+    asserts:
+      - equal:
+          path: spec.patches.cluster-labels.targetObjectRef.kind
+          value: ManagedCluster
+        documentSelector:
+          path: kind
+          value: Patch
+      - equal:
+          path: spec.patches.cluster-labels.targetObjectRef.name
+          value: test-cluster
+        documentSelector:
+          path: kind
+          value: Patch
+      - equal:
+          path: spec.patches.cluster-labels.patchType
+          value: application/strategic-merge-patch+json
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should render every feature label into the patch body
+    set:
+      clusterLabels:
+        - gpu
+        - github-oauth
+    asserts:
+      - matchRegex:
+          path: spec.patches.cluster-labels.patchTemplate
+          pattern: 'massopen.cloud/feature-gpu: "true"'
+        documentSelector:
+          path: kind
+          value: Patch
+      - matchRegex:
+          path: spec.patches.cluster-labels.patchTemplate
+          pattern: 'massopen.cloud/feature-github-oauth: "true"'
+        documentSelector:
+          path: kind
+          value: Patch

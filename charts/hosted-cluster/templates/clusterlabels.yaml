@@ -1,14 +1,65 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
-apiVersion: cluster.open-cluster-management.io/v1
-kind: ManagedCluster
+{{- with .Values.clusterLabels }}
+{{- /*
+Feature labels are applied to the ManagedCluster with a patch-operator Patch
+rather than a direct (server-side) apply. ACM creates the ManagedCluster
+asynchronously once the HostedCluster is imported; patch-operator watches the
+target and applies the patch only once it exists (it never creates the target),
+which removes the need for a wait Job. Strategic merge sets only these
+feature-* keys, leaving ACM's own labels untouched, and re-applies on drift.
+*/ -}}
+apiVersion: v1
+kind: ServiceAccount
 metadata:
-  name: {{ $clusterName }}
-  annotations:
-    argocd.argoproj.io/sync-options: ServerSideApply=true
-    argocd.argoproj.io/sync-wave: "2"
-  {{- with .Values.clusterLabels }}
-  labels:
-    {{- range . }}
-    massopen.cloud/feature-{{ . }}: "true"
-    {{- end }}
-  {{- end }}
+  name: {{ $clusterName }}-managedcluster-patch
+  namespace: {{ $.Values.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $clusterName }}-managedcluster-patch
+rules:
+  - apiGroups: ["cluster.open-cluster-management.io"]
+    resources: ["managedclusters"]
+    resourceNames:
+      - {{ $clusterName }}
+    verbs: ["get", "patch"]
+  - apiGroups: ["cluster.open-cluster-management.io"]
+    resources: ["managedclusters"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $clusterName }}-managedcluster-patch
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $clusterName }}-managedcluster-patch
+subjects:
+  - kind: ServiceAccount
+    name: {{ $clusterName }}-managedcluster-patch
+    namespace: {{ $.Values.namespace }}
+---
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: Patch
+metadata:
+  name: {{ $clusterName }}-cluster-labels
+  namespace: {{ $.Values.namespace }}
+spec:
+  serviceAccountRef:
+    name: {{ $clusterName }}-managedcluster-patch
+  patches:
+    cluster-labels:
+      targetObjectRef:
+        apiVersion: cluster.open-cluster-management.io/v1
+        kind: ManagedCluster
+        name: {{ $clusterName }}
+      patchType: application/strategic-merge-patch+json
+      patchTemplate: |
+        metadata:
+          labels:
+{{- range . }}
+            massopen.cloud/feature-{{ . }}: "true"
+{{- end }}
+{{- end }}
