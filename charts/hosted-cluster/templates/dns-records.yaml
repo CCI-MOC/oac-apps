@@ -1,6 +1,5 @@
 {{- if .Values.dns.enabled }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
-{{- $baseDomain := include "hosted-cluster.baseDomain" . }}
 {{- $kubeAPIServerDNSName := include "hosted-cluster.kubeAPIServerDNSName" . }}
 
 {{- if .Values.dns.autoGenerate }}

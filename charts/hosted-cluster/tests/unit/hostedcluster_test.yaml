@@ -269,3 +269,43 @@ tests:
               type: LoadBalancer
               loadBalancer:
                 hostname: explicit.example.com
+
+  - it: should split external and internal domains when hcpExternalDomain differs from hcpInternalDomain
+    set:
+      hcpExternalDomain: ext.example.com
+    asserts:
+      - equal:
+          path: spec.kubeAPIServerDNSName
+          value: api-external-test-cluster.ext.example.com
+      - contains:
+          path: spec.services
+          content:
+            service: OAuthServer
+            servicePublishingStrategy:
+              type: Route
+              route:
+                hostname: oauth-test-cluster.ext.example.com
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: LoadBalancer
+              loadBalancer:
+                hostname: api-internal-test-cluster.hcp.infra.oac.int.massopen.cloud
+      - contains:
+          path: spec.services
+          content:
+            service: Konnectivity
+            servicePublishingStrategy:
+              type: Route
+              route:
+                hostname: konnectivity-test-cluster.hcp.infra.oac.int.massopen.cloud
+      - contains:
+          path: spec.services
+          content:
+            service: Ignition
+            servicePublishingStrategy:
+              type: Route
+              route:
+                hostname: ignition-test-cluster.hcp.infra.oac.int.massopen.cloud

@@ -31,3 +31,11 @@ tests:
       - equal:
           path: metadata.name
           value: test-cluster-oauth-certificate
+
+  - it: should use hcpExternalDomain when set
+    set:
+      hcpExternalDomain: ext.example.com
+    asserts:
+      - equal:
+          path: spec.dnsNames[0]
+          value: oauth-test-cluster.ext.example.com
