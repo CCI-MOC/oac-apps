@@ -2,4 +2,4 @@ ingressController:
   enabled: true
   # Must not overlap with the default IngressController's domain. OpenShift
   # rejects both exact matches and subdomains.
-  domain: hcp.oac.ocp.massopen.cloud
+  domain: hcp.oac.massopen.cloud
