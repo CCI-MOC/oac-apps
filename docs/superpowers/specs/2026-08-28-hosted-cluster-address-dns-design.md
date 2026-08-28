@@ -84,8 +84,25 @@ are unmistakable.
 | `ignition-<cluster>.<hcpInternalDomain>` | router internal IP | `*.<hcpInternalDomain>` wildcard |
 
 `<hcpInternalDomain>` and `<hcpExternalDomain>` are new hub-level values (see
-below). The two wildcards are the only DNS an operator creates by hand, and
-they are created **once per hub**, not per cluster.
+below); `<hcpExternalDomain>` defaults to `<hcpInternalDomain>`. The two
+wildcards are the only DNS an operator creates by hand, and they are created
+**once per hub**, not per cluster.
+
+The two domains represent two *facings*, not two arbitrary domains, and each
+facing gets exactly one wildcard that resolves to exactly one IP. They must be
+**distinct** whenever the shared router serves names of both facings — the
+normal case here, where `oauth-<cluster>` is browser-facing (firewall IP) while
+`konnectivity-<cluster>` / `ignition-<cluster>` are internal-only (router
+internal IP). A single wildcard cannot send those to different IPs without
+split-horizon DNS (ruled out) or per-service explicit records (which would
+defeat the zero-per-cluster-DNS goal). They **may coincide** only when there is
+no NAT split — an internal-only cluster with no externally exposed OAuth, or an
+environment where the router's LoadBalancer IP is directly routable to external
+clients. In those cases external and internal collapse to one reachable
+address, so `<hcpExternalDomain>` is simply left unset and inherits
+`<hcpInternalDomain>`. (The API is *not* what forces the split: its two names
+are explicit records, so `api-internal-…` and `api-external-…` can coexist
+under one domain regardless.)
 
 ## Solution overview
 
@@ -199,17 +216,21 @@ cert already imposes, so the API just joins it.
 
 ## Hub-level values
 
-Two new required hub values, consumed by both `hosted-cluster` and (for the
+Two new hub values, consumed by both `hosted-cluster` and (for the
 wildcard/router wiring) documented alongside `hcp-config`:
 
-- `hcpInternalDomain` — e.g. `hcp-int.infra.oac.int.massopen.cloud`
-- `hcpExternalDomain` — e.g. `hcp.oac.massopen.cloud`
+- `hcpInternalDomain` — **required** — e.g. `hcp-int.infra.oac.int.massopen.cloud`
+- `hcpExternalDomain` — **optional, defaults to `hcpInternalDomain`** — e.g.
+  `hcp.oac.massopen.cloud`
 
 They are added to `hosted-clusters/<hub>/values.yaml` next to the existing
-`baseDomain` / `managementCluster`, enforced with `required` in a helper
-(mirroring `hosted-cluster.baseDomain`), and fail closed if unset. The router's
-external firewall IP is a hub-level fact recorded in the same file / firewall
-runbook.
+`baseDomain` / `managementCluster`. `hcpInternalDomain` is enforced with
+`required` in a helper (mirroring `hosted-cluster.baseDomain`) and fails closed
+if unset. The `hosted-cluster.hcpExternalDomain` helper returns
+`.Values.hcpExternalDomain` when set and otherwise falls back to
+`hosted-cluster.hcpInternalDomain`, so a no-NAT deployment sets only one value
+and a NAT'd deployment sets both. The router's external firewall IP is a
+hub-level fact recorded in the same file / firewall runbook.
 
 ## Per-cluster interface: before and after
 
@@ -262,8 +283,9 @@ of four DNS records disappear.
 
 ## Chart changes (by file)
 
-- `charts/hosted-cluster/templates/_helpers.tpl` — add `hcpInternalDomain` /
-  `hcpExternalDomain` required helpers; extend `serviceDefaults` so each
+- `charts/hosted-cluster/templates/_helpers.tpl` — add an `hcpInternalDomain`
+  required helper and an `hcpExternalDomain` helper that falls back to
+  `hcpInternalDomain` when unset; extend `serviceDefaults` so each
   service knows its facing domain; teach hostname derivation to emit the
   single-label `<service>-<cluster>.<domain>` names, with `APIServer`
   special-cased to produce both `api-internal-…` and `api-external-…`.
@@ -281,12 +303,13 @@ of four DNS records disappear.
   `certificate-oauth.yaml` — follow the new derived hostnames (no structural
   change).
 - `charts/hosted-cluster/values.yaml` — document the new `services.APIServer`
-  `ipAddress`/`externalIpAddress` contract; `hcpInternalDomain` /
-  `hcpExternalDomain` default to `""` (required, fail-closed).
+  `ipAddress`/`externalIpAddress` contract; `hcpInternalDomain` defaults to
+  `""` (required, fail-closed); `hcpExternalDomain` defaults to `""` and
+  inherits `hcpInternalDomain` when left empty.
 - `charts/cluster-certificates/templates/ingresscontroller.yaml` — add the
   default-router `namespaceSelector` exclusion.
-- `hosted-clusters/oac-dev-infra/values.yaml` — add `hcpInternalDomain` /
-  `hcpExternalDomain`.
+- `hosted-clusters/oac-dev-infra/values.yaml` — add `hcpInternalDomain` (and
+  `hcpExternalDomain` only if the hub's external facing differs).
 - Unit tests (`charts/hosted-cluster/tests/unit/*`) updated for every rendering
   change: hostnames, publishing strategies, the two-record autoGenerate output,
   APIServer-only MetalLB, and the fail-closed guards.
@@ -338,8 +361,10 @@ operation.
   external IP, autoGenerate) renders the expected HostedCluster strategies, two
   API DNS records, APIServer-only MetalLB objects, and both certs — per the
   standing "verify templates after changes" rule.
-- `helm template` fails closed when `hcpInternalDomain` / `hcpExternalDomain`
-  are unset, and when a non-`APIServer` service carries `ipAddress`.
+- `helm template` fails closed when `hcpInternalDomain` is unset, and when a
+  non-`APIServer` service carries `ipAddress`.
+- With `hcpExternalDomain` unset, external names render under
+  `hcpInternalDomain` (the inheritance path); with it set, they render under it.
 - `helm template charts/cluster-certificates` renders the default router with
   the exclusion selector.
 - `helm-unittest` suites updated/extended for all of the above.
