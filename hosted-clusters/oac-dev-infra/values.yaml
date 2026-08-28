@@ -4,3 +4,9 @@
 # per-cluster files may override any of these values.
 baseDomain: apps.infra.oac.int.massopen.cloud
 managementCluster: oac-infra-dev
+
+# Internal HCP wildcard domain: *.hcp.infra.oac.int.massopen.cloud resolves to
+# the hosted-clusters router's MetalLB IP (10.20.3.10). hcpExternalDomain is
+# omitted here (inherits the internal domain) because this hub's hosted clusters
+# are internal-only; set it when a cluster exposes OAuth through the firewall.
+hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
