@@ -1,0 +1,5 @@
+apiVersion: v2
+name: node-labels
+description: Declaratively manage node labels via patch-operator Patch resources
+type: application
+version: 0.1.0

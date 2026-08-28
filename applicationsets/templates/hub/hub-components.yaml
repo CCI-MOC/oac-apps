@@ -15,6 +15,7 @@ spec:
           - component: metallb
           - component: cert-manager
           - component: patch-operator
+          - component: node-labels
           - component: portworx
           - component: oac-simple-rbac
           - component: external-dns-operator

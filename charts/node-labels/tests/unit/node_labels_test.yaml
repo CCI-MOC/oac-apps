@@ -1,0 +1,326 @@
+suite: node-labels chart
+templates:
+  - templates/node-labels.yaml
+
+tests:
+  - it: should render nothing when no rules are defined
+    set:
+      rules: []
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render RBAC and a Patch CR for a selector rule
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            nvidia.com/gpu.deploy.operands: "true"
+    asserts:
+      - hasDocuments:
+          count: 5
+      - containsDocument:
+          kind: Namespace
+          apiVersion: v1
+          name: node-labels
+          any: true
+      - containsDocument:
+          kind: ServiceAccount
+          apiVersion: v1
+          name: node-labels-patch-operator
+          any: true
+      - containsDocument:
+          kind: ClusterRole
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: node-labels-patch-operator
+          any: true
+      - containsDocument:
+          kind: ClusterRoleBinding
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: node-labels-patch-operator
+          any: true
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: gpu-workers
+          any: true
+
+  - it: should grant only get/list/patch on nodes
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            example.com/x: "y"
+    asserts:
+      - equal:
+          path: rules[0].apiGroups
+          value: [""]
+        documentSelector:
+          path: kind
+          value: ClusterRole
+      - equal:
+          path: rules[0].resources
+          value: ["nodes"]
+        documentSelector:
+          path: kind
+          value: ClusterRole
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "list", "patch"]
+        documentSelector:
+          path: kind
+          value: ClusterRole
+
+  - it: should place the Patch and ServiceAccount in the node-labels namespace
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            example.com/x: "y"
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: node-labels
+        documentSelector:
+          path: kind
+          value: ServiceAccount
+      - equal:
+          path: metadata.namespace
+          value: node-labels
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should target nodes by labelSelector for a selector rule
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            nvidia.com/gpu.deploy.operands: "true"
+    asserts:
+      - equal:
+          path: spec.patches.gpu-workers.targetObjectRef.kind
+          value: Node
+        documentSelector:
+          path: kind
+          value: Patch
+      - notExists:
+          path: spec.patches.gpu-workers.targetObjectRef.name
+        documentSelector:
+          path: kind
+          value: Patch
+      - equal:
+          path: spec.patches.gpu-workers.targetObjectRef.labelSelector.matchLabels["node-role.kubernetes.io/worker"]
+          value: ""
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should use a strategic merge patch that sets the requested labels
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            nvidia.com/gpu.deploy.operands: "true"
+    asserts:
+      - equal:
+          path: spec.patches.gpu-workers.patchType
+          value: application/strategic-merge-patch+json
+        documentSelector:
+          path: kind
+          value: Patch
+      - matchRegex:
+          path: spec.patches.gpu-workers.patchTemplate
+          pattern: 'nvidia.com/gpu.deploy.operands: "true"'
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should quote label values so they are always strings
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            example.com/enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.patches.gpu-workers.patchTemplate
+          pattern: 'example.com/enabled: "true"'
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should set the SkipDryRunOnMissingResource sync option on the Patch
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            example.com/x: "y"
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should emit labelTemplates verbatim for per-node values
+    set:
+      rules:
+        - name: topology-zone
+          matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: Exists
+          labelTemplates:
+            topology.kubernetes.io/zone: "{{ (index . 0).metadata.name }}"
+    asserts:
+      - equal:
+          path: spec.patches.topology-zone.targetObjectRef.labelSelector.matchExpressions[0].operator
+          value: Exists
+        documentSelector:
+          path: kind
+          value: Patch
+      - matchRegex:
+          path: spec.patches.topology-zone.patchTemplate
+          pattern: 'topology.kubernetes.io/zone: "\{\{ \(index . 0\).metadata.name \}\}"'
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should allow both labels and labelTemplates on one rule
+    set:
+      rules:
+        - name: mixed
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            example.com/static: "yes"
+          labelTemplates:
+            example.com/node: "{{ (index . 0).metadata.name }}"
+    asserts:
+      - matchRegex:
+          path: spec.patches.mixed.patchTemplate
+          pattern: 'example.com/static: "yes"'
+        documentSelector:
+          path: kind
+          value: Patch
+      - matchRegex:
+          path: spec.patches.mixed.patchTemplate
+          pattern: 'example.com/node: "\{\{ \(index . 0\).metadata.name \}\}"'
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should target nodes by name for a nodeNames rule
+    set:
+      rules:
+        - name: storage-box
+          nodeNames:
+            - worker-1
+            - worker-2
+          labels:
+            openshift.moc/storage: "true"
+    asserts:
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: storage-box
+          any: true
+      - equal:
+          path: spec.patches.worker-1.targetObjectRef.name
+          value: worker-1
+        documentSelector:
+          path: kind
+          value: Patch
+      - equal:
+          path: spec.patches.worker-2.targetObjectRef.name
+          value: worker-2
+        documentSelector:
+          path: kind
+          value: Patch
+
+  - it: should render one Patch CR per rule
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            example.com/x: "y"
+        - name: storage-box
+          nodeNames:
+            - worker-1
+          labels:
+            openshift.moc/storage: "true"
+    asserts:
+      - hasDocuments:
+          count: 6
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: gpu-workers
+          any: true
+      - containsDocument:
+          kind: Patch
+          apiVersion: redhatcop.redhat.io/v1alpha1
+          name: storage-box
+          any: true
+
+  - it: should fail closed when a rule sets both a selector and nodeNames
+    set:
+      rules:
+        - name: bad
+          matchLabels:
+            a: b
+          nodeNames:
+            - worker-1
+          labels:
+            example.com/x: "y"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'node-labels rule "bad" sets both a selector and nodeNames; use exactly one'
+
+  - it: should fail closed when a rule sets neither a selector nor nodeNames
+    set:
+      rules:
+        - name: bad
+          labels:
+            example.com/x: "y"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'node-labels rule "bad" must set either a selector (matchLabels/matchExpressions) or nodeNames'
+
+  - it: should fail closed when a rule has neither labels nor labelTemplates
+    set:
+      rules:
+        - name: bad
+          matchLabels:
+            a: b
+    asserts:
+      - failedTemplate:
+          errorMessage: 'node-labels rule "bad" must set a non-empty labels or labelTemplates map'
+
+  - it: should fail closed when a rule has no name
+    set:
+      rules:
+        - matchLabels:
+            a: b
+          labels:
+            example.com/x: "y"
+    asserts:
+      - failedTemplate:
+          errorMessage: "each node-labels rule must set a name"

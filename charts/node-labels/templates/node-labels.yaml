@@ -1,0 +1,108 @@
+{{- /*
+Renders the strategic-merge patch body (metadata.labels) for a rule.
+- .labels: literal values, quoted as-is.
+- .labelTemplates: patch-operator Go-template strings emitted verbatim (still
+  quoted so the rendered value is a proper string). patch-operator evaluates
+  them per target node, with the target node available as (index . 0).
+*/ -}}
+{{- define "node-labels.patchLabels" -}}
+metadata:
+  labels:
+{{- range $k, $v := .labels }}
+    {{ $k }}: {{ $v | quote }}
+{{- end }}
+{{- range $k, $v := .labelTemplates }}
+    {{ $k }}: {{ $v | quote }}
+{{- end }}
+{{- end -}}
+{{- if .Values.rules }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-labels-patch-operator
+  namespace: {{ .Values.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-labels-patch-operator
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node-labels-patch-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-labels-patch-operator
+subjects:
+  - kind: ServiceAccount
+    name: node-labels-patch-operator
+    namespace: {{ .Values.namespace }}
+{{- end }}
+{{- range $rule := .Values.rules }}
+{{- if not $rule.name }}
+{{- fail "each node-labels rule must set a name" }}
+{{- end }}
+{{- if and (not $rule.labels) (not $rule.labelTemplates) }}
+{{- fail (printf "node-labels rule %q must set a non-empty labels or labelTemplates map" $rule.name) }}
+{{- end }}
+{{- $hasSelector := or $rule.matchLabels $rule.matchExpressions }}
+{{- $hasNames := $rule.nodeNames }}
+{{- if and $hasSelector $hasNames }}
+{{- fail (printf "node-labels rule %q sets both a selector and nodeNames; use exactly one" $rule.name) }}
+{{- end }}
+{{- if and (not $hasSelector) (not $hasNames) }}
+{{- fail (printf "node-labels rule %q must set either a selector (matchLabels/matchExpressions) or nodeNames" $rule.name) }}
+{{- end }}
+---
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: Patch
+metadata:
+  name: {{ $rule.name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  serviceAccountRef:
+    name: node-labels-patch-operator
+  patches:
+{{- if $hasSelector }}
+    {{ $rule.name }}:
+      targetObjectRef:
+        apiVersion: v1
+        kind: Node
+        labelSelector:
+{{- with $rule.matchLabels }}
+          matchLabels:
+{{ toYaml . | indent 12 }}
+{{- end }}
+{{- with $rule.matchExpressions }}
+          matchExpressions:
+{{ toYaml . | indent 12 }}
+{{- end }}
+      patchType: application/strategic-merge-patch+json
+      patchTemplate: |
+{{ include "node-labels.patchLabels" $rule | indent 8 }}
+{{- else }}
+{{- range $node := $rule.nodeNames }}
+    {{ $node }}:
+      targetObjectRef:
+        apiVersion: v1
+        kind: Node
+        name: {{ $node }}
+      patchType: application/strategic-merge-patch+json
+      patchTemplate: |
+{{ include "node-labels.patchLabels" $rule | indent 8 }}
+{{- end }}
+{{- end }}
+{{- end }}
