@@ -1,20 +1,11 @@
-suite: default IngressController HCP-route exclusion
+suite: default IngressController
 templates:
   - templates/ingresscontroller.yaml
 set:
   clusterDomain: example.com
 tests:
-  - it: should keep the default certificate
+  - it: should set the default certificate
     asserts:
       - equal:
           path: spec.defaultCertificate.name
           value: default-ingress-certificate
-
-  - it: should exclude HCP namespaces from the default router
-    asserts:
-      - equal:
-          path: spec.namespaceSelector.matchExpressions[0].key
-          value: hypershift.openshift.io/hosted-control-plane
-      - equal:
-          path: spec.namespaceSelector.matchExpressions[0].operator
-          value: DoesNotExist

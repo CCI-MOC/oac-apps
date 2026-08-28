@@ -1,0 +1,66 @@
+suite: default IngressController HCP-route exclusion
+templates:
+  - templates/default-ingresscontroller-exclusion.yaml
+set:
+  # sshKey.aws_secret_name is required for the whole chart to render.
+  sshKey:
+    aws_secret_name: dummy
+  ingressController:
+    enabled: true
+    domain: hcp.example.com
+tests:
+  - it: should render exactly the SA, Role, RoleBinding and Patch (no owned IngressController)
+    asserts:
+      - hasDocuments:
+          count: 4
+
+  - it: should grant the service account patch access to ingresscontrollers
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: rules[0].apiGroups[0]
+          value: operator.openshift.io
+      - equal:
+          path: rules[0].resources[0]
+          value: ingresscontrollers
+      - contains:
+          path: rules[0].verbs
+          content: patch
+
+  - it: should patch the default IngressController in place via the patch operator
+    documentSelector:
+      path: kind
+      value: Patch
+    asserts:
+      - equal:
+          path: apiVersion
+          value: redhatcop.redhat.io/v1alpha1
+      - equal:
+          path: spec.serviceAccountRef.name
+          value: default-router-hcp-exclusion
+      - equal:
+          path: spec.patches["namespace-selector"].targetObjectRef.kind
+          value: IngressController
+      - equal:
+          path: spec.patches["namespace-selector"].targetObjectRef.name
+          value: default
+      - equal:
+          path: spec.patches["namespace-selector"].patchType
+          value: application/merge-patch+json
+      - matchRegex:
+          path: spec.patches["namespace-selector"].patchTemplate
+          pattern: "hypershift.openshift.io/hosted-control-plane"
+      - matchRegex:
+          path: spec.patches["namespace-selector"].patchTemplate
+          pattern: "DoesNotExist"
+
+  - it: should render nothing when the dedicated router is not enabled
+    set:
+      ingressController:
+        enabled: false
+        domain: hcp.example.com
+    asserts:
+      - hasDocuments:
+          count: 0

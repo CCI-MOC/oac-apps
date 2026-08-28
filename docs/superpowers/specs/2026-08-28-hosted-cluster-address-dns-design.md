@@ -159,14 +159,29 @@ HCP routes land on the *default* router. Two changes complete the adoption:
 - **Enable it per hub** via `hcp-config` values (already the pattern:
   `ingressController.enabled: true`, a `domain`, and the MetalLB
   `hosted-clusters-ingress` pool that pins its LoadBalancer to `10.20.3.10`).
-- **Exclude HCP routes from the default router.** Add a `namespaceSelector`
-  with `hypershift.openshift.io/hosted-control-plane DoesNotExist` to the
-  repo-managed default IngressController in
-  `charts/cluster-certificates/templates/ingresscontroller.yaml`. Without this,
+- **Exclude HCP routes from the default router.** Patch the default
+  IngressController with a `namespaceSelector` of
+  `hypershift.openshift.io/hosted-control-plane DoesNotExist`. Without this,
   an HCP route can be admitted by *both* routers and answered on the default
   router's IP — exactly the private-route exposure we want to prevent. The
   default controller keeps admitting all normal application routes (they lack
-  the label).
+  the label). This exclusion lives in `charts/hcp-config/` (alongside the
+  dedicated `hosted-clusters` IngressController it complements — an HCP concern,
+  applied once per hub). The `default` IngressController is created and owned by
+  the cluster ingress operator, and its `defaultCertificate` is managed by the
+  `cluster-certificates` chart, so `hcp-config` does **not** declare it as an
+  Argo CD resource (two applications co-owning one object fight over Argo CD's
+  tracking id). Instead it uses the redhat-cop **Patch operator** — the same
+  mechanism `hosted-cluster` uses for MetalLB service pinning — to patch
+  `spec.namespaceSelector` in place (a `merge-patch`, leaving every other field
+  including `defaultCertificate` untouched). *(Implementation notes: an earlier
+  draft placed this in `cluster-certificates`; it was moved to `hcp-config`
+  because that chart is HCP-scoped and applied once per hub, whereas
+  `cluster-certificates` is applied to every managed cluster. A subsequent draft
+  used a partial `ServerSideApply` manifest, but that still co-owned the
+  resource with `cluster-certificates`; a Patch CR is a distinct object, so no
+  two applications claim the same `default` IngressController. The patch runs on
+  the hub only, where the Patch operator is installed.)*
 
 ### 4. IP assignment / MetalLB
 
@@ -306,8 +321,10 @@ of four DNS records disappear.
   `ipAddress`/`externalIpAddress` contract; `hcpInternalDomain` defaults to
   `""` (required, fail-closed); `hcpExternalDomain` defaults to `""` and
   inherits `hcpInternalDomain` when left empty.
-- `charts/cluster-certificates/templates/ingresscontroller.yaml` — add the
-  default-router `namespaceSelector` exclusion.
+- `charts/hcp-config/templates/default-ingresscontroller-exclusion.yaml` — a
+  redhat-cop Patch (plus its ServiceAccount/Role/RoleBinding) that patches the
+  default-router `namespaceSelector` exclusion in place (gated on
+  `ingressController.enabled`).
 - `hosted-clusters/oac-dev-infra/values.yaml` — add `hcpInternalDomain` (and
   `hcpExternalDomain` only if the hub's external facing differs).
 - Unit tests (`charts/hosted-cluster/tests/unit/*`) updated for every rendering

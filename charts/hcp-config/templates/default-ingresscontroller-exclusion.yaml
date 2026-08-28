@@ -1,0 +1,72 @@
+{{- if .Values.ingressController }}
+{{- if .Values.ingressController.enabled }}
+# Excludes HCP-control-plane routes from the default IngressController so they
+# are served only by the dedicated "hosted-clusters" router (see
+# ingresscontroller.yaml). The default IngressController is created and owned by
+# the cluster ingress operator (and its defaultCertificate is managed by the
+# cluster-certificates chart), so we do NOT declare it as an Argo CD resource
+# here -- that would make two applications co-own one object. Instead we use the
+# redhat-cop Patch operator to patch spec.namespaceSelector in place, leaving
+# every other field (including defaultCertificate) untouched.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: default-router-hcp-exclusion
+  namespace: openshift-ingress-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: default-router-hcp-exclusion
+  namespace: openshift-ingress-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+  - apiGroups: ["operator.openshift.io"]
+    resources: ["ingresscontrollers"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: default-router-hcp-exclusion
+  namespace: openshift-ingress-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: default-router-hcp-exclusion
+subjects:
+  - kind: ServiceAccount
+    name: default-router-hcp-exclusion
+    namespace: openshift-ingress-operator
+---
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: Patch
+metadata:
+  name: default-router-hcp-exclusion
+  namespace: openshift-ingress-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  serviceAccountRef:
+    name: default-router-hcp-exclusion
+  patches:
+    namespace-selector:
+      targetObjectRef:
+        apiVersion: operator.openshift.io/v1
+        kind: IngressController
+        name: default
+        namespace: openshift-ingress-operator
+      patchType: application/merge-patch+json
+      patchTemplate: |
+        spec:
+          namespaceSelector:
+            matchExpressions:
+              - key: hypershift.openshift.io/hosted-control-plane
+                operator: DoesNotExist
+{{- end }}
+{{- end }}
