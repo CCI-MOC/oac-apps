@@ -86,20 +86,10 @@ spec:
   sshKey:
     name: {{ .Values.sshKey.name }}
   configuration:
-    {{- if .Values.oauth.github.enabled }}
+    {{- with .Values.oauth.identityProviders }}
     oauth:
       identityProviders:
-        - name: github
-          mappingMethod: {{ .Values.oauth.github.mappingMethod }}
-          type: GitHub
-          github:
-            clientID: {{ .Values.oauth.github.clientID | quote }}
-            clientSecret:
-              name: {{ $clusterName }}-github-oauth-client-secret
-            {{- with .Values.oauth.github.teams }}
-            teams:
-              {{- toYaml . | nindent 14 }}
-            {{- end }}
+        {{- toYaml . | nindent 8 }}
     {{- end }}
     apiServer:
       servingCerts:

@@ -225,6 +225,47 @@ tests:
           path: metadata.annotations["argocd.argoproj.io/sync-options"]
           value: Replace=true
 
+  - it: should not render oauth configuration when no identity providers are set
+    asserts:
+      - notExists:
+          path: spec.configuration.oauth
+
+  - it: should render identity providers verbatim
+    set:
+      oauth:
+        identityProviders:
+          - name: github
+            type: GitHub
+            mappingMethod: claim
+            github:
+              clientID: abc123
+              clientSecret:
+                name: my-github-secret
+              teams:
+                - CCI-MOC/open-accelerator-admins
+          - name: htpasswd
+            type: HTPasswd
+            mappingMethod: claim
+            htpasswd:
+              fileData:
+                name: my-htpasswd-secret
+    asserts:
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0]
+          value:
+            name: github
+            type: GitHub
+            mappingMethod: claim
+            github:
+              clientID: abc123
+              clientSecret:
+                name: my-github-secret
+              teams:
+                - CCI-MOC/open-accelerator-admins
+      - equal:
+          path: spec.configuration.oauth.identityProviders[1].name
+          value: htpasswd
+
   - it: should let strategy-level hostname override derived hostname
     set:
       services:

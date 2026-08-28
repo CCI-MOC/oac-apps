@@ -10,12 +10,26 @@ services:
         hostname: oauth-oac-prod.apps.infra.oac.int.massopen.cloud
 
 oauth:
-  github:
-    enabled: true
-    clientID: "1234567890abcdef0123"
-    secretPath: cluster/oac-infra-dev/hostedcluster/oac-prod/github-oauth-client-secret
-    teams:
-      - CCI-MOC/open-accelerator
+  identityProviders:
+    - name: github
+      type: GitHub
+      mappingMethod: claim
+      github:
+        clientID: "1234567890abcdef0123"
+        clientSecret:
+          name: oac-prod-github-oauth-client-secret
+        teams:
+          - CCI-MOC/open-accelerator
+
+externalSecrets:
+  - name: oac-prod-github-oauth-client-secret
+    spec:
+      target:
+        name: oac-prod-github-oauth-client-secret
+      data:
+        - secretKey: clientSecret
+          remoteRef:
+            key: cluster/oac-infra-dev/hostedcluster/oac-prod/github-oauth-client-secret
 
 nodePools:
   - name: compute

@@ -35,12 +35,15 @@ networking:
     - cidr: 172.31.0.0/16
 
 oauth:
-  github:
-    enabled: false
-    clientID: ""
-    secretPath: ""
-    mappingMethod: claim
-    teams: []
+  # A list of identity providers rendered verbatim into
+  # spec.configuration.oauth.identityProviders on the HostedCluster.
+  identityProviders: []
+
+# A list of ExternalSecret resources to create for this cluster. Each entry has
+# a `name` (used for metadata.name) and a `spec` block passed through verbatim.
+# spec.secretStoreRef defaults to the store defined in `secretStore` below when
+# it is not supplied by the entry.
+externalSecrets: []
 
 nodePools: []
 
