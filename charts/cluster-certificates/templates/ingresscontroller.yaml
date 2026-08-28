@@ -8,3 +8,7 @@ metadata:
 spec:
   defaultCertificate:
     name: {{ .Values.certificates.ingress.certificate_name }}
+  namespaceSelector:
+    matchExpressions:
+      - key: hypershift.openshift.io/hosted-control-plane
+        operator: DoesNotExist
