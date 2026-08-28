@@ -1,6 +1,9 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.ipAddress }}
+{{- if ne $serviceName "APIServer" }}
+{{- fail (printf "service %q has ipAddress but only APIServer supports LoadBalancer publishing on the Agent platform" $serviceName) }}
+{{- end }}
 ---
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool

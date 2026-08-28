@@ -62,50 +62,28 @@ tests:
           value: test-cluster-apiserver
         documentIndex: 1
 
-  - it: should generate resources for multiple services with ipAddress
+  - it: should fail when a non-APIServer service has ipAddress
+    set:
+      services:
+        OAuthServer:
+          ipAddress: "10.20.5.11"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'service "OAuthServer" has ipAddress but only APIServer supports LoadBalancer publishing on the Agent platform'
+
+  - it: should generate only APIServer resources and ignore other services without ipAddress
     set:
       services:
         APIServer:
           ipAddress: "10.20.5.10"
         OAuthServer:
-          ipAddress: "10.20.5.11"
-    asserts:
-      - hasDocuments:
-          count: 4
-      - containsDocument:
-          kind: IPAddressPool
-          apiVersion: metallb.io/v1beta1
-          name: test-cluster-apiserver
-          any: true
-      - containsDocument:
-          kind: IPAddressPool
-          apiVersion: metallb.io/v1beta1
-          name: test-cluster-oauthserver
-          any: true
-      - containsDocument:
-          kind: L2Advertisement
-          apiVersion: metallb.io/v1beta1
-          name: test-cluster-apiserver
-          any: true
-      - containsDocument:
-          kind: L2Advertisement
-          apiVersion: metallb.io/v1beta1
-          name: test-cluster-oauthserver
-          any: true
-
-  - it: should not generate resources for services without ipAddress
-    set:
-      services:
-        APIServer:
           servicePublishingStrategy:
-            type: LoadBalancer
-        OAuthServer:
-          ipAddress: "10.20.5.11"
+            type: Route
     asserts:
       - hasDocuments:
           count: 2
       - containsDocument:
           kind: IPAddressPool
           apiVersion: metallb.io/v1beta1
-          name: test-cluster-oauthserver
+          name: test-cluster-apiserver
           any: true

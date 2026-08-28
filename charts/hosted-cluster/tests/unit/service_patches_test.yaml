@@ -71,19 +71,6 @@ tests:
           path: kind
           value: Patch
 
-  - it: should target oauth-openshift for OAuthServer
-    set:
-      services:
-        OAuthServer:
-          ipAddress: "10.20.5.11"
-    asserts:
-      - equal:
-          path: spec.patches.metallb-pool.targetObjectRef.name
-          value: oauth-openshift
-        documentSelector:
-          path: kind
-          value: Patch
-
   - it: should reference the correct IPAddressPool in the annotation
     set:
       services:
@@ -97,32 +84,11 @@ tests:
           path: kind
           value: Patch
 
-  - it: should fail for service with ipAddress but no k8s service mapping
+  - it: should fail when a non-APIServer service has ipAddress
     set:
       services:
-        OIDC:
-          ipAddress: "10.20.5.12"
-    asserts:
-      - failedTemplate:
-          errorMessage: 'service "OIDC" has ipAddress but no known k8s service name mapping'
-
-  - it: should generate one Patch CR per service with ipAddress
-    set:
-      services:
-        APIServer:
-          ipAddress: "10.20.5.10"
         OAuthServer:
           ipAddress: "10.20.5.11"
     asserts:
-      - hasDocuments:
-          count: 5
-      - containsDocument:
-          kind: Patch
-          apiVersion: redhatcop.redhat.io/v1alpha1
-          name: test-cluster-apiserver-metallb
-          any: true
-      - containsDocument:
-          kind: Patch
-          apiVersion: redhatcop.redhat.io/v1alpha1
-          name: test-cluster-oauthserver-metallb
-          any: true
+      - failedTemplate:
+          errorMessage: 'service "OAuthServer" has ipAddress but only APIServer supports LoadBalancer publishing on the Agent platform'

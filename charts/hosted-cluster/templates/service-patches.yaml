@@ -46,11 +46,11 @@ subjects:
     namespace: {{ $hcpNamespace }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.ipAddress }}
+{{- if ne $serviceName "APIServer" }}
+{{- fail (printf "service %q has ipAddress but only APIServer supports LoadBalancer publishing on the Agent platform" $serviceName) }}
+{{- end }}
 {{- $svcDef := dig $serviceName dict $allDefaults }}
 {{- $k8sServiceName := dig "k8sServiceName" "" $svcDef }}
-{{- if not $k8sServiceName }}
-  {{- fail (printf "service %q has ipAddress but no known k8s service name mapping" $serviceName) }}
-{{- end }}
 ---
 apiVersion: redhatcop.redhat.io/v1alpha1
 kind: Patch
