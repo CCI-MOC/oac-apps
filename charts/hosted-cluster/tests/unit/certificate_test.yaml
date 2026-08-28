@@ -4,13 +4,14 @@ templates:
 set:
   clusterName: test-cluster
   baseDomain: apps.infra.oac.int.massopen.cloud
+  hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
 
 tests:
-  - it: should default dnsNames from clusterName and baseDomain
+  - it: should default dnsNames to the external-domain name
     asserts:
       - equal:
           path: spec.dnsNames[0]
-          value: api.test-cluster.apps.infra.oac.int.massopen.cloud
+          value: api-external-test-cluster.hcp.infra.oac.int.massopen.cloud
 
   - it: should use overridden kubeAPIServerDNSName
     set:

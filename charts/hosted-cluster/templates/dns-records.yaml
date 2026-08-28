@@ -1,48 +1,36 @@
 {{- if .Values.dns.enabled }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- $baseDomain := include "hosted-cluster.baseDomain" . }}
-{{- $kubeAPIServerDNSName := .Values.kubeAPIServerDNSName | default (printf "api.%s.%s" $clusterName $baseDomain) }}
+{{- $kubeAPIServerDNSName := include "hosted-cluster.kubeAPIServerDNSName" . }}
 
 {{- if .Values.dns.autoGenerate }}
 {{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
-{{- range $serviceName, $serviceConfig := .Values.services }}
-
-{{- $svcDef := dig $serviceName dict $allDefaults }}
-{{- $hostname := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" (dig "prefix" "" $svcDef) "facing" (dig "facing" "internal" $svcDef) "clusterName" $clusterName "ctx" $) }}
-
-{{- $strategyType := dig "servicePublishingStrategy" "type" "" $serviceConfig }}
-
-{{- /* Internal DNS: LoadBalancer with ipAddress → service hostname points to internal IP.
-       Skipped for non-APIServer services when externalIpAddress is also set, since the
-       same hostname can only have one record. */}}
-{{- $hasExternal := $serviceConfig.externalIpAddress }}
-{{- $skipInternal := and $hasExternal (ne $serviceName "APIServer") }}
-{{- if and (eq $strategyType "LoadBalancer") $serviceConfig.ipAddress $hostname (not $skipInternal) }}
+{{- $svcDef := index $allDefaults "APIServer" }}
+{{- $apiConfig := dig "APIServer" dict .Values.services }}
+{{- $internalHost := include "hosted-cluster.serviceHostname" (dict "serviceConfig" $apiConfig "prefix" $svcDef.prefix "facing" $svcDef.facing "clusterName" $clusterName "ctx" $) }}
+{{- if and $apiConfig.ipAddress $internalHost }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: dns-{{ lower $serviceName }}-internal-{{ $clusterName }}
+  name: dns-apiserver-internal-{{ $clusterName }}
   namespace: {{ $.Values.namespace }}
   labels:
     massopen.cloud/external-dns: "true"
   annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ $hostname | quote }}
-    external-dns.alpha.kubernetes.io/target: {{ $serviceConfig.ipAddress | quote }}
+    external-dns.alpha.kubernetes.io/hostname: {{ $internalHost | quote }}
+    external-dns.alpha.kubernetes.io/target: {{ $apiConfig.ipAddress | quote }}
 spec:
   type: ExternalName
   externalName: placeholder.invalid
 {{- end }}
-
-{{- /* APIServer DNS: kubeAPIServerDNSName → externalIpAddress (preferred) or ipAddress */}}
-{{- if eq $serviceName "APIServer" }}
-{{- $apiTarget := or $serviceConfig.externalIpAddress $serviceConfig.ipAddress }}
+{{- $apiTarget := or $apiConfig.externalIpAddress $apiConfig.ipAddress }}
 {{- if $apiTarget }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: dns-api-{{ $clusterName }}
+  name: dns-apiserver-external-{{ $clusterName }}
   namespace: {{ $.Values.namespace }}
   labels:
     massopen.cloud/external-dns: "true"
@@ -52,27 +40,6 @@ metadata:
 spec:
   type: ExternalName
   externalName: placeholder.invalid
-{{- end }}
-{{- end }}
-
-{{- /* External DNS for non-APIServer services with externalIpAddress */}}
-{{- if and (ne $serviceName "APIServer") $serviceConfig.externalIpAddress $hostname }}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: dns-{{ lower $serviceName }}-external-{{ $clusterName }}
-  namespace: {{ $.Values.namespace }}
-  labels:
-    massopen.cloud/external-dns: "true"
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: {{ $hostname | quote }}
-    external-dns.alpha.kubernetes.io/target: {{ $serviceConfig.externalIpAddress | quote }}
-spec:
-  type: ExternalName
-  externalName: placeholder.invalid
-{{- end }}
-
 {{- end }}
 {{- end }}
 

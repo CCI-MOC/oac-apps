@@ -10,13 +10,11 @@ set:
     autoGenerate: true
 
 tests:
-  - it: should generate internal and kubeAPIServerDNSName DNS for LoadBalancer with ipAddress
+  - it: should generate internal and external API records for LoadBalancer with ipAddress
     set:
       services:
         APIServer:
           ipAddress: "10.20.5.10"
-          servicePublishingStrategy:
-            type: LoadBalancer
     asserts:
       - hasDocuments:
           count: 2
@@ -27,7 +25,7 @@ tests:
           any: true
       - equal:
           path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
-          value: "api-test-cluster.apps.infra.oac.int.massopen.cloud"
+          value: "api-internal-test-cluster.hcp.infra.oac.int.massopen.cloud"
         documentSelector:
           path: metadata.name
           value: dns-apiserver-internal-test-cluster
@@ -40,125 +38,76 @@ tests:
       - containsDocument:
           kind: Service
           apiVersion: v1
-          name: dns-api-test-cluster
+          name: dns-apiserver-external-test-cluster
           any: true
       - equal:
           path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
-          value: "api.test-cluster.apps.infra.oac.int.massopen.cloud"
+          value: "api-external-test-cluster.hcp.infra.oac.int.massopen.cloud"
         documentSelector:
           path: metadata.name
-          value: dns-api-test-cluster
+          value: dns-apiserver-external-test-cluster
       - equal:
           path: metadata.annotations["external-dns.alpha.kubernetes.io/target"]
           value: "10.20.5.10"
         documentSelector:
           path: metadata.name
-          value: dns-api-test-cluster
+          value: dns-apiserver-external-test-cluster
 
-  - it: should generate external DNS for APIServer with externalIpAddress
+  - it: should target externalIpAddress for the external record when set
     set:
       services:
         APIServer:
+          ipAddress: "10.20.5.10"
           externalIpAddress: "129.10.5.101"
-          servicePublishingStrategy:
-            type: NodePort
     asserts:
-      - containsDocument:
-          kind: Service
-          apiVersion: v1
-          name: dns-api-test-cluster
-          any: true
-      - equal:
-          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
-          value: "api.test-cluster.apps.infra.oac.int.massopen.cloud"
-        documentSelector:
-          path: metadata.name
-          value: dns-api-test-cluster
+      - hasDocuments:
+          count: 2
       - equal:
           path: metadata.annotations["external-dns.alpha.kubernetes.io/target"]
           value: "129.10.5.101"
         documentSelector:
           path: metadata.name
-          value: dns-api-test-cluster
+          value: dns-apiserver-external-test-cluster
 
-  - it: should use overridden kubeAPIServerDNSName for external APIServer DNS
+  - it: should use overridden kubeAPIServerDNSName for the external record
     set:
       kubeAPIServerDNSName: api.custom.example.com
       services:
         APIServer:
-          externalIpAddress: "129.10.5.101"
-          servicePublishingStrategy:
-            type: NodePort
+          ipAddress: "10.20.5.10"
     asserts:
       - equal:
           path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
           value: "api.custom.example.com"
         documentSelector:
           path: metadata.name
-          value: dns-api-test-cluster
+          value: dns-apiserver-external-test-cluster
 
-  - it: should generate both internal and external DNS for APIServer
+  - it: should use custom APIServer hostname for the internal record
     set:
       services:
         APIServer:
+          hostname: custom-internal.example.com
           ipAddress: "10.20.5.10"
-          externalIpAddress: "129.10.5.101"
-          servicePublishingStrategy:
-            type: LoadBalancer
-    asserts:
-      - hasDocuments:
-          count: 2
-      - containsDocument:
-          kind: Service
-          apiVersion: v1
-          name: dns-apiserver-internal-test-cluster
-          any: true
-      - containsDocument:
-          kind: Service
-          apiVersion: v1
-          name: dns-api-test-cluster
-          any: true
-      - equal:
-          path: metadata.annotations["external-dns.alpha.kubernetes.io/target"]
-          value: "129.10.5.101"
-        documentSelector:
-          path: metadata.name
-          value: dns-api-test-cluster
-
-  - it: should skip internal DNS for non-APIServer when externalIpAddress is set
-    set:
-      services:
-        OAuthServer:
-          ipAddress: "10.20.5.11"
-          externalIpAddress: "129.10.5.101"
-          servicePublishingStrategy:
-            type: LoadBalancer
-    asserts:
-      - hasDocuments:
-          count: 1
-      - containsDocument:
-          kind: Service
-          apiVersion: v1
-          name: dns-oauthserver-external-test-cluster
-          any: true
-
-  - it: should use custom hostname in DNS records
-    set:
-      services:
-        APIServer:
-          hostname: custom-api.example.com
-          ipAddress: "10.20.5.10"
-          servicePublishingStrategy:
-            type: LoadBalancer
     asserts:
       - equal:
           path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
-          value: "custom-api.example.com"
+          value: "custom-internal.example.com"
         documentSelector:
           path: metadata.name
           value: dns-apiserver-internal-test-cluster
 
-  - it: should not generate auto DNS when autoGenerate is false
+  - it: should generate no records for routed services even with ipAddress absent
+    set:
+      services:
+        OAuthServer:
+          servicePublishingStrategy:
+            type: Route
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not generate auto records when autoGenerate is false
     set:
       dns:
         enabled: true
@@ -166,8 +115,6 @@ tests:
       services:
         APIServer:
           ipAddress: "10.20.5.10"
-          servicePublishingStrategy:
-            type: LoadBalancer
     asserts:
       - hasDocuments:
           count: 0
@@ -177,8 +124,6 @@ tests:
       services:
         APIServer:
           ipAddress: "10.20.5.10"
-          servicePublishingStrategy:
-            type: LoadBalancer
       dns:
         enabled: true
         autoGenerate: true
@@ -197,7 +142,7 @@ tests:
       - containsDocument:
           kind: Service
           apiVersion: v1
-          name: dns-api-test-cluster
+          name: dns-apiserver-external-test-cluster
           any: true
       - containsDocument:
           kind: Service
@@ -205,7 +150,7 @@ tests:
           name: dns-ingress-test-cluster
           any: true
 
-  - it: should not generate any DNS when disabled
+  - it: should not generate any records when dns.enabled is false
     set:
       dns:
         enabled: false
@@ -213,8 +158,6 @@ tests:
       services:
         APIServer:
           ipAddress: "10.20.5.10"
-          servicePublishingStrategy:
-            type: LoadBalancer
     asserts:
       - hasDocuments:
           count: 0

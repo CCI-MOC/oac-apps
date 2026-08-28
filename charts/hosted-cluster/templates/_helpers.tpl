@@ -49,10 +49,10 @@ Service metadata shared across templates.
 */}}
 {{- define "hosted-cluster.serviceDefaults" -}}
 APIServer:
-  prefix: api
-  defaultType: NodePort
+  prefix: api-internal
+  defaultType: LoadBalancer
   k8sServiceName: kube-apiserver
-  facing: base
+  facing: internal
 Ignition:
   prefix: ignition
   defaultType: Route
@@ -101,4 +101,12 @@ Mirrors the derivation used for the OAuthServer service publishing strategy.
 {{- $svcDef := index $defaults "OAuthServer" -}}
 {{- $serviceConfig := dig "OAuthServer" dict .Values.services -}}
 {{- include "hosted-cluster.serviceHostname" (dict "serviceConfig" $serviceConfig "prefix" $svcDef.prefix "facing" $svcDef.facing "clusterName" $clusterName "ctx" .) -}}
+{{- end -}}
+
+{{/*
+Derive the external API DNS name (kubeAPIServerDNSName).
+*/}}
+{{- define "hosted-cluster.kubeAPIServerDNSName" -}}
+{{- $clusterName := required "clusterName is required" .Values.clusterName -}}
+{{- .Values.kubeAPIServerDNSName | default (printf "api-external-%s.%s" $clusterName (include "hosted-cluster.hcpExternalDomain" .)) -}}
 {{- end -}}
