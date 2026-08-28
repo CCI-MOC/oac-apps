@@ -12,7 +12,7 @@ spec:
     deviceClasses:
     - name: {{ .Values.volumegroup.name }}
       fstype: {{ .Values.volumegroup.fstype }}
-      default: true
+      default: {{ .Values.volumegroup.is_default }}
 {{- if .Values.volumegroup.nodeSelector }}
       nodeSelector:
 {{ .Values.volumegroup.nodeSelector | toYaml | indent 8 }}

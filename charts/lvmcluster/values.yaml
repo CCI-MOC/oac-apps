@@ -13,6 +13,10 @@ subscription:
 volumegroup:
   name: vg0
   fstype: ext4
+  # When true, the generated StorageClass is marked as the cluster default
+  # (storageclass.kubernetes.io/is-default-class). Leave false to avoid
+  # conflicting with another default StorageClass.
+  is_default: false
   forceWipe: false
   pool:
     name: pool0
