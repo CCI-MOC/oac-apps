@@ -1,0 +1,41 @@
+{{- if .Values.ingressController }}
+{{- if .Values.ingressController.enabled }}
+# MetalLB address pool that pins the dedicated "hosted-clusters" router's
+# LoadBalancer service (see ingresscontroller.yaml) to a stable address. This
+# pool lives here, alongside the router it serves, rather than in the generic
+# metallb chart's addressPools -- the router and its front-end address are one
+# unit of hosted-cluster ingress configuration. It is a distinct object (its
+# own IPAddressPool and L2Advertisement names) from the metallb chart's default
+# pool/advertisement, so the two Applications never co-own a resource.
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: hosted-clusters-ingress
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  addresses:
+{{ required "ingressController.addresses is required when ingressController.enabled" .Values.ingressController.addresses | toYaml | indent 4 }}
+  serviceAllocation:
+    namespaceSelectors:
+      - matchLabels:
+          kubernetes.io/metadata.name: openshift-ingress
+    serviceSelectors:
+      - matchLabels:
+          ingresscontroller.operator.openshift.io/owning-ingresscontroller: hosted-clusters
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: hosted-clusters-ingress
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  ipAddressPools:
+    - hosted-clusters-ingress
+{{- end }}
+{{- end }}

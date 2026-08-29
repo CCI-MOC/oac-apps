@@ -1,0 +1,68 @@
+suite: hosted-clusters-ingress MetalLB pool
+templates:
+  - templates/ingress-addresspool.yaml
+set:
+  # sshKey.aws_secret_name is required for the whole chart to render.
+  sshKey:
+    aws_secret_name: dummy
+  ingressController:
+    enabled: true
+    domain: hcp.example.com
+    addresses:
+      - 10.20.3.10/32
+tests:
+  - it: should render exactly the IPAddressPool and L2Advertisement
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: should pin the pool to the configured addresses with the router service allocation
+    documentSelector:
+      path: kind
+      value: IPAddressPool
+    asserts:
+      - equal:
+          path: metadata.name
+          value: hosted-clusters-ingress
+      - equal:
+          path: metadata.namespace
+          value: metallb-system
+      - contains:
+          path: spec.addresses
+          content: 10.20.3.10/32
+      - equal:
+          path: spec.serviceAllocation.namespaceSelectors[0].matchLabels["kubernetes.io/metadata.name"]
+          value: openshift-ingress
+      - equal:
+          path: spec.serviceAllocation.serviceSelectors[0].matchLabels["ingresscontroller.operator.openshift.io/owning-ingresscontroller"]
+          value: hosted-clusters
+
+  - it: should advertise the pool via its own L2Advertisement
+    documentSelector:
+      path: kind
+      value: L2Advertisement
+    asserts:
+      - equal:
+          path: metadata.name
+          value: hosted-clusters-ingress
+      - contains:
+          path: spec.ipAddressPools
+          content: hosted-clusters-ingress
+
+  - it: should render nothing when the dedicated router is not enabled
+    set:
+      ingressController:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should fail when addresses are not provided
+    set:
+      ingressController:
+        enabled: true
+        domain: hcp.example.com
+        addresses: null
+    asserts:
+      - failedTemplate:
+          errorMessage: "ingressController.addresses is required when ingressController.enabled"

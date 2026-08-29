@@ -156,9 +156,19 @@ The `hosted-clusters` IngressController already exists in
 (`hypershift.openshift.io/hosted-control-plane`) but is not yet in use — today
 HCP routes land on the *default* router. Two changes complete the adoption:
 
-- **Enable it per hub** via `hcp-config` values (already the pattern:
-  `ingressController.enabled: true`, a `domain`, and the MetalLB
-  `hosted-clusters-ingress` pool that pins its LoadBalancer to `10.20.3.10`).
+- **Enable it per hub** via `hcp-config` values (`ingressController.enabled:
+  true`, a `domain`, and `ingressController.addresses` — the LoadBalancer IP,
+  `10.20.3.10` in dev). The `hosted-clusters-ingress` MetalLB pool (plus its
+  own L2Advertisement, scoped to that pool) is rendered by `hcp-config` itself
+  from `ingressController.addresses`, alongside the router it serves — not by
+  the generic `metallb` chart. Its `serviceAllocation` targets the
+  `openshift-ingress` namespace and the `hosted-clusters` owning-controller, so
+  it only ever pins that one router's service. It is a distinct object from the
+  `metallb` chart's default pool/advertisement, so the two Applications never
+  co-own a resource. *(Implementation note: this pool previously lived in the
+  per-hub `metallb.yaml` values consumed by the generic `metallb` chart; it was
+  moved into `hcp-config` so the dedicated router and its front-end address form
+  a single, self-contained unit of hosted-cluster ingress configuration.)*
 - **Exclude HCP routes from the default router.** Patch the default
   IngressController with a `namespaceSelector` of
   `hypershift.openshift.io/hosted-control-plane DoesNotExist`. Without this,
@@ -325,6 +335,11 @@ of four DNS records disappear.
   redhat-cop Patch (plus its ServiceAccount/Role/RoleBinding) that patches the
   default-router `namespaceSelector` exclusion in place (gated on
   `ingressController.enabled`).
+- `charts/hcp-config/templates/ingress-addresspool.yaml` — the
+  `hosted-clusters-ingress` MetalLB IPAddressPool + L2Advertisement that pin the
+  dedicated router's LoadBalancer to `ingressController.addresses` (gated on
+  `ingressController.enabled`). Moved here from the per-hub `metallb.yaml`
+  values.
 - `hosted-clusters/oac-dev-infra/values.yaml` — add `hcpInternalDomain` (and
   `hcpExternalDomain` only if the hub's external facing differs).
 - Unit tests (`charts/hosted-cluster/tests/unit/*`) updated for every rendering

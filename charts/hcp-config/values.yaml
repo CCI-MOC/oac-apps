@@ -2,6 +2,11 @@ ingressController:
   enabled: false
   domain: ""
   replicas: 2
+  # Addresses for the MetalLB pool that pins the dedicated router's
+  # LoadBalancer service (see templates/ingress-addresspool.yaml). Required
+  # when enabled. Accepts any MetalLB address form (CIDR or range), e.g.
+  # ["10.20.3.10/32"].
+  addresses: []
 
 sshKey:
   aws_secret_name: ""
