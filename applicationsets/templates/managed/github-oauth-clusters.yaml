@@ -17,7 +17,6 @@ spec:
           - list:
               elements:
                 - component: github-group-sync
-                - component: oac-simple-rbac
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"
