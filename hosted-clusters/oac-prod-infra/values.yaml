@@ -1,0 +1,25 @@
+# Hub-level values shared by every hosted cluster on the oac-prod-infra hub.
+# The hosted-clusters ApplicationSet layers each cluster's own
+# hosted-clusters/oac-prod-infra/<cluster>/values.yaml on top of this file, so
+# per-cluster files may override any of these values.
+managementCluster: oac-prod-infra
+
+# baseDomain is the guest (workload) cluster's own DNS domain: each cluster's
+# ingress/apps live under *.apps.<clusterName>.<baseDomain>. We point it at the
+# same dynamically-managed hosted zone as hcpExternalDomain so external-dns can
+# create the guest *.apps wildcard there (rather than a static zone). This does
+# not collide with the hub-wide *.hcp.oac.massopen.cloud wildcard: that wildcard
+# only matches single-label names (oauth-<cluster>, api-external-<cluster>),
+# while the guest wildcard is several labels deeper.
+baseDomain: hcp.oac.massopen.cloud
+
+# Control-plane-facing domains for the hosted control planes' exposed services
+# (APIServer, OAuth, Konnectivity, Ignition):
+#   *.hcp-int.oac.massopen.cloud -> the hosted-clusters router LB (10.20.9.10),
+#     configured as the hcp-config MetalLB pool on this hub.
+#   *.hcp.oac.massopen.cloud     -> the router's external firewall IP (NATs to
+#     10.20.9.10) for browser-facing OAuth.
+# hcpExternalDomain is set explicitly (it differs from the internal domain
+# because OAuth is reached through the firewall).
+hcpInternalDomain: hcp-int.oac.massopen.cloud
+hcpExternalDomain: hcp.oac.massopen.cloud

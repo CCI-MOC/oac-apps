@@ -1,0 +1,86 @@
+clusterName: oac-prod-workload0
+
+oauth:
+  identityProviders:
+    - name: mocsso
+      mappingMethod: claim
+      type: OpenID
+      openID:
+        clientID: oac-prod-workload0
+        clientSecret:
+          name: oac-prod-workload0-keycloak-client-secret
+        claims:
+          preferredUsername:
+            - preferred_username
+            - username
+          name:
+            - name
+            - full name
+          email:
+            - email
+          groups:
+            - groups
+        issuer: https://sso.massopen.cloud/realms/moc
+
+externalSecrets:
+  - name: oac-prod-workload0-keycloak-client-secret
+    spec:
+      data:
+        - remoteRef:
+            conversionStrategy: Default
+            decodingStrategy: None
+            key: cluster/oac-prod-workload0/keycloak-oidc
+            metadataPolicy: None
+            nullBytePolicy: Ignore
+            property: client_secret
+          secretKey: clientSecret
+      refreshInterval: 1h
+      secretStoreRef:
+        kind: ClusterSecretStore
+        name: aws-secrets-manager
+      target:
+        creationPolicy: Owner
+        deletionPolicy: Retain
+        name: oac-prod-workload0-keycloak-client-secret
+
+services:
+  APIServer:
+    # Pinned internal LoadBalancer IP: drives the MetalLB pin, becomes
+    # loadBalancer.hostname = api-internal-oac-prod-workload0.<hcpInternalDomain>,
+    # and the auto-generated internal API DNS record.
+    ipAddress: 10.20.9.11
+    # External firewall IP: sets kubeAPIServerDNSName =
+    # api-external-oac-prod-workload0.<hcpExternalDomain> and the auto-generated
+    # external API DNS record. Shared with ingress below -- :6443 NATs to the
+    # API, :80/:443 to the guest ingress.
+    externalIpAddress: 129.10.5.104
+
+ingress:
+  # Guest ingress wildcard (*.apps.oac-prod-workload0.hcp.oac.massopen.cloud)
+  # resolves to this externally reachable IP; the firewall NATs :80/:443 to the
+  # guest router's LoadBalancer (10.20.12.10), which is pinned by MetalLB on the
+  # hosted cluster itself -- not from this chart.
+  externalIpAddress: 129.10.5.104
+
+dns:
+  enabled: true
+  # Auto-generate the two API records (internal + external) plus the guest
+  # ingress wildcard record. The OAuth/Konnectivity/Ignition routes are covered
+  # by the hub-wide HCP wildcards (see hosted-clusters/oac-prod-infra/values.yaml).
+  autoGenerate: true
+
+nodePools:
+  - name: compute
+    replicas: 3
+    agentLabelSelector:
+      massopen.cloud/cluster: oac-prod-workload0
+      openstack/resource-class: fc830
+  - name: gpu
+    replicas: 3
+    agentLabelSelector:
+      massopen.cloud/cluster: oac-prod-workload0
+      openstack/resource-class: lenovo-sd665nv3-h100
+
+clusterLabels:
+  - portworx
+  - gpu
