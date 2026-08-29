@@ -1,5 +1,6 @@
 {{- if .Values.dns.enabled }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- $baseDomain := include "hosted-cluster.baseDomain" . }}
 {{- $kubeAPIServerDNSName := include "hosted-cluster.kubeAPIServerDNSName" . }}
 
 {{- if .Values.dns.autoGenerate }}
@@ -36,6 +37,32 @@ metadata:
   annotations:
     external-dns.alpha.kubernetes.io/hostname: {{ $kubeAPIServerDNSName | quote }}
     external-dns.alpha.kubernetes.io/target: {{ $apiTarget | quote }}
+spec:
+  type: ExternalName
+  externalName: placeholder.invalid
+{{- end }}
+
+{{- /* Guest cluster ingress wildcard. The guest router is published as a
+LoadBalancer with dnsManagementPolicy Unmanaged, so nothing else creates its
+DNS record. The LoadBalancer IP itself is pinned by MetalLB on the hosted
+cluster (guest-side config), not here; we only publish the wildcard pointing at
+the externally reachable IP (falling back to ipAddress for internal-only
+clusters). */}}
+{{- $ingress := .Values.ingress | default dict }}
+{{- $ingressTarget := or $ingress.externalIpAddress $ingress.ipAddress }}
+{{- if $ingressTarget }}
+{{- $ingressHost := $ingress.hostname | default (printf "*.apps.%s.%s" $clusterName $baseDomain) }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dns-ingress-{{ $clusterName }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    massopen.cloud/external-dns: "true"
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ $ingressHost | quote }}
+    external-dns.alpha.kubernetes.io/target: {{ $ingressTarget | quote }}
 spec:
   type: ExternalName
   externalName: placeholder.invalid

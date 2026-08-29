@@ -78,6 +78,19 @@ ingress:
   type: LoadBalancerService
   scope: External
   dnsManagementPolicy: Unmanaged
+  # Externally reachable IP for the guest cluster's ingress wildcard record
+  # (*.apps.<clusterName>.<baseDomain>). Typically the firewall IP that NATs
+  # :80/:443 to the guest router's LoadBalancer. When dns.autoGenerate is on and
+  # this (or ipAddress) is set, the chart publishes the wildcard DNS record.
+  externalIpAddress: ""
+  # Internal-only fallback target for the ingress wildcard, used when there is
+  # no externalIpAddress (e.g. baseDomain is an internally-resolved zone). This
+  # does NOT pin the guest router's LoadBalancer IP -- that is MetalLB config on
+  # the hosted cluster itself.
+  ipAddress: ""
+  # Optional override for the wildcard hostname; defaults to
+  # *.apps.<clusterName>.<baseDomain>.
+  hostname: ""
 
 dns:
   enabled: false

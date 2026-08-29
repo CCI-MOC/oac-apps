@@ -161,3 +161,83 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  - it: should generate an ingress wildcard record targeting externalIpAddress
+    set:
+      ingress:
+        externalIpAddress: "129.10.5.104"
+        ipAddress: "10.20.12.10"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-ingress-test-cluster
+          any: true
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: "*.apps.test-cluster.apps.infra.oac.int.massopen.cloud"
+        documentSelector:
+          path: metadata.name
+          value: dns-ingress-test-cluster
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/target"]
+          value: "129.10.5.104"
+        documentSelector:
+          path: metadata.name
+          value: dns-ingress-test-cluster
+
+  - it: should fall back to ipAddress for the ingress record when externalIpAddress is unset
+    set:
+      ingress:
+        ipAddress: "10.20.12.10"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/target"]
+          value: "10.20.12.10"
+        documentSelector:
+          path: metadata.name
+          value: dns-ingress-test-cluster
+
+  - it: should allow overriding the ingress wildcard hostname
+    set:
+      ingress:
+        externalIpAddress: "129.10.5.104"
+        hostname: "*.apps.custom.example.com"
+    asserts:
+      - equal:
+          path: metadata.annotations["external-dns.alpha.kubernetes.io/hostname"]
+          value: "*.apps.custom.example.com"
+        documentSelector:
+          path: metadata.name
+          value: dns-ingress-test-cluster
+
+  - it: should not generate an ingress record when no ingress IP is set
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      # Only the two API records; no dns-ingress-test-cluster.
+      - hasDocuments:
+          count: 2
+
+  - it: should generate API and ingress records together
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+          externalIpAddress: "129.10.5.104"
+      ingress:
+        externalIpAddress: "129.10.5.104"
+    asserts:
+      - hasDocuments:
+          count: 3
+      - containsDocument:
+          kind: Service
+          apiVersion: v1
+          name: dns-ingress-test-cluster
+          any: true

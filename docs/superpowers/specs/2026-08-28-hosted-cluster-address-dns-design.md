@@ -230,14 +230,19 @@ cert already imposes, so the API just joins it.
 
 - **Hub-wide, created once by the operator:** `*.<hcpInternalDomain>` →
   `10.20.3.10`, and `*.<hcpExternalDomain>` → router external firewall IP.
-- **Per-cluster, auto-generated** (`dns.autoGenerate`): exactly two external-dns
-  shadow Services for the API — `api-internal-<cluster>` → `ipAddress`, and
-  `api-external-<cluster>` → `externalIpAddress`. Both are explicit records
-  that override the corresponding wildcard. OAuth/Konnectivity/Ignition
-  generate **nothing**.
-- **Per-cluster, manual:** `dns.records` stays for genuinely arbitrary entries,
-  e.g. the guest cluster's ingress wildcard `*.apps.<cluster>.<baseDomain>` →
-  ingress firewall IP.
+- **Per-cluster, auto-generated** (`dns.autoGenerate`): external-dns shadow
+  Services for the API — `api-internal-<cluster>` → `ipAddress` and
+  `api-external-<cluster>` → `externalIpAddress` (both explicit records that
+  override the corresponding wildcard) — plus the guest cluster's ingress
+  wildcard `*.apps.<cluster>.<baseDomain>` → `ingress.externalIpAddress`
+  (falling back to `ingress.ipAddress` for internal-only clusters). The guest
+  router is published `LoadBalancerService` with `dnsManagementPolicy:
+  Unmanaged`, so nothing else creates its record; its LoadBalancer IP is pinned
+  by MetalLB **on the hosted cluster** (guest-side config), not by this chart —
+  the chart only publishes the wildcard pointing at the externally reachable IP
+  (the firewall NATs `:80/:443` to the guest router). OAuth/Konnectivity/
+  Ignition generate **nothing**.
+- **Per-cluster, manual:** `dns.records` stays for genuinely arbitrary entries.
 
 ## Hub-level values
 
@@ -318,9 +323,10 @@ of four DNS records disappear.
   `defaultType` → `LoadBalancer`; set `loadBalancer.hostname` to the internal
   name; default `kubeAPIServerDNSName` to the external name; OAuth/Konnectivity/
   Ignition route hostnames from the new derivation.
-- `charts/hosted-cluster/templates/dns-records.yaml` — `autoGenerate` emits
-  only the two API records (internal + external); no records for the routed
-  services.
+- `charts/hosted-cluster/templates/dns-records.yaml` — `autoGenerate` emits the
+  two API records (internal + external) and the guest ingress wildcard
+  (`*.apps.<cluster>.<baseDomain>` → `ingress.externalIpAddress`/`ipAddress`);
+  no records for the HCP routed services (OAuth/Konnectivity/Ignition).
 - `charts/hosted-cluster/templates/ipaddresspool.yaml`,
   `service-patches.yaml` — restrict to `APIServer`; error on any other service
   carrying `ipAddress`.
