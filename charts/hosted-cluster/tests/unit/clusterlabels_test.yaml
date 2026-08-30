@@ -82,7 +82,7 @@ tests:
           path: kind
           value: Patch
 
-  - it: should target the ManagedCluster by name with a strategic merge patch
+  - it: should target the ManagedCluster by name with a JSON merge patch
     set:
       clusterLabels:
         - gpu
@@ -101,7 +101,7 @@ tests:
           value: Patch
       - equal:
           path: spec.patches.cluster-labels.patchType
-          value: application/strategic-merge-patch+json
+          value: application/merge-patch+json
         documentSelector:
           path: kind
           value: Patch

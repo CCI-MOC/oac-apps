@@ -5,8 +5,10 @@ Feature labels are applied to the ManagedCluster with a patch-operator Patch
 rather than a direct (server-side) apply. ACM creates the ManagedCluster
 asynchronously once the HostedCluster is imported; patch-operator watches the
 target and applies the patch only once it exists (it never creates the target),
-which removes the need for a wait Job. Strategic merge sets only these
+which removes the need for a wait Job. A JSON merge patch sets only these
 feature-* keys, leaving ACM's own labels untouched, and re-applies on drift.
+(Strategic merge is rejected for CustomResources; server-side apply is not
+usable because the operator issues the patch without a field manager.)
 */ -}}
 apiVersion: v1
 kind: ServiceAccount
@@ -55,7 +57,7 @@ spec:
         apiVersion: cluster.open-cluster-management.io/v1
         kind: ManagedCluster
         name: {{ $clusterName }}
-      patchType: application/strategic-merge-patch+json
+      patchType: application/merge-patch+json
       patchTemplate: |
         metadata:
           labels:
