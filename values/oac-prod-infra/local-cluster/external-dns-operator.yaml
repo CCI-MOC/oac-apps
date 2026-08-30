@@ -9,9 +9,19 @@ externaldns:
       - filterType: Include
         matchType: Exact
         name: hcp.oac.massopen.cloud
+      # hcp-int is a separate Route53 zone. Its static wildcard
+      # (*.hcp-int -> the shared hosted-clusters router) covers the Route-based
+      # HCP services, but a LoadBalancer-type APIServer needs its own
+      # api-internal-<cluster> record (chart dns.autoGenerate) to override the
+      # wildcard. Without this, the wildcard misroutes worker kubelets and nodes
+      # never join.
+      - filterType: Include
+        matchType: Exact
+        name: hcp-int.oac.massopen.cloud
     hostnameAnnotation: Allow
     labelFilter:
       matchLabels:
         massopen.cloud/external-dns: "true"
     zones:
       - Z10405843KIKQ904M78I0
+      - Z02751472EG4OJ4TEAZ5J

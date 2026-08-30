@@ -40,7 +40,7 @@ tests:
           value: "10.20.5.10/32"
         documentIndex: 0
 
-  - it: should disable autoAssign so the address is reserved for the annotated service
+  - it: should enable autoAssign so MetalLB can assign the reserved address to the matching service
     set:
       services:
         APIServer:
@@ -48,7 +48,22 @@ tests:
     asserts:
       - equal:
           path: spec.autoAssign
-          value: false
+          value: true
+        documentIndex: 0
+
+  - it: should scope the pool to the API service via serviceAllocation selectors
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - equal:
+          path: spec.serviceAllocation.namespaceSelectors[0].matchLabels['kubernetes.io/metadata.name']
+          value: clusters-test-cluster
+        documentIndex: 0
+      - equal:
+          path: spec.serviceAllocation.serviceSelectors[0].matchLabels.app
+          value: kube-apiserver
         documentIndex: 0
 
   - it: should reference the pool in the L2Advertisement

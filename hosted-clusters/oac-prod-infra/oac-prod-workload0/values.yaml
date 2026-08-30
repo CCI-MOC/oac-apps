@@ -48,7 +48,7 @@ services:
     # Pinned internal LoadBalancer IP: drives the MetalLB pin, becomes
     # loadBalancer.hostname = api-internal-oac-prod-workload0.<hcpInternalDomain>,
     # and the auto-generated internal API DNS record.
-    ipAddress: 10.20.9.11
+    ipAddress: 10.20.9.13
     # External firewall IP: sets kubeAPIServerDNSName =
     # api-external-oac-prod-workload0.<hcpExternalDomain> and the auto-generated
     # external API DNS record. Shared with ingress below -- :6443 NATs to the

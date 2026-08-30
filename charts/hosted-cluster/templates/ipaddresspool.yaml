@@ -1,9 +1,12 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.ipAddress }}
 {{- if ne $serviceName "APIServer" }}
 {{- fail (printf "service %q has ipAddress but only APIServer supports LoadBalancer publishing on the Agent platform" $serviceName) }}
 {{- end }}
+{{- $svcDef := dig $serviceName dict $allDefaults }}
+{{- $k8sServiceName := dig "k8sServiceName" "" $svcDef }}
 ---
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -11,9 +14,21 @@ metadata:
   name: {{ $clusterName }}-{{ lower $serviceName }}
   namespace: metallb-system
 spec:
-  autoAssign: false
+  # autoAssign with a serviceAllocation selector pins this address to the one
+  # matching service natively -- no patch-operator/annotation needed. MetalLB
+  # prefers a pool whose serviceAllocation matches over the catch-all default
+  # pool, so the service always lands on this reserved address. This mirrors the
+  # hub's hosted-clusters-ingress pool pattern.
+  autoAssign: true
   addresses:
     - {{ $serviceConfig.ipAddress }}/32
+  serviceAllocation:
+    namespaceSelectors:
+      - matchLabels:
+          kubernetes.io/metadata.name: {{ $.Values.namespace }}-{{ $clusterName }}
+    serviceSelectors:
+      - matchLabels:
+          app: {{ $k8sServiceName }}
 ---
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
