@@ -52,6 +52,16 @@ oauth:
 # it is not supplied by the entry.
 externalSecrets: []
 
+pushSecrets:
+  kubeadmin_kubeconfig:
+    enabled: true
+  # This is disabled by default because the corresponding secrets gets deleted as
+  # soon as you configure an oauth provider.
+  kubeadmin_password:
+    enabled: false
+  etcd:
+    enabled: true
+
 nodePools: []
 
 clusterLabels: []
