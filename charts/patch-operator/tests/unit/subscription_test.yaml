@@ -1,0 +1,36 @@
+suite: patch-operator Subscription
+templates:
+  - templates/operator.yaml
+tests:
+  - it: should render the OLM Subscription
+    asserts:
+      - containsDocument:
+          apiVersion: operators.coreos.com/v1alpha1
+          kind: Subscription
+          name: patch-operator
+          any: true
+
+  - it: should inject spec.config.resources so OLM raises the manager memory ceiling
+    asserts:
+      - equal:
+          path: spec.config.resources.limits.memory
+          value: 1Gi
+        documentSelector:
+          path: kind
+          value: Subscription
+      - equal:
+          path: spec.config.resources.requests.memory
+          value: 256Mi
+        documentSelector:
+          path: kind
+          value: Subscription
+
+  - it: should omit spec.config when no config is supplied
+    set:
+      subscription.config: null
+    asserts:
+      - notExists:
+          path: spec.config
+        documentSelector:
+          path: kind
+          value: Subscription

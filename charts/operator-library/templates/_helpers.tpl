@@ -39,4 +39,8 @@ spec:
   source: {{ .Values.subscription.source }}
   sourceNamespace: {{ .Values.subscription.sourceNamespace }}
   installPlanApproval: {{ .Values.subscription.installPlanApproval }}
+{{- with .Values.subscription.config }}
+  config:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
 {{- end -}}

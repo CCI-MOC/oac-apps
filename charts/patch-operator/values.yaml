@@ -7,3 +7,15 @@ subscription:
   source: community-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+  # OLM injects spec.config.resources into the operator's Deployment and
+  # re-enforces it across pod restarts and operator upgrades. The default
+  # manager limit (500Mi) OOM-kills the controller, which takes down its
+  # mpatch.kb.io admission webhook and freezes every ArgoCD sync that contains
+  # a Patch resource. Raising the ceiling keeps the webhook available.
+  config:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
