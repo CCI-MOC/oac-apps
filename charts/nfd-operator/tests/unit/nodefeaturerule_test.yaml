@@ -13,6 +13,15 @@ tests:
           path: metadata.name
           value: nvidia-pci-labels-and-taints
 
+  # NodeFeatureRule is a namespaced resource. Without an explicit namespace
+  # (the Application's destination namespace is empty), ArgoCD rejects it with
+  # an InvalidSpecError once the CRD is installed, so the CR is never created.
+  - it: should be created in the operator namespace
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: openshift-nfd
+
   # Without SkipDryRunOnMissingResource, ArgoCD's pre-sync dry-run fails on a
   # cluster where the nfd.openshift.io CRDs are not yet installed, which aborts
   # the entire sync (including the operator Subscription that installs those
