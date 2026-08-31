@@ -1,0 +1,6 @@
+ingress:
+  # Internal LoadBalancer IP (or any MetalLB address form: CIDR or range) for
+  # the guest's default IngressController router. When empty the chart renders
+  # nothing (fail closed). Supplied per-cluster from
+  # hosted-clusters/<hub>/<cluster>/values.yaml.
+  poolAddress: ""

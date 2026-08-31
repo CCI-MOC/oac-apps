@@ -2,13 +2,3 @@ addressPools:
   - name: default
     addresses:
       - 10.20.13.200-10.20.13.250
-  - name: default-ingress
-    addresses:
-      - 10.20.13.10/32
-    serviceAllocation:
-      namespaceSelectors:
-        - matchLabels:
-            kubernetes.io/metadata.name: openshift-ingress
-      serviceSelectors:
-        - matchLabels:
-            ingresscontroller.operator.openshift.io/owning-ingresscontroller: default

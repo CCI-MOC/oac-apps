@@ -1,0 +1,61 @@
+suite: hosted-ingress default-ingress MetalLB pool
+templates:
+  - templates/ingress-addresspool.yaml
+tests:
+  - it: should render exactly the IPAddressPool and L2Advertisement when an address is set
+    set:
+      ingress:
+        poolAddress: 10.20.13.10/32
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: should pin the pool to the default ingress router with matching annotations
+    set:
+      ingress:
+        poolAddress: 10.20.13.10/32
+    documentSelector:
+      path: kind
+      value: IPAddressPool
+    asserts:
+      - equal:
+          path: metadata.name
+          value: default-ingress
+      - equal:
+          path: metadata.namespace
+          value: metallb-system
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
+      - contains:
+          path: spec.addresses
+          content: 10.20.13.10/32
+      - equal:
+          path: spec.serviceAllocation.namespaceSelectors[0].matchLabels["kubernetes.io/metadata.name"]
+          value: openshift-ingress
+      - equal:
+          path: spec.serviceAllocation.serviceSelectors[0].matchLabels["ingresscontroller.operator.openshift.io/owning-ingresscontroller"]
+          value: default
+
+  - it: should advertise the pool via its own L2Advertisement
+    set:
+      ingress:
+        poolAddress: 10.20.13.10/32
+    documentSelector:
+      path: kind
+      value: L2Advertisement
+    asserts:
+      - equal:
+          path: metadata.name
+          value: default-ingress
+      - contains:
+          path: spec.ipAddressPools
+          content: default-ingress
+
+  - it: should render nothing when no address is set
+    asserts:
+      - hasDocuments:
+          count: 0

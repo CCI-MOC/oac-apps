@@ -1,0 +1,36 @@
+{{- with .Values.ingress.poolAddress }}
+# MetalLB address pool pinning the guest's default IngressController router to
+# a stable LoadBalancer address. Named "default-ingress" to match the pool the
+# metallb chart rendered before this chart existed, so the migration is a clean
+# ownership handoff.
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-ingress
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  addresses:
+    - {{ . }}
+  serviceAllocation:
+    namespaceSelectors:
+      - matchLabels:
+          kubernetes.io/metadata.name: openshift-ingress
+    serviceSelectors:
+      - matchLabels:
+          ingresscontroller.operator.openshift.io/owning-ingresscontroller: default
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default-ingress
+  namespace: metallb-system
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  ipAddressPools:
+    - default-ingress
+{{- end }}

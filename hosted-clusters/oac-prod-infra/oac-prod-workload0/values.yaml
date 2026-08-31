@@ -58,9 +58,13 @@ services:
 ingress:
   # Guest ingress wildcard (*.apps.oac-prod-workload0.hcp.oac.massopen.cloud)
   # resolves to this externally reachable IP; the firewall NATs :80/:443 to the
-  # guest router's LoadBalancer (10.20.12.10), which is pinned by MetalLB on the
-  # hosted cluster itself -- not from this chart.
+  # guest router's LoadBalancer (10.20.13.10), pinned by MetalLB on the guest
+  # cluster via the hosted-ingress app (see poolAddress below).
   externalIpAddress: 129.10.5.104
+  # Internal LoadBalancer IP for the guest's default IngressController router.
+  # Consumed by the hosted-ingress app (NOT the hosted-cluster chart, which runs
+  # on the hub). This is the single source of truth for the guest ingress pool.
+  poolAddress: 10.20.13.10/32
 
 dns:
   enabled: true

@@ -1,0 +1,59 @@
+suite: hosted-ingress ApplicationSet
+templates:
+  - templates/managed/hosted-ingress.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should render the hosted-ingress ApplicationSet
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: ApplicationSet
+          apiVersion: argoproj.io/v1alpha1
+          name: hosted-ingress
+
+  - it: should select guest clusters via the all-managed-clusters placement
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].clusterDecisionResource.configMapRef
+          value: acm-placement
+      - equal:
+          path: spec.generators[0].clusterDecisionResource.labelSelector.matchLabels["cluster.open-cluster-management.io/placement"]
+          value: all-managed-clusters
+
+  - it: should deploy the hosted-ingress chart to the guest cluster
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.metadata.name
+          value: "{{name}}-hosted-ingress"
+      - equal:
+          path: spec.template.spec.source.path
+          value: charts/hosted-ingress
+      - equal:
+          path: spec.template.spec.destination.server
+          value: "{{server}}"
+
+  - it: should layer hub-level values under per-cluster values from the hosted-cluster file, both optional
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.spec.source.helm.ignoreMissingValueFiles
+          value: true
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[0]
+          value: "/hosted-clusters/oac-dev-infra/values.yaml"
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[1]
+          value: "/hosted-clusters/oac-dev-infra/{{name}}/values.yaml"

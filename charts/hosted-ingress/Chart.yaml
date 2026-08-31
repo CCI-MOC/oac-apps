@@ -1,0 +1,5 @@
+apiVersion: v2
+name: hosted-ingress
+description: MetalLB address pool pinning a hosted (guest) cluster's default ingress router.
+type: application
+version: 0.1.0
