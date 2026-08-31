@@ -82,5 +82,5 @@ nodePools:
       openstack/resource-class: lenovo-sd665nv3-h100
 
 clusterLabels:
-  - portworx
-  - gpu
+  massopen.cloud/feature-portworx: "true"
+  massopen.cloud/feature-gpu: "true"

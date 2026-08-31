@@ -64,7 +64,9 @@ pushSecrets:
 
 nodePools: []
 
-clusterLabels: []
+# Map of cluster labels to values that will be applied
+# to the ManagedCluster resource for this cluster.
+clusterLabels: {}
 
 sshKey:
   name: oac-ssh-key
