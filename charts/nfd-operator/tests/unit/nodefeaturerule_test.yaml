@@ -1,0 +1,31 @@
+suite: NodeFeatureRule
+templates:
+  - templates/nodefeaturerule.yaml
+
+tests:
+  - it: should render the NodeFeatureRule
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: NodeFeatureRule
+      - equal:
+          path: metadata.name
+          value: nvidia-pci-labels-and-taints
+
+  # Without SkipDryRunOnMissingResource, ArgoCD's pre-sync dry-run fails on a
+  # cluster where the nfd.openshift.io CRDs are not yet installed, which aborts
+  # the entire sync (including the operator Subscription that installs those
+  # CRDs). See charts/cert-manager for the same pattern.
+  - it: should skip the dry-run when the CRD is missing
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  # Must sync after the operator (wave 0) so the CRD exists first.
+  - it: should sync in a later wave than the operator
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
