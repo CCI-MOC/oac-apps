@@ -29,7 +29,7 @@ externalSecrets:
         - remoteRef:
             conversionStrategy: Default
             decodingStrategy: None
-            key: cluster/oac-prod-workload0/keycloak-oidc
+            key: cluster/oac-prod-infra/hostedcluster/oac-prod-workload0/keycloak-oidc
             metadataPolicy: None
             nullBytePolicy: Ignore
             property: client_secret
