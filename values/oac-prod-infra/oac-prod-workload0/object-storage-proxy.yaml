@@ -1,0 +1,41 @@
+backend:
+  address: 10.9.8.10
+  verify: false
+  cacert: |
+    -----BEGIN CERTIFICATE-----
+    MIIDqjCCApKgAwIBAgIQQHwrP46Qy0E0gU3KsySGzDANBgkqhkiG9w0BAQsFADBO
+    MRIwEAYDVQQDDAkxMC45LjQuMTAxGzAZBgNVBAsMElB1cmUgU3RvcmFnZSwgSW5j
+    LjEbMBkGA1UECgwSUHVyZSBTdG9yYWdlLCBJbmMuMB4XDTI2MDgyMTE2MzAwNVoX
+    DTM2MDgxODE2MzAwNVowTjESMBAGA1UEAwwJMTAuOS40LjEwMRswGQYDVQQLDBJQ
+    dXJlIFN0b3JhZ2UsIEluYy4xGzAZBgNVBAoMElB1cmUgU3RvcmFnZSwgSW5jLjCC
+    ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAM0vjZiOCRXgMOV0ISN8hcWB
+    f8HfRIf+srMx3lmk2AqEUJRTkM0v6yoiqEUUKXOV8SHFJpt44z/OBdjprWHZlOff
+    0wFDtZcYtCatUv+3v7GKcHXswF9H5UGGfcaUm3ocACZyOVgV4JaPc3LUiuGgeRb5
+    qWik22ooXDnysXs3drvHJQ8PixjG6AlFktrtENjv7xWz6iq+Dbe0mv54C5lxXIv/
+    I+EB3A0KGFCUxxSAh/61rwkCiPnb94pjXvzlYM3AueDsfi1L4PBHU/tKBmbWBDZO
+    63bPD8u/r+3Xyc3SthLgei62SgdvNKm60NdsbkAXtXk5RjLY+6/cXQxLMc9KzKMC
+    AwEAAaOBgzCBgDAfBgNVHSMEGDAWgBToXAyJqn+JZE84jfnhGZBPgJamGTAdBgNV
+    HQ4EFgQU6FwMiap/iWRPOI354RmQT4CWphkwDAYDVR0TAQH/BAIwADAOBgNVHQ8B
+    Af8EBAMCAqQwIAYDVR0lAQH/BBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMA0GCSqG
+    SIb3DQEBCwUAA4IBAQDC2lWknh2f9z6rrRfmYrbjfFPYxi2DJ0milE9LKYOcn6Zp
+    v0TH0A9QACaBS7SiUTyCCf1X3TmFUZSyRCbJq+02uMQTx8hPSsmicHuw9kqUymxj
+    66leOeR9r7Y0f2WkoqLTUqRtU7iGtZQy46QB5fXu2+6nujIqFDHcY7IjWt1kjPdU
+    W8QNnssVPikfWPm40LtEjPGXk3eojkyRaSCqrg3yqWxkM2kLYD2ylgUkovhIBAN4
+    nlBMfr1CE+1qX95sUhw5n+y727ybpDD/Qt0yq27tiZUPD/Do4p+ftSGv0qT3TH47
+    IIWCzmu4HzGCf0uhfe2+qtIJ+rpHvjCWYWviV39g
+    -----END CERTIFICATE-----
+
+externalSecret:
+  remoteKey: cluster/common/object-storage-proxy/certificate
+
+network:
+  cidr: "10.9.8.0/22"
+  range:
+    start: "10.9.9.0"
+    end: "10.9.9.255"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.8.1
+
+service:
+  clusterIP: 172.31.0.53
