@@ -1,14 +1,12 @@
 {{- $group := required "group is required" .Values.group }}
+{{ range .Values.clusterRoles }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     rbac.authorization.k8s.io/aggregate-to-cluster-reader: "true"
-  name: {{ $group }}-portforward
+  name: {{ $group }}-{{ .name }}
 rules:
-- apiGroups:
-  - ""
-  resources:
-  - pods/portforward
-  verbs:
-  - '*'
+{{ toYaml .rules }}
+---
+{{ end }}

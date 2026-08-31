@@ -1,0 +1,12 @@
+clusterRoles:
+  - name: allow-hcp
+    rules:
+      - apiGroups:
+          - "hypershift.openshift.io"
+        resources:
+          - hostedclusters
+          - nodepools
+        verbs:
+          - list
+          - get
+          - watch

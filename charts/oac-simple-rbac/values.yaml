@@ -1,1 +1,5 @@
 group: "open-accelerator-admins"
+
+# A list of additional ClusterRoles that will
+# aggregate to cluster-reader.
+clusterRoles: []
