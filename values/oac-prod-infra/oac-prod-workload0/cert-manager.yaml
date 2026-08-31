@@ -1,0 +1,7 @@
+aws:
+  region: us-east-1
+  roleArn: "arn:aws:iam::574733721584:role/cert-manager-oac-prod-workload0"
+letsencrypt:
+  email: contact@massopen.cloud
+  cluster_issuers:
+    enabled: true
