@@ -1,4 +1,5 @@
-kubeconfig*
+kubeconfig
+kubeconfig.*
 password
 .envrc
 .env
