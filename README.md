@@ -16,22 +16,22 @@ You may want:
 
 ## Repository structure
 
-| Directory                  | Description                                                      |
-| -------------------------- | ---------------------------------------------------------------- |
-| `bootstrap/`               | One-time setup: bootstrap Application and OIDC scripts           |
-| `applicationsets/`         | ArgoCD ApplicationSets (Helm chart rendered with `hubName`)      |
-| `applicationsets/templates/hub/`     | ApplicationSets targeting the hub cluster                  |
-| `applicationsets/templates/managed/` | ApplicationSets targeting managed (spoke) clusters via ACM |
-| `charts/`                  | Helm charts, one per component                                   |
-| `charts/operator-library/` | Shared library chart providing helpers for operator installation |
-| `values/`                  | Per-hub, per-cluster Helm values overrides (optional)            |
-| `values/<hub>/`        | Hub-wide defaults, applied to every cluster in that hub          |
-| `values/<hub>/<cluster>/` | Per-cluster overrides (`local-cluster` = the hub itself)      |
-| `apps/`                    | Drop-in raw ArgoCD manifests, applied per hub (see below)        |
-| `apps/<hub>/`              | Manifests applied verbatim to that hub's ArgoCD                  |
-| `hosted-clusters/`         | HyperShift hosted cluster definitions                            |
-| `scripts/`                 | Operational and CI scripts                                       |
-| `docs/`                    | Documentation                                                    |
+| Directory                            | Description                                                      |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `bootstrap/`                         | One-time setup: bootstrap Application and OIDC scripts           |
+| `applicationsets/`                   | ArgoCD ApplicationSets (Helm chart rendered with `hubName`)      |
+| `applicationsets/templates/hub/`     | ApplicationSets targeting the hub cluster                        |
+| `applicationsets/templates/managed/` | ApplicationSets targeting managed (spoke) clusters via ACM       |
+| `charts/`                            | Helm charts, one per component                                   |
+| `charts/operator-library/`           | Shared library chart providing helpers for operator installation |
+| `values/`                            | Per-hub, per-cluster Helm values overrides (optional)            |
+| `values/<hub>/`                      | Hub-wide defaults, applied to every cluster in that hub          |
+| `values/<hub>/<cluster>/`            | Per-cluster overrides (`local-cluster` = the hub itself)         |
+| `apps/`                              | Drop-in raw ArgoCD manifests, applied per hub (see below)        |
+| `apps/<hub>/`                        | Manifests applied verbatim to that hub's ArgoCD                  |
+| `hosted-clusters/`                   | HyperShift hosted cluster definitions                            |
+| `scripts/`                           | Operational and CI scripts                                       |
+| `docs/`                              | Documentation                                                    |
 
 ## How it works
 
@@ -112,14 +112,3 @@ per-hub drop-in app for that hub.
 
 Everything on `main` is shared across hubs; the only per-hub input is the
 `hubName` parameter in the bootstrap Application.
-
-## Things not currently managed
-
-### Node topology labels
-
-Via https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/hosted_control_planes/deploying-hosted-control-planes#hcp-bm-prepare_hcp-deploy-bm:
-
-> Add the topology.kubernetes.io/zone label to your bare-metal hosts on your
-> management cluster. Ensure that each host has a unique value for
-> topology.kubernetes.io/zone. Otherwise, all of the control plane pods are
-> scheduled on a single node, causing a single point of failure.
