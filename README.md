@@ -12,7 +12,7 @@ You may want:
 
 - [ct](https://github.com/helm/chart-testing) the chart testing tool
 - [kustomize](https://kustomize.io/) because everyone loves kustomize
-- [chainsaw](github.com/kyverno/chainsaw) for writing declarative tests of kubernetes
+- [chainsaw](https://github.com/kyverno/chainsaw) for writing declarative tests of kubernetes
 
 ## Repository structure
 
