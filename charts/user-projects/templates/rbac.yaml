@@ -1,0 +1,18 @@
+{{ range .Values.projects }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "project-{{ .name }}-edit"
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+- kind: Group
+  name: "project-{{ .name }}"
+  namespace: "{{ .name }}"
+---
+{{ end }}

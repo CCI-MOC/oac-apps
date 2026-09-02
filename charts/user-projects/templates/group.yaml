@@ -1,0 +1,11 @@
+{{ range .Values.projects }}
+apiVersion: user.openshift.io/v1
+kind: Group
+metadata:
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  name: "project-{{ .name }}"
+users:
+{{ .members | toYaml }}
+---
+{{ end }}
