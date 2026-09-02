@@ -8,6 +8,12 @@ rules:
     resources: ["users"]
     verbs: ["impersonate"]
     resourceNames: ["system:admin"]
+
+  # This is necessary to work around an OpenShift console bug.
+  - apiGroups: ["authorization.k8s.io"]
+    resources: ["users"]
+    verbs: ["impersonate"]
+    resourceNames: ["system:admin"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
