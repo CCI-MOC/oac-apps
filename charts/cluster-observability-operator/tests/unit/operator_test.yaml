@@ -1,0 +1,51 @@
+suite: cluster-observability-operator
+templates:
+  - templates/operator.yaml
+
+tests:
+  - it: renders namespace, operatorgroup and subscription
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: creates the operator namespace
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Namespace
+      - equal:
+          path: metadata.name
+          value: openshift-cluster-observability-operator
+
+  # COO watches the whole cluster, so the OperatorGroup has an empty spec (no
+  # targetNamespaces). This test keeps it that way.
+  - it: has a cluster-scoped operatorgroup (no targetNamespaces)
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: OperatorGroup
+      - equal:
+          path: spec
+          value: {}
+
+  # Subscription values confirmed against the redhat-operators catalog
+  # (oc get packagemanifest). Note the package is cluster-observability-operator,
+  # while the install namespace is openshift-cluster-observability-operator, so
+  # the two names look almost the same on purpose. This test locks them.
+  - it: subscribes to the correct COO package from redhat-operators
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Subscription
+      - equal:
+          path: spec.name
+          value: cluster-observability-operator
+      - equal:
+          path: spec.channel
+          value: stable
+      - equal:
+          path: spec.source
+          value: redhat-operators
+      - equal:
+          path: spec.sourceNamespace
+          value: openshift-marketplace
