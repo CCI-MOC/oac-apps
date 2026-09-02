@@ -1,0 +1,97 @@
+suite: NodePool template
+templates:
+  - templates/nodepool.yaml
+set:
+  clusterName: test-cluster
+  baseDomain: apps.infra.oac.int.massopen.cloud
+  managementCluster: test-hub
+  hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
+
+tests:
+  - it: should render nothing when no node pools are defined
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render one NodePool per entry, named <cluster>-<pool>
+    set:
+      nodePools:
+        - name: compute
+          replicas: 3
+          agentLabelSelector:
+            role: worker
+        - name: gpu
+          replicas: 2
+          agentLabelSelector:
+            role: gpu
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: test-cluster-compute
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: test-cluster-gpu
+        documentIndex: 1
+
+  - it: should apply defaults for arch, autoRepair, and upgradeType
+    set:
+      nodePools:
+        - name: compute
+          replicas: 3
+          agentLabelSelector:
+            role: worker
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: clusters
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "0"
+      - equal:
+          path: spec.arch
+          value: amd64
+      - equal:
+          path: spec.management.autoRepair
+          value: false
+      - equal:
+          path: spec.management.upgradeType
+          value: InPlace
+      - equal:
+          path: spec.clusterName
+          value: test-cluster
+      - equal:
+          path: spec.replicas
+          value: 3
+      - equal:
+          path: spec.release.image
+          value: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
+      - equal:
+          path: spec.platform.agent.agentLabelSelector.matchLabels.role
+          value: worker
+      - equal:
+          path: spec.platform.type
+          value: Agent
+
+  - it: should honor per-pool arch, autoRepair, and upgradeType overrides
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 2
+          arch: arm64
+          autoRepair: true
+          upgradeType: Replace
+          agentLabelSelector:
+            role: gpu
+    asserts:
+      - equal:
+          path: spec.arch
+          value: arm64
+      - equal:
+          path: spec.management.autoRepair
+          value: true
+      - equal:
+          path: spec.management.upgradeType
+          value: Replace

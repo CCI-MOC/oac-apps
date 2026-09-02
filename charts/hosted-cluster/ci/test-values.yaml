@@ -48,9 +48,9 @@ nodePools:
       massopen.cloud/cluster: oac-dev-workload0
 
 clusterLabels:
-  - gpu
-  - github-oauth
-  - portworx
+  massopen.cloud/feature-gpu: "true"
+  massopen.cloud/feature-github-oauth: "true"
+  massopen.cloud/feature-portworx: "true"
 
 dns:
   enabled: true

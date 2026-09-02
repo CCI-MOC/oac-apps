@@ -13,8 +13,8 @@ tests:
   - it: should render the SA, RBAC, and Patch when clusterLabels are set
     set:
       clusterLabels:
-        - gpu
-        - portworx
+        massopen.cloud/feature-gpu: "true"
+        massopen.cloud/feature-portworx: "true"
     asserts:
       - hasDocuments:
           count: 4
@@ -42,7 +42,7 @@ tests:
   - it: should grant patch on only the named ManagedCluster
     set:
       clusterLabels:
-        - gpu
+        massopen.cloud/feature-gpu: "true"
     asserts:
       - equal:
           path: rules[0].resourceNames
@@ -67,7 +67,7 @@ tests:
     set:
       namespace: clusters
       clusterLabels:
-        - gpu
+        massopen.cloud/feature-gpu: "true"
     asserts:
       - equal:
           path: metadata.namespace
@@ -85,7 +85,7 @@ tests:
   - it: should target the ManagedCluster by name with a JSON merge patch
     set:
       clusterLabels:
-        - gpu
+        massopen.cloud/feature-gpu: "true"
     asserts:
       - equal:
           path: spec.patches.cluster-labels.targetObjectRef.kind
@@ -106,11 +106,11 @@ tests:
           path: kind
           value: Patch
 
-  - it: should render every feature label into the patch body
+  - it: should render arbitrary labels verbatim into the patch body
     set:
       clusterLabels:
-        - gpu
-        - github-oauth
+        massopen.cloud/feature-gpu: "true"
+        massopen.cloud/feature-github-oauth: "true"
     asserts:
       - matchRegex:
           path: spec.patches.cluster-labels.patchTemplate

@@ -1,0 +1,59 @@
+suite: machine ResourceQuota template
+templates:
+  - templates/machine-quota.yaml
+set:
+  clusterName: test-cluster
+  baseDomain: apps.infra.oac.int.massopen.cloud
+  managementCluster: test-hub
+  hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
+
+tests:
+  - it: should render a single ResourceQuota in the cluster namespace
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ResourceQuota
+      - equal:
+          path: metadata.name
+          value: machine-limit
+      - equal:
+          path: metadata.namespace
+          value: clusters-test-cluster
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+
+  - it: should default the limit to 10 when there are no node pools
+    asserts:
+      - equal:
+          path: spec.hard["count/machines.cluster.x-k8s.io"]
+          value: "10"
+      - equal:
+          path: spec.hard["count/agentmachines.capi-provider.agent-install.openshift.io"]
+          value: "10"
+
+  - it: should keep the floor of 10 when replicas * 5 is below it
+    set:
+      nodePools:
+        - name: small
+          replicas: 1
+    asserts:
+      - equal:
+          path: spec.hard["count/machines.cluster.x-k8s.io"]
+          value: "10"
+
+  - it: should scale the limit to five times the total replica count
+    set:
+      nodePools:
+        - name: compute
+          replicas: 3
+        - name: gpu
+          replicas: 2
+    asserts:
+      - equal:
+          path: spec.hard["count/machines.cluster.x-k8s.io"]
+          value: "25"
+      - equal:
+          path: spec.hard["count/agentmachines.capi-provider.agent-install.openshift.io"]
+          value: "25"
