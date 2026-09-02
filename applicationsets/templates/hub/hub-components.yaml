@@ -24,6 +24,7 @@ spec:
           - component: hcp-config
           - component: acm-gitops-integration
           - component: acm-placements
+          - component: cluster-observability-operator
   template:
     metadata:
       name: "hub-{{`{{component}}`}}"
