@@ -10,7 +10,7 @@ metadata:
     massopen.cloud/project-description: "{{ .description }}"
     {{- end }}
     {{- if .requester }}
-    massopen.cloud/project-requestor: "{{ .requester }}"
+    massopen.cloud/project-requester: "{{ .requester }}"
     {{- end }}
 spec: {}
 ---

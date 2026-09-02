@@ -1,0 +1,7 @@
+projects:
+  - name: aibom
+    requester: memalhot@redhat.com
+    description: "Gavin will be working on his AIBOM service that essentially captures metadata about different ai workloads"
+    members:
+      - memalhot@redhat.com
+      - gsanders@redhat.com
