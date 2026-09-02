@@ -12,7 +12,7 @@ roleRef:
   name: edit
 subjects:
 - kind: Group
-  name: "project-{{ .name }}"
+  name: "project-{{ .name }}-edit"
   namespace: "{{ .name }}"
 ---
 {{ end }}

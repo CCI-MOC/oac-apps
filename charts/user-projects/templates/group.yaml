@@ -4,7 +4,7 @@ kind: Group
 metadata:
   labels:
     massopen.cloud/project: "{{ .name }}"
-  name: "project-{{ .name }}"
+  name: "project-{{ .name }}-edit"
 users:
 {{ .members | toYaml }}
 ---
