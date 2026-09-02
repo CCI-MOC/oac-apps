@@ -1,0 +1,7 @@
+projects:
+  - name: example1
+    requester: alice@example.com
+    description: This is a test project.
+    members:
+      - alice@example.com
+      - bob@example.com

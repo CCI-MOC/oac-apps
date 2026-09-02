@@ -1,0 +1,17 @@
+{{ range .Values.projects }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    {{- if .description }}
+    massopen.cloud/project-description: "{{ .description }}"
+    {{- end }}
+    {{- if .requester }}
+    massopen.cloud/project-requestor: "{{ .requester }}"
+    {{- end }}
+spec: {}
+---
+{{ end }}

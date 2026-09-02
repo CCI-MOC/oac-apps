@@ -1,0 +1,5 @@
+apiVersion: v2
+name: user-projects
+description: Manage user projects
+version: 0.1.0
+type: application

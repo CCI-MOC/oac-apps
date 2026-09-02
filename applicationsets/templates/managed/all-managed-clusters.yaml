@@ -21,6 +21,7 @@ spec:
                 - component: cert-manager
                 - component: cluster-certificates
                 - component: oac-simple-rbac
+                - component: user-projects
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"
