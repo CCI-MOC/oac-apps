@@ -25,6 +25,7 @@ spec:
           - component: acm-gitops-integration
           - component: acm-placements
           - component: cluster-observability-operator
+          - component: observability-ui
   template:
     metadata:
       name: "hub-{{`{{component}}`}}"
