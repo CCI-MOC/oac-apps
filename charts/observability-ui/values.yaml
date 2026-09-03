@@ -1,0 +1,23 @@
+# The Monitoring UI plugin adds Observe > Dashboards (Perses) to the console.
+# It needs the Cluster Observability Operator, which is installed by the
+# cluster-observability-operator chart.
+uiPlugin:
+  name: monitoring
+
+# Perses is the dashboard frontend. Enabling it here is enough, the operator
+# creates the instance, no separate Perses resource is needed.
+perses:
+  enabled: true
+
+# Point the plugin at ACM Observability so the console shows fleet data.
+# Off until MCO is running, which needs object storage.
+acm:
+  enabled: false
+  thanosQuerierUrl: ""
+  alertmanagerUrl: ""
+
+# Extra panels, off by default.
+incidents:
+  enabled: false
+clusterHealthAnalyzer:
+  enabled: false

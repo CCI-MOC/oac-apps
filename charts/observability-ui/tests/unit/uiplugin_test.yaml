@@ -1,0 +1,55 @@
+suite: observability-ui
+templates:
+  - templates/uiplugin.yaml
+
+tests:
+  - it: renders a single Monitoring UIPlugin
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: UIPlugin
+      - equal:
+          path: spec.type
+          value: Monitoring
+
+  # Perses is what puts Observe > Dashboards into the console. The operator
+  # creates the instance from this flag, there is no separate Perses resource.
+  - it: enables Perses
+    asserts:
+      - equal:
+          path: spec.monitoring.perses.enabled
+          value: true
+
+  # The CRD does not exist yet on a first sync, so ArgoCD needs both hints.
+  - it: is ordered after the operator and skips the dry run
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  # ACM wiring stays off until MCO exists, so a plain install never points at
+  # a Thanos that is not there.
+  - it: leaves the ACM block out by default
+    asserts:
+      - notExists:
+          path: spec.monitoring.acm
+
+  - it: wires up ACM when asked
+    set:
+      acm.enabled: true
+      acm.thanosQuerierUrl: https://thanos.example
+      acm.alertmanagerUrl: https://alertmanager.example
+    asserts:
+      - equal:
+          path: spec.monitoring.acm.enabled
+          value: true
+      - equal:
+          path: spec.monitoring.acm.thanosQuerier.url
+          value: https://thanos.example
+      - equal:
+          path: spec.monitoring.acm.alertmanager.url
+          value: https://alertmanager.example
