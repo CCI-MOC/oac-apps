@@ -4,6 +4,9 @@ metadata:
   # The CRD enforces this exact name for a Monitoring plugin.
   name: monitoring
   annotations:
+    # Sync waves only order resources within one Application. COO is generated
+    # as a separate Application, so this does not order the plugin after the
+    # operator, ArgoCD retries until the CRD is there.
     argocd.argoproj.io/sync-wave: "1"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:

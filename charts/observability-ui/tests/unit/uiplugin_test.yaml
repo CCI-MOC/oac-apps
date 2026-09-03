@@ -29,8 +29,10 @@ tests:
           path: spec.monitoring.perses.enabled
           value: true
 
-  # The CRD does not exist yet on a first sync, so ArgoCD needs both hints.
-  - it: is ordered after the operator and skips the dry run
+  # The CRD does not exist yet on a first sync, so the dry run has to be
+  # skipped. Note the wave only orders resources inside one Application, and
+  # COO is a separate Application, so it does not order the two of them.
+  - it: carries the ArgoCD annotations
     asserts:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
