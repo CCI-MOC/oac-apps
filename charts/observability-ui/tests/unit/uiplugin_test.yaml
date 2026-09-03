@@ -13,6 +13,14 @@ tests:
           path: spec.type
           value: Monitoring
 
+  # The CRD rejects any other name for a Monitoring plugin, so this is fixed
+  # rather than configurable.
+  - it: is named monitoring
+    asserts:
+      - equal:
+          path: metadata.name
+          value: monitoring
+
   # Perses is what puts Observe > Dashboards into the console. The operator
   # creates the instance from this flag, there is no separate Perses resource.
   - it: enables Perses

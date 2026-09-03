@@ -1,8 +1,9 @@
 # The Monitoring UI plugin adds Observe > Dashboards (Perses) to the console.
 # It needs the Cluster Observability Operator, which is installed by the
 # cluster-observability-operator chart.
-uiPlugin:
-  name: monitoring
+#
+# The resource name is not configurable: the CRD rejects anything but
+# "monitoring" when spec.type is Monitoring.
 
 # Perses is the dashboard frontend. Enabling it here is enough, the operator
 # creates the instance, no separate Perses resource is needed.
