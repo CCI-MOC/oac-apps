@@ -1,7 +1,8 @@
 apiVersion: observability.openshift.io/v1alpha1
 kind: UIPlugin
 metadata:
-  name: {{ .Values.uiPlugin.name }}
+  # The CRD enforces this exact name for a Monitoring plugin.
+  name: monitoring
   annotations:
     argocd.argoproj.io/sync-wave: "1"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
