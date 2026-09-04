@@ -7,3 +7,26 @@ subscription:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+
+# The Monitoring UI plugin adds Observe > Dashboards (Perses) to the console.
+# Its resource name is not configurable: the CRD rejects anything but
+# "monitoring" when spec.type is Monitoring.
+#
+# Perses is the dashboard frontend. Enabling it here is enough, the operator
+# creates the instance, no separate Perses resource is needed.
+uiPlugin:
+  perses:
+    enabled: true
+
+  # Point the plugin at ACM Observability so the console shows fleet data.
+  # Off until MCO is running, which needs object storage.
+  acm:
+    enabled: false
+    thanosQuerierUrl: ""
+    alertmanagerUrl: ""
+
+  # Extra panels, off by default.
+  incidents:
+    enabled: false
+  clusterHealthAnalyzer:
+    enabled: false

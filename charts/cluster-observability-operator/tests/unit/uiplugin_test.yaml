@@ -1,4 +1,4 @@
-suite: observability-ui
+suite: cluster-observability-operator uiplugin
 templates:
   - templates/uiplugin.yaml
 
@@ -29,10 +29,9 @@ tests:
           path: spec.monitoring.perses.enabled
           value: true
 
-  # The CRD does not exist yet on a first sync, so the dry run has to be
-  # skipped. Note the wave only orders resources inside one Application, and
-  # COO is a separate Application, so it does not order the two of them.
-  - it: carries the ArgoCD annotations
+  # Operator in wave 0, this CR in wave 1. Same chart, same Application, so the
+  # wave orders them. SkipDryRun covers the CRD being absent on a first sync.
+  - it: is ordered after the operator and skips the dry run
     asserts:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
@@ -50,9 +49,9 @@ tests:
 
   - it: wires up ACM when asked
     set:
-      acm.enabled: true
-      acm.thanosQuerierUrl: https://thanos.example
-      acm.alertmanagerUrl: https://alertmanager.example
+      uiPlugin.acm.enabled: true
+      uiPlugin.acm.thanosQuerierUrl: https://thanos.example
+      uiPlugin.acm.alertmanagerUrl: https://alertmanager.example
     asserts:
       - equal:
           path: spec.monitoring.acm.enabled
