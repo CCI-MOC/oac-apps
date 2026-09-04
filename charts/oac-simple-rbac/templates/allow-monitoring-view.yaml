@@ -2,7 +2,8 @@
 {{- if .Values.clusterMonitoringView }}
 # Lets the people in this group query metrics from the Perses dashboards
 # the Cluster Observability Operator installs. Perses goes through the
-# prometheuses/api subresource, which only cluster-monitoring-view grants,
+# prometheuses/api subresource. The other roles that grant it are operator
+# and component roles, cluster-monitoring-view is the one meant for people,
 # so without this the dashboards render but every panel says Forbidden.
 #
 # Observe > Metrics is unaffected, it goes through the thanos-querier and
