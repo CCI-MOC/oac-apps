@@ -6,6 +6,7 @@ kubectl -n "$CLOUDKIT_AGENT_NAMESPACE" get agent \
   -o "custom-columns=\
 ID:.metadata.name,\
 HOSTNAME:.spec.hostname,\
+RESOURCE_CLASS:.metadata.labels.openstack/resource-class,\
 APPROVED:.spec.approved,\
 ROLE:.status.role,\
 STAGE:.status.progress.currentStage,\
