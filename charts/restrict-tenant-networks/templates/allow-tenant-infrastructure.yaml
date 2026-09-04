@@ -1,0 +1,47 @@
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: allow-tenant-infrastructure
+spec:
+  priority: 50
+  subject:
+    namespaces:
+      matchExpressions:
+        - key: {{ .Values.tenantKey }}
+          operator: Exists
+
+  ingress:
+  - name: "allow-system-ingress-to-tenants"
+    action: Allow
+    from:
+    - namespaces:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+          - kube-system
+          - openshift-monitoring
+          - openshift-user-workload-monitoring
+          - openshift-dns
+          - openshift-ingress
+          - openshift-apiserver
+
+  egress:
+  - name: "allow-system-egress"
+    action: Allow
+    to:
+    - namespaces:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+          - kube-system
+          - openshift-dns
+          - openshift-apiserver
+  - name: "allow-shared-services-egress"
+    action: Allow
+    to:
+    - namespaces:
+        matchExpressions:
+          - key: {{ .Values.sharedServiceKey }}
+            operator: Exists
