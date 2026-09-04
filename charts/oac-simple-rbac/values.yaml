@@ -3,3 +3,8 @@ group: "open-accelerator-admins"
 # A list of additional ClusterRoles that will
 # aggregate to cluster-reader.
 clusterRoles: []
+
+# Bind cluster-monitoring-view to the group as well. Needed for the console
+# metrics view and for Perses dashboards, both of which query Prometheus
+# through the prometheuses/api subresource.
+clusterMonitoringView: true
