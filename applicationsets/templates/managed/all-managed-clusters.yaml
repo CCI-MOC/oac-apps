@@ -26,6 +26,7 @@ spec:
                 - component: moc-metrics-collector
                 - component: user-workload-monitoring
                 - component: cluster-observability-operator
+                - component: restrict-tenant-networks
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"

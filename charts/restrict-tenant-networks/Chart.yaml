@@ -1,0 +1,5 @@
+apiVersion: v2
+name: restrict-tenant-networks
+description: Create network policies to restrict cross namespace traffic
+version: 0.1.0
+type: application
