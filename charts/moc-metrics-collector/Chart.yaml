@@ -1,0 +1,5 @@
+apiVersion: v2
+name: moc-metrics-collector
+description: Create a secret to collect metrics for billing
+type: application
+version: 0.1.0
