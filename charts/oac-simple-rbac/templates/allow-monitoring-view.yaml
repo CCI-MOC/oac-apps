@@ -1,9 +1,12 @@
 {{- $group := required "group is required" .Values.group }}
 {{- if .Values.clusterMonitoringView }}
-# Reading metrics from the console, and from the Perses dashboards the
-# Cluster Observability Operator installs, needs the prometheuses/api
-# subresource. cluster-reader does not cover it, so without this the
-# dashboards render but cannot query anything.
+# Lets the people in this group query metrics from the Perses dashboards
+# the Cluster Observability Operator installs. Perses goes through the
+# prometheuses/api subresource, which only cluster-monitoring-view grants,
+# so without this the dashboards render but every panel says Forbidden.
+#
+# Observe > Metrics is unaffected, it goes through the thanos-querier and
+# its own namespace-based authorization, which cluster-reader covers.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
