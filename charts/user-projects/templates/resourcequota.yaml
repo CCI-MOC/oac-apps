@@ -1,0 +1,16 @@
+{{- range .Values.projects }}
+{{- $quota := coalesce .quota $.Values.defaultQuota }}
+{{- if $quota }}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: "project-{{ .name }}-quota"
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+spec:
+  hard:
+    {{- toYaml $quota.hard | nindent 4 }}
+---
+{{- end }}
+{{- end }}

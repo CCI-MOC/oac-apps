@@ -1,0 +1,16 @@
+{{- range .Values.projects }}
+{{- $limitRange := coalesce .limitRange $.Values.defaultLimitRange }}
+{{- if $limitRange }}
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: "project-{{ .name }}-limits"
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+spec:
+  limits:
+    {{- toYaml $limitRange.limits | nindent 4 }}
+---
+{{- end }}
+{{- end }}

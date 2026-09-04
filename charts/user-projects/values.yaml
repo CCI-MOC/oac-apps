@@ -1,1 +1,19 @@
+defaultQuota:
+  hard:
+    pods: "20"
+    requests.cpu: "10"
+    requests.memory: "10Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+
+defaultLimitRange:
+  limits:
+    - type: Container
+      default:
+        cpu: "2"
+        memory: "8Gi"
+      defaultRequest:
+        cpu: "1"
+        memory: "2Gi"
+
 projects: []
