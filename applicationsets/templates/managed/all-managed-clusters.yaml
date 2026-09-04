@@ -22,6 +22,7 @@ spec:
                 - component: cluster-certificates
                 - component: oac-simple-rbac
                 - component: user-projects
+                - component: restrict-tenant-networks
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"
