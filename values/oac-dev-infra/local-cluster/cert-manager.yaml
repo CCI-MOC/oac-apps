@@ -1,7 +1,6 @@
 aws:
   region: us-east-1
   roleArn: "arn:aws:iam::574733721584:role/cert-manager-oac-infra-dev"
-  hostedZoneID: "Z07788262L24MNHAVE489" # Route53 zone ID for int.massopen.cloud
 letsencrypt:
   email: contact@massopen.cloud
   cluster_issuers:
