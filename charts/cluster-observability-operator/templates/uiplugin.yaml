@@ -1,0 +1,28 @@
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  # The CRD enforces this exact name for a Monitoring plugin.
+  name: monitoring
+  annotations:
+    # The operator goes in wave 0 (set by operator-library), this CR follows in
+    # wave 1. Same chart means same Application, so the wave really does order
+    # them. SkipDryRun is still needed because the CRD is absent on a first sync.
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  type: Monitoring
+  monitoring:
+    perses:
+      enabled: {{ .Values.uiPlugin.perses.enabled }}
+    {{- if .Values.uiPlugin.acm.enabled }}
+    acm:
+      enabled: true
+      thanosQuerier:
+        url: {{ required "uiPlugin.acm.thanosQuerierUrl is required when acm.enabled is true" .Values.uiPlugin.acm.thanosQuerierUrl | quote }}
+      alertmanager:
+        url: {{ required "uiPlugin.acm.alertmanagerUrl is required when acm.enabled is true" .Values.uiPlugin.acm.alertmanagerUrl | quote }}
+    {{- end }}
+    incidents:
+      enabled: {{ .Values.uiPlugin.incidents.enabled }}
+    clusterHealthAnalyzer:
+      enabled: {{ .Values.uiPlugin.clusterHealthAnalyzer.enabled }}

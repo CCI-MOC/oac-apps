@@ -1,5 +1,0 @@
-apiVersion: v2
-name: observability-ui
-description: Console UI plugin for observability, backed by Perses
-type: application
-version: 0.1.0
