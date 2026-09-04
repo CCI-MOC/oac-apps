@@ -1,4 +1,5 @@
 {{ range .Values.projects }}
+{{- if .members }}
 apiVersion: user.openshift.io/v1
 kind: Group
 metadata:
@@ -8,4 +9,5 @@ metadata:
 users:
 {{ .members | toYaml }}
 ---
+{{- end }}
 {{ end }}
