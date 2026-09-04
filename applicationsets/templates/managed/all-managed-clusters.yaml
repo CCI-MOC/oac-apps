@@ -24,6 +24,7 @@ spec:
                 - component: user-projects
                 - component: moc-metrics-collector
                 - component: user-workload-monitoring
+                - component: cluster-observability-operator
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"
