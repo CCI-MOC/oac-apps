@@ -114,3 +114,7 @@ per-hub drop-in app for that hub.
 
 Everything on `main` is shared across hubs; the only per-hub input is the
 `hubName` parameter in the bootstrap Application.
+
+# Stacks
+
+This is another test.
