@@ -136,3 +136,21 @@ tests:
       - equal:
           path: spec.datasource.jsonData.tlsAuthWithCACert
           value: true
+
+  # An Editor can add datasources in Grafana, and a second datasource pointed
+  # at port 9091 would see every namespace on the cluster. The whole point of
+  # this chart is that it cannot, so the anonymous role stays Viewer.
+  - it: does not let viewers add their own datasource
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - equal:
+          path: spec.config["auth.anonymous"].org_role
+          value: Viewer
+      - equal:
+          path: spec.config.users.viewers_can_edit
+          value: "false"

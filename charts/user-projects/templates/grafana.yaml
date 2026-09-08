@@ -71,7 +71,14 @@ spec:
       disable_login_form: "true"
     auth.anonymous:
       enabled: "true"
-      org_role: "Editor"
+      # Viewer, not Editor. An Editor can add datasources, and a second
+      # datasource pointed at port 9091 would see every namespace on the
+      # cluster, which is exactly what this chart exists to prevent.
+      org_role: "Viewer"
+    users:
+      # Belt and braces: even if the role above is ever raised, this keeps
+      # the org from gaining datasource rights by accident.
+      viewers_can_edit: "false"
   deployment:
     spec:
       template:
@@ -133,7 +140,10 @@ spec:
     jsonData:
       timeInterval: "30s"
       # Verify against the cluster's own CA rather than skipping the check.
-      # service-ca.crt is projected into every namespace, so it is already there.
+      # OpenShift maintains an openshift-service-ca.crt ConfigMap in every
+      # namespace, carrying the inject-cabundle annotation itself, so the
+      # bundle is there without this chart creating anything. It is mounted
+      # into the pod below.
       tlsAuthWithCACert: true
       httpHeaderName1: "Authorization"
       # prom-label-proxy runs with --error-on-replace, so this value cannot be
