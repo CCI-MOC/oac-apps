@@ -76,8 +76,11 @@ spec:
       # cluster, which is exactly what this chart exists to prevent.
       org_role: "Viewer"
     users:
-      # Belt and braces: even if the role above is ever raised, this keeps
-      # the org from gaining datasource rights by accident.
+      # Viewers may still open dashboard settings and try things, they just
+      # cannot save. Dashboards belong in git as GrafanaDashboard resources,
+      # because Grafana OSS cannot grant "may save dashboards" without also
+      # granting "may create datasources", and a second datasource on port
+      # 9091 would see the whole cluster.
       viewers_can_edit: "false"
   deployment:
     spec:
