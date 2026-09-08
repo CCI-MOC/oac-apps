@@ -161,14 +161,20 @@ spec:
                 # the flag that arranges it, together with the redirect
                 # annotation on the service account above.
                 - --openshift-service-account=grafana-sa
-                - --pass-access-token
                 # Derived from the project name rather than random, for two
                 # reasons: a fresh value on every render would be rewritten by
                 # ArgoCD on every sync and log everyone out, and the proxy only
                 # accepts a secret that decodes to 16, 24 or 32 bytes.
                 - --cookie-secret={{ printf "oac-grafana-cookie-%s" .name | sha256sum | trunc 32 }}
-                # The access check is the project namespace itself, which is the
-                # same permission the datasource relies on. One truth, not two.
+                # This is the one that gates the browser. A person arriving at
+                # the route logs in through OAuth, and the proxy then checks
+                # this review before handing out a session cookie. Without it
+                # any authenticated cluster user could open this Grafana.
+                - '--openshift-sar={"namespace": "project-{{ .name }}", "resource": "services", "verb": "get"}'
+                # And this one gates requests that arrive with a bearer token
+                # instead of a cookie, which the SAR above never sees. Same
+                # namespace, so both paths test the same permission, which is
+                # also the permission the datasource relies on.
                 - '--openshift-delegate-urls={"/": {"namespace": "project-{{ .name }}", "resource": "services", "verb": "get"}}'
               resources:
                 # Without this the project's own LimitRange defaults the sidecar

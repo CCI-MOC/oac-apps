@@ -216,7 +216,7 @@ tests:
     documentIndex: 5
     asserts:
       - matchRegex:
-          path: spec.deployment.spec.template.spec.containers[0].args[7]
+          path: spec.deployment.spec.template.spec.containers[0].args[6]
           pattern: '^--cookie-secret=.{32}$'
 
   # The operator sends the datasource to Grafana through its API, so a
@@ -252,3 +252,19 @@ tests:
       - equal:
           path: spec.deployment.spec.template.spec.containers[0].resources.requests.memory
           value: 64Mi
+
+  # delegate-urls only covers requests that arrive with a bearer token. A
+  # browser session is loaded from its cookie before that check runs, so
+  # without a SAR at login any authenticated cluster user could open this
+  # Grafana. The SAR is what gates the OAuth callback.
+  - it: gates the browser login on rights in the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - matchRegex:
+          path: spec.deployment.spec.template.spec.containers[0].args[7]
+          pattern: '^--openshift-sar=.*project-aibom'
