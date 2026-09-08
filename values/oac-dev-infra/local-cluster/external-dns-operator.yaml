@@ -8,10 +8,14 @@ externaldns:
     domains:
       - filterType: Include
         matchType: Exact
-        name: int.massopen.cloud
+        name: hcp.oac.int.massopen.cloud
+      - filterType: Include
+        matchType: Exact
+        name: hcp-int.oac.int.massopen.cloud
     hostnameAnnotation: Allow
     labelFilter:
       matchLabels:
         massopen.cloud/external-dns: "true"
     zones:
-      - Z07788262L24MNHAVE489
+      - Z00118742TIALOZ799VBP
+      - Z02984873761259IJOSK4
