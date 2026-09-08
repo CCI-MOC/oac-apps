@@ -1,5 +1,7 @@
 # oac-apps
 
+This is a test.
+
 ArgoCD-managed configuration for the OAC OpenShift clusters. A bootstrap Application discovers ApplicationSets, which deploy Helm charts to the hub and managed clusters using ACM placements.
 
 ## Requirements
