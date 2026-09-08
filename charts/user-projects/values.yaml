@@ -43,6 +43,7 @@ defaultGrafana:
   version: "11.3.0"
   # The image the console itself uses for authenticating routes.
   oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.14
+  # Grafana itself. The operator applies these to its own container.
   resources:
     requests:
       cpu: 100m
@@ -50,3 +51,13 @@ defaultGrafana:
     limits:
       cpu: 500m
       memory: 512Mi
+  # The oauth-proxy sidecar, which needs its own entry: a container without
+  # resources gets the project LimitRange defaults, 1 CPU and 2Gi, and that is
+  # far more of the quota than a proxy should cost.
+  proxyResources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi

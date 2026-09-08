@@ -21,7 +21,7 @@ tests:
             enabled: true
     asserts:
       - hasDocuments:
-          count: 5
+          count: 8
 
   - it: puts the Grafana instance in the project namespace
     set:
@@ -29,7 +29,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 2
+    documentIndex: 5
     asserts:
       - isKind:
           of: Grafana
@@ -47,7 +47,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 3
+    documentIndex: 6
     asserts:
       - isKind:
           of: GrafanaDatasource
@@ -66,10 +66,10 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 2
+    documentIndex: 5
     asserts:
       - matchRegex:
-          path: spec.deployment.spec.template.spec.containers[0].args[7]
+          path: spec.deployment.spec.template.spec.containers[0].args[8]
           pattern: 'project-aibom'
 
   - it: renders for each opted-in project independently
@@ -84,7 +84,7 @@ tests:
             enabled: true
     asserts:
       - hasDocuments:
-          count: 10
+          count: 16
 
   # OpenShift mints the serving certificate from this annotation, so the secret
   # the proxy mounts exists without anyone creating it by hand.
@@ -94,7 +94,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 2
+    documentIndex: 5
     asserts:
       - isKind:
           of: Grafana
@@ -111,7 +111,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 2
+    documentIndex: 5
     asserts:
       - isKind:
           of: Grafana
@@ -127,7 +127,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 3
+    documentIndex: 6
     asserts:
       - isKind:
           of: GrafanaDatasource
@@ -146,7 +146,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 2
+    documentIndex: 5
     asserts:
       - equal:
           path: spec.config["auth.anonymous"].org_role
@@ -154,3 +154,101 @@ tests:
       - equal:
           path: spec.config.users.viewers_can_edit
           value: "false"
+
+  # The proxy performs SubjectAccessReviews, which are cluster scoped. A
+  # namespaced view binding does not cover them, so the proxy would be
+  # forbidden at startup. This is what system:auth-delegator is for.
+  - it: binds the service account to auth-delegator as well as view
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: roleRef.name
+          value: system:auth-delegator
+
+  # A reencrypt route needs a TLS backend. Grafana's own service listens on
+  # plain HTTP, so without overriding the port the route would reach Grafana
+  # directly and never pass through the proxy.
+  - it: points the service at the proxy port, not at grafana
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.service.spec.ports[0].name
+          value: https
+      - equal:
+          path: spec.service.spec.ports[0].targetPort
+          value: 8443
+
+  # The service account is the OAuth client, which is what --openshift-service-account
+  # does. Without it the proxy wants a separate client secret it does not have.
+  - it: uses the service account as the oauth client
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[0].args
+          content: --openshift-service-account=grafana-sa
+
+  # The cookie secret has to be stable across renders, or ArgoCD rewrites it on
+  # every sync, and it has to decode to 16, 24 or 32 bytes or the proxy refuses
+  # to start. Derived from the project name, so both hold.
+  - it: gives the proxy a cookie secret of a length it accepts
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - matchRegex:
+          path: spec.deployment.spec.template.spec.containers[0].args[7]
+          pattern: '^--cookie-secret=.{32}$'
+
+  # The operator sends the datasource to Grafana through its API, so a
+  # ${__file{...}} expression would arrive as a literal string and every query
+  # would fail. valuesFrom is how the operator injects real values.
+  - it: injects the token and the CA through valuesFrom
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 6
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - equal:
+          path: spec.valuesFrom[0].targetPath
+          value: secureJsonData.httpHeaderValue1
+      - equal:
+          path: spec.valuesFrom[1].targetPath
+          value: secureJsonData.tlsCACert
+
+  # Without this the LimitRange defaults the sidecar to 1 CPU and 2Gi, eating
+  # far more of the project quota than the values file claims.
+  - it: sets resources on the proxy sidecar
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].resources.requests.memory
+          value: 64Mi

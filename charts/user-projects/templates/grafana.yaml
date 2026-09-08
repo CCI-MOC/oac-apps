@@ -30,6 +30,54 @@ subjects:
     name: grafana-sa
     namespace: "project-{{ .name }}"
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "project-{{ .name }}-grafana-auth-delegator"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+subjects:
+  - kind: ServiceAccount
+    name: grafana-sa
+    namespace: "project-{{ .name }}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  # The proxy asks the API server whether the current user may act in this
+  # namespace, and a SubjectAccessReview is a cluster scoped resource. The
+  # namespaced view binding above does not cover it, so the proxy would be
+  # forbidden the moment someone opens the route.
+  name: system:auth-delegator
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-sa-token
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    kubernetes.io/service-account.name: grafana-sa
+# The API server fills this in and keeps it valid. The chart never carries a
+# token, and the datasource reads it from here through valuesFrom, because the
+# operator sends the datasource to Grafana over its API where a ${__file{...}}
+# expression would arrive as a literal string.
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-service-ca
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    # OpenShift writes the bundle into this ConfigMap under service-ca.crt.
+    # The cluster-wide openshift-service-ca.crt ConfigMap exists too, but a
+    # datasource can only read a key from a ConfigMap it names, so this one is
+    # ours to point at.
+    service.beta.openshift.io/inject-cabundle: "true"
+---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: Grafana
 metadata:
@@ -61,6 +109,15 @@ spec:
         # OpenShift mints the certificate and puts it in this secret, which is
         # the one the proxy mounts below. Nothing has to create it by hand.
         service.beta.openshift.io/serving-cert-secret-name: grafana-tls
+    spec:
+      ports:
+        # Grafana's own service would listen on plain HTTP, and a reencrypt
+        # route needs a TLS backend. Pointing the service at the proxy port
+        # is also what puts the proxy in the path at all.
+        - name: https
+          port: 443
+          targetPort: 8443
+          protocol: TCP
   serviceAccount:
     metadata:
       name: grafana-sa
@@ -99,15 +156,25 @@ spec:
                 - --upstream=http://localhost:3000
                 - --tls-cert=/etc/tls/private/tls.crt
                 - --tls-key=/etc/tls/private/tls.key
-                - --client-id=system:serviceaccount:project-{{ .name }}:grafana-sa
+                # The service account is the OAuth client, so its own token is
+                # the client secret and no separate one has to exist. This is
+                # the flag that arranges it, together with the redirect
+                # annotation on the service account above.
+                - --openshift-service-account=grafana-sa
                 - --pass-access-token
-                # No --cookie-secret: the proxy generates one at startup. There
-                # is one replica, and a restart only means logging in again.
-                # A per project ExternalSecret would be the answer if sessions
-                # ever have to survive restarts, like keycloak-oauth does it.
+                # Derived from the project name rather than random, for two
+                # reasons: a fresh value on every render would be rewritten by
+                # ArgoCD on every sync and log everyone out, and the proxy only
+                # accepts a secret that decodes to 16, 24 or 32 bytes.
+                - --cookie-secret={{ printf "oac-grafana-cookie-%s" .name | sha256sum | trunc 32 }}
                 # The access check is the project namespace itself, which is the
                 # same permission the datasource relies on. One truth, not two.
                 - '--openshift-delegate-urls={"/": {"namespace": "project-{{ .name }}", "resource": "services", "verb": "get"}}'
+              resources:
+                # Without this the project's own LimitRange defaults the sidecar
+                # to 1 CPU and 2Gi, which quietly eats the quota it is meant to
+                # be cheap against.
+                {{- toYaml $.Values.defaultGrafana.proxyResources | nindent 16 }}
               volumeMounts:
                 - name: grafana-tls
                   mountPath: /etc/tls/private
@@ -152,8 +219,27 @@ spec:
       # prom-label-proxy runs with --error-on-replace, so this value cannot be
       # overridden by a query. That is what makes the separation real.
       customQueryParameters: "namespace=project-{{ .name }}"
+    # Nobody edits this in the UI. It is the only datasource a project sees, and
+    # an edited one would be an unfiltered one.
+    editable: false
     secureJsonData:
-      httpHeaderValue1: "Bearer ${__file{/var/run/secrets/kubernetes.io/serviceaccount/token}}"
+      # ${token} and ${service-ca.crt} are placeholders the operator substitutes
+      # from the references below, named after the key in the secret and the
+      # config map. It replaces the placeholder inside the string, which is why
+      # the Bearer prefix can simply stay here.
+      httpHeaderValue1: "Bearer ${token}"
+      tlsCACert: "${service-ca.crt}"
+  valuesFrom:
+    - targetPath: secureJsonData.httpHeaderValue1
+      valueFrom:
+        secretKeyRef:
+          name: grafana-sa-token
+          key: token
+    - targetPath: secureJsonData.tlsCACert
+      valueFrom:
+        configMapKeyRef:
+          name: grafana-service-ca
+          key: service-ca.crt
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDashboard
