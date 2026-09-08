@@ -1,0 +1,190 @@
+{{ range .Values.projects }}
+{{- if and .grafana .grafana.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-sa
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    # This makes the service account itself an OAuth client, so no client
+    # secret and no Keycloak client is needed per startup. The proxy sends
+    # users to the route named below after they log in.
+    serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
+      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-view
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: grafana-sa
+    namespace: "project-{{ .name }}"
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+    # The operator matches dashboards and datasources to instances by this label.
+    dashboards: "project-{{ .name }}"
+  annotations:
+    # The CRD only exists once the operator from the grafana-operator chart has
+    # installed, which is a different Application, so the first sync would
+    # otherwise fail its dry run.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  version: {{ $.Values.defaultGrafana.version | quote }}
+  route:
+    metadata:
+      name: grafana-route
+    spec:
+      tls:
+        termination: reencrypt
+      to:
+        kind: Service
+        name: grafana-service
+  service:
+    metadata:
+      annotations:
+        # OpenShift mints the certificate and puts it in this secret, which is
+        # the one the proxy mounts below. Nothing has to create it by hand.
+        service.beta.openshift.io/serving-cert-secret-name: grafana-tls
+  serviceAccount:
+    metadata:
+      name: grafana-sa
+  config:
+    auth:
+      # The oauth-proxy in front is what enforces access, so Grafana itself
+      # does not ask a second time.
+      disable_login_form: "true"
+    auth.anonymous:
+      enabled: "true"
+      org_role: "Editor"
+  deployment:
+    spec:
+      template:
+        spec:
+          serviceAccountName: grafana-sa
+          containers:
+            - name: oauth-proxy
+              image: {{ $.Values.defaultGrafana.oauthProxyImage | quote }}
+              ports:
+                - containerPort: 8443
+                  name: https
+              args:
+                - --https-address=:8443
+                - --provider=openshift
+                - --upstream=http://localhost:3000
+                - --tls-cert=/etc/tls/private/tls.crt
+                - --tls-key=/etc/tls/private/tls.key
+                - --client-id=system:serviceaccount:project-{{ .name }}:grafana-sa
+                - --pass-access-token
+                # No --cookie-secret: the proxy generates one at startup. There
+                # is one replica, and a restart only means logging in again.
+                # A per project ExternalSecret would be the answer if sessions
+                # ever have to survive restarts, like keycloak-oauth does it.
+                # The access check is the project namespace itself, which is the
+                # same permission the datasource relies on. One truth, not two.
+                - '--openshift-delegate-urls={"/": {"namespace": "project-{{ .name }}", "resource": "services", "verb": "get"}}'
+              volumeMounts:
+                - name: grafana-tls
+                  mountPath: /etc/tls/private
+          volumes:
+            - name: service-ca
+              configMap:
+                name: openshift-service-ca.crt
+            - name: grafana-tls
+              secret:
+                secretName: grafana-tls
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: thanos
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "project-{{ .name }}"
+  datasource:
+    name: thanos
+    type: prometheus
+    access: proxy
+    isDefault: true
+    # Port 9092 is the tenancy port. 9091 returns every namespace on the
+    # cluster regardless of who asks, which is why Perses shows everything.
+    url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9092
+    jsonData:
+      timeInterval: "30s"
+      # Verify against the cluster's own CA rather than skipping the check.
+      # service-ca.crt is projected into every namespace, so it is already there.
+      tlsAuthWithCACert: true
+      httpHeaderName1: "Authorization"
+      # prom-label-proxy runs with --error-on-replace, so this value cannot be
+      # overridden by a query. That is what makes the separation real.
+      customQueryParameters: "namespace=project-{{ .name }}"
+    secureJsonData:
+      httpHeaderValue1: "Bearer ${__file{/var/run/secrets/kubernetes.io/serviceaccount/token}}"
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: project-overview
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "project-{{ .name }}"
+  json: |
+    {
+      "title": "Project overview",
+      "uid": "project-{{ .name }}-overview",
+      "time": {"from": "now-6h", "to": "now"},
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "CPU usage by pod",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{container!=\"\"}[5m]))",
+              "legendFormat": "{{`{{pod}}`}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory usage by pod",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum by (pod) (container_memory_working_set_bytes{container!=\"\"})",
+              "legendFormat": "{{`{{pod}}`}}"
+            }
+          ]
+        }
+      ]
+    }
+---
+{{- end }}
+{{ end }}

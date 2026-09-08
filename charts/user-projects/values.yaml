@@ -32,4 +32,21 @@ projects: []
 # - name: aibom
 #   requester: alice@example.com
 #   description: "This is an example project."
-#   group: example-group
+#   groups:
+#     - name: example-group
+#       role: edit
+
+# Per project Grafana. Off unless a project opts in, so existing projects are
+# untouched. Enabling it costs the project Grafana plus the oauth-proxy sidecar
+# in the same pod, against its own quota.
+defaultGrafana:
+  version: "11.3.0"
+  # The image the console itself uses for authenticating routes.
+  oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.14
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

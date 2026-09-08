@@ -1,0 +1,138 @@
+suite: user-projects grafana
+templates:
+  - templates/grafana.yaml
+
+tests:
+  # Grafana is opt-in. Existing projects must not change shape just because
+  # the chart grew a template.
+  - it: renders nothing for a project without a grafana block
+    set:
+      projects:
+        - name: plain
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders the full set for a project that opts in
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    asserts:
+      - hasDocuments:
+          count: 5
+
+  - it: puts the Grafana instance in the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Grafana
+      - equal:
+          path: metadata.namespace
+          value: project-aibom
+
+  # Port 9092 is the tenancy port. Port 9091 does not filter at all, which is
+  # why the Perses datasource shows every namespace on the cluster. The proxy
+  # chain behind 9092 runs prom-label-proxy with --error-on-replace, so the
+  # namespace cannot be overridden by whoever is querying.
+  - it: points the datasource at the tenancy port with the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 3
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - matchRegex:
+          path: spec.datasource.url
+          pattern: ":9092$"
+      - equal:
+          path: spec.datasource.jsonData.customQueryParameters
+          value: namespace=project-aibom
+
+  # The oauth-proxy checks the same namespace the datasource filters on, so
+  # entering Grafana and reading metrics test one permission, not two.
+  - it: delegates the access check to the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - matchRegex:
+          path: spec.deployment.spec.template.spec.containers[0].args[7]
+          pattern: 'project-aibom'
+
+  - it: renders for each opted-in project independently
+    set:
+      projects:
+        - name: one
+          grafana:
+            enabled: true
+        - name: two
+        - name: three
+          grafana:
+            enabled: true
+    asserts:
+      - hasDocuments:
+          count: 10
+
+  # OpenShift mints the serving certificate from this annotation, so the secret
+  # the proxy mounts exists without anyone creating it by hand.
+  - it: asks OpenShift for a serving certificate
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Grafana
+      - equal:
+          path: spec.service.metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
+          value: grafana-tls
+
+  # No cookie secret is rendered on purpose. Helm would generate a different
+  # value on every render, so ArgoCD would rewrite it on every sync and log
+  # everyone out. The proxy makes its own at startup instead.
+  - it: does not render a cookie secret that would churn on every sync
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Grafana
+      - notContains:
+          path: spec.deployment.spec.template.spec.containers[0].args
+          content: --cookie-secret-file=/etc/oauth/config/cookie_secret
+
+  # Verifying against the cluster CA beats skipping verification, and the
+  # bundle is in every namespace already.
+  - it: verifies thanos against the service CA instead of skipping it
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 3
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - notExists:
+          path: spec.datasource.jsonData.tlsSkipVerify
+      - equal:
+          path: spec.datasource.jsonData.tlsAuthWithCACert
+          value: true
