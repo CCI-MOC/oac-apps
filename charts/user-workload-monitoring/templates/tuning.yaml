@@ -5,8 +5,9 @@ metadata:
   name: user-workload-monitoring-config
   namespace: openshift-user-workload-monitoring
   annotations:
-    # The namespace is created by the platform when the switch above is set, so
-    # on a first sync this config map has nowhere to go yet.
+    # The cluster monitoring operator creates this namespace once the switch in
+    # the other config map is set, so on a first sync there is nowhere to put
+    # this yet.
     argocd.argoproj.io/sync-options: ServerSideApply=true
     argocd.argoproj.io/sync-wave: "1"
 data:
@@ -16,7 +17,9 @@ data:
       retentionSize: {{ .Values.prometheus.retentionSize }}
       volumeClaimTemplate:
         spec:
-          storageClassName: {{ .Values.prometheus.volume.storageClassName }}
+          {{- with .Values.prometheus.volume.storageClassName }}
+          storageClassName: {{ . }}
+          {{- end }}
           resources:
             requests:
               storage: {{ .Values.prometheus.volume.size }}
