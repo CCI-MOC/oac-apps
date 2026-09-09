@@ -1,47 +1,47 @@
 clusterName: oac-dev-workload0
 
-#oauth:
-# identityProviders:
-#   - name: mocsso
-#     mappingMethod: claim
-#     type: OpenID
-#     openID:
-#       clientID: oac-dev-workload0
-#       clientSecret:
-#         name: oac-dev-workload0-keycloak-client-secret
-#       claims:
-#         preferredUsername:
-#           - preferred_username
-#           - username
-#         name:
-#           - name
-#           - full name
-#         email:
-#           - email
-#         groups:
-#           - groups
-#       issuer: https://sso.massopen.cloud/realms/moc
+oauth:
+  identityProviders:
+    - name: mocsso
+      mappingMethod: claim
+      type: OpenID
+      openID:
+        clientID: oac-dev-workload0
+        clientSecret:
+          name: oac-dev-workload0-keycloak-client-secret
+        claims:
+          preferredUsername:
+            - preferred_username
+            - username
+          name:
+            - name
+            - full name
+          email:
+            - email
+          groups:
+            - groups
+        issuer: https://sso.massopen.cloud/realms/moc
 
 externalSecrets:
-# - name: oac-dev-workload0-keycloak-client-secret
-#   spec:
-#     data:
-#       - remoteRef:
-#           conversionStrategy: Default
-#           decodingStrategy: None
-#           key: cluster/oac-dev-infra/hostedcluster/oac-dev-workload0/keycloak-oidc
-#           metadataPolicy: None
-#           nullBytePolicy: Ignore
-#           property: client_secret
-#         secretKey: clientSecret
-#     refreshInterval: 1h
-#     secretStoreRef:
-#       kind: ClusterSecretStore
-#       name: aws-secrets-manager
-#     target:
-#       creationPolicy: Owner
-#       deletionPolicy: Retain
-#       name: oac-dev-workload0-keycloak-client-secret
+  - name: oac-dev-workload0-keycloak-client-secret
+    spec:
+      data:
+        - remoteRef:
+            conversionStrategy: Default
+            decodingStrategy: None
+            key: cluster/oac-dev-infra/hostedcluster/oac-dev-workload0/keycloak-oidc
+            metadataPolicy: None
+            nullBytePolicy: Ignore
+            property: client_secret
+          secretKey: clientSecret
+      refreshInterval: 1h
+      secretStoreRef:
+        kind: ClusterSecretStore
+        name: aws-secrets-manager
+      target:
+        creationPolicy: Owner
+        deletionPolicy: Retain
+        name: oac-dev-workload0-keycloak-client-secret
 
 services:
   APIServer:
