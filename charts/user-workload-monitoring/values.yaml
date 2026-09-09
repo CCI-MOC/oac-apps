@@ -14,7 +14,10 @@ prometheus:
   volume:
     # Under the size cap above, so prometheus stops before the volume does.
     size: 20Gi
-    # Empty means the cluster's default storage class, which is what we want:
-    # naming one here would pin a per cluster fact into a chart that runs on
-    # several. Set it only where the default is wrong.
+    # Left unset on purpose, so the cluster's default storage class is used:
+    # "The default storage class can be used and storageClassName can be
+    # omitted in the spec", OCP 4.21 Storage, Using Container Storage Interface.
+    # Naming one here would pin a per cluster fact into a chart that runs on
+    # several. Set it in the values for a cluster whose default is wrong, which
+    # is where facts about a cluster belong.
     storageClassName: ""
