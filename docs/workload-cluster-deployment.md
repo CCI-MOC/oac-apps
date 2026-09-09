@@ -20,18 +20,22 @@ A workload cluster only needs nodes for additional worker nodes (since its contr
 
 ## Cluster Deployment and Configuration
 
-Workload cluster deployment is managed through the [`oac-apps` repository](https://github.com/CCI-MOC/oac-apps).
+Workload cluster configuration and deployment is managed through an ArgoCD instance running on the infra cluster, and the [`oac-apps` repository](https://github.com/CCI-MOC/oac-apps).
 
-* Details (*TBD*)
+* `hosted-clusters/<infra-cluster>/<cluster>/values.yaml`: workload cluster configuration
+* `values/<infra-cluster>/`: workload cluster component configuration
+   * `<component>.yaml`: component configurations applicable hub-wide
+   * `<cluster>/<component>.yaml`: component configurations applicable to workload cluster
+* `apps/<infra-cluster>/`:  additional changes to be applied to the ArgoCD instance running on the infra cluster (which also manages workload clusters)
 
-### Post Deployment Configuration
+Make the desired customizations, and then submit them as a PR. Once the PR is merged, the ArgoCD instance running on the infra cluster will pick up the changes and deploy/configure the workload cluster.
 
-* `oac-apps` update (*TBD*)
-   * storage
-* operators (*TBD*)
-   * observability (*TBD*)
+Some shared services require additional work prior to configuration. These are detailed here:
+
+* [Pure storage configuration](pure-storage-configuration.md)
+* observability (*TBD*)
 * keycloak (*TBD*)
-* storage (*TBD*)
+* additional networking (firewall, dns, etc) (*TBD*)
 * ??
 
 ## Example: OAC Prod Workload0 Cluster
@@ -48,4 +52,9 @@ Workload cluster deployment is managed through the [`oac-apps` repository](https
    * `open-accelerator-infra` hosts inventory
       * [`00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml#L107-L146)
    * `oac-apps` cluster configuration
-      * [`values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/oac-prod-workload0/values.yaml)
+      * `hosted-clusters/oac-prod-infra/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-workload0/values.yaml)
+      * `values/oac-prod-infra/`
+         * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
+         * [`oac-prod-workload0/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0)
+            * [`portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0/portworx.yaml)
+            * additional component configuration

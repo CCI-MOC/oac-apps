@@ -26,7 +26,7 @@ After identifying the nodes that will be used for the cluster, the configuration
       * Once booted, discovery information can be accessed at `http://<node-ip-on-cluster-network>/index.txt`
       * This information will be required during cluster deployment
 
-## Cluster Deployment and Configuration
+## Cluster Deployment
 
 Start by creating a cluster discovery image. The current procedure for doing so is as follows:
 
@@ -37,24 +37,40 @@ Start by creating a cluster discovery image. The current procedure for doing so 
       * Copy the public key here
       * Add the public and private key as a secret in AWS Secrets Manager with the name `cluster/<cluster>/sshkey` and properties `publicKey` and `privateKey`
    * Obtain [your pull secret](https://console.redhat.com/openshift/install/pull-secret) and place it here
-* Create a directory for the new cluster in [`playbooks/group_vars/<cluster>/`](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator/playbooks/group_vars)
+* Create a directory for the new cluster in [`playbooks/group_vars/<infra-cluster>/`](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator/playbooks/group_vars)
    * Add a `secrets.yml` file that specifies the `pull_secret`
    * Copy a `vars.yml` file from an existing cluster, and update it to specify the desired hardware and networks (information obtained from booting the discovery image is required)
-* Run `ansible-playbook playbooks/create_agent_install_media.yaml -e "cluster_name=<cluster>"`
+* Run `ansible-playbook playbooks/create_agent_install_media.yaml -e "cluster_name=<infra-cluster>"`
    * The [templates used](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator/playbooks/roles/create_agent_install_media/templates) are hardcoded for a compact cluster; however these templates are easily modified for a standard cluster.
 * The playbook generates a `kubeadmin` password, kubeconfig, and cluster discovery image
-   * Record the `kubeadmin` password and kubeconfig as a secret in AWS Secrets Manager with the name `cluster/<cluster>/kubeadmin` and properties `password` and `kubeconfig`
-   * Rename the cluster discovery image to `<cluster>-discovery.iso` and copy it to the `/srv/boot/` directory of the bastion host
+   * Record the `kubeadmin` password and kubeconfig as a secret in AWS Secrets Manager with the name `cluster/<infra-cluster>/kubeadmin` and properties `password` and `kubeconfig`
+   * Rename the cluster discovery image to `<infra-cluster>-discovery.iso` and copy it to the `/srv/boot/` directory of the bastion host
 
-Afterwards, update [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml) to specify the discovery image `http://10.2.0.82/boot/<cluster>-discovery.iso` and [boot the nodes](hardware-inventory-and-configuration.md#boot-configuration).
+Afterwards, update [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml) to specify the discovery image `http://10.2.0.82/boot/<infra-cluster>-discovery.iso` and [boot the nodes](hardware-inventory-and-configuration.md#boot-configuration).
 
-### Post Deployment Configuration
+## Cluster Configuration
 
-* `oac-apps` update (*TBD*)
-   * storage
-* operators (*TBD*)
+Infra cluster configuration is managed through ArgoCD and the [`oac-apps` repository](https://github.com/CCI-MOC/oac-apps). After deploying an infra cluster, fork the repository and run the following command (using the kubeconfig of the infra cluster):
+
+```
+  $ helm template bootstrap ./bootstrap --set hubName=<infra-cluster> | oc apply -f -
+```
+
+This will install an ArgoCD instance configured to run off Helm charts in `oac-apps` that are associated with `<infra-cluster>`. ArgoCD will look at the following files and directories:
+
+* `hosted-clusters/<infra-cluster>/values.yaml`: default values for hosted clusters deployed by this infra cluster
+* `values/<infra-cluster>/`
+   * `<component>.yaml`: default values for this component on hosted clusters deployed by this infra cluster
+   * `local-cluster/<component>.yaml`: values for this component on this infra cluster
+* `apps/<infra-cluster>/`: manifests to be applied directly to the ArgoCD instance on this infra cluster
+
+Make the desired customizations, and then submit them as a PR. Once the PR is merged, the ArgoCD instance running on the infra cluster will pick up the changes and configure the infra cluster.
+
+Some shared services require additional work prior to configuration. These are detailed here:
+
+* [Pure storage configuration](pure-storage-configuration.md)
 * keycloak (*TBD*)
-* storage (*TBD*)
+* additional networking (firewall, dns, etc) (*TBD*)
 * ??
 
 ## Example: OAC Prod Infra Cluster
@@ -69,11 +85,18 @@ Afterwards, update [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-ac
       * Additional nodes are either manually configured, or managed through ESI
    * `open-accelerator-infra` hosts inventory
       * [`00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml#L61-L106)
-* **Cluster Deployment and Configuration**
+* **Cluster Deployment**
    * `ai-ivp`
       * changes are yet to be merged
       * [`playbooks/inventory.yml`](https://github.com/tzumainn/ai-ivp/blob/open-accelerator/playbooks/inventory.yml#L19-L22)
       * [`playbooks/group_vars/oac-prod-infra/vars.yml`](https://github.com/tzumainn/ai-ivp/blob/open-accelerator/playbooks/group_vars/oac-prod-infra/vars.yml)
       * [modifications to `playbooks/roles/create_agent_install_media/templates/`](https://github.com/tzumainn/ai-ivp/tree/open-accelerator/playbooks/roles/create_agent_install_media/templates) for deploying a standard cluster
-   * `oac-apps` cluster configuration
-      * [`values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/values.yaml)
+* **Cluster Configuration**
+   * `hosted-clusters/oac-prod-infra/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/values.yaml)
+   * `values/oac-prod-infra/`
+      * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
+      * [`local-cluster/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster)
+         * [`portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
+         * additional component configuration
+   * `apps/oac-prod-infra/`
+      * [`keycloak-oauth.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/apps/oac-prod-infra/keycloak-oauth.yaml)
