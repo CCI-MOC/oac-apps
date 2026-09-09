@@ -1,10 +1,11 @@
-# The enable switch, in the platform's own config map. Nothing else belongs
-# here: the workload prometheus does not read this object, so retention or
-# storage set here would silently do nothing.
+# The switch that turns user workload monitoring on, in the config map the
+# cluster monitoring operator reads. Nothing else belongs here: the workload
+# prometheus never reads this object, so retention or storage set here would
+# silently do nothing.
 enable: true
 
 # Tuning for the workload prometheus, which is a different config map in a
-# different namespace. Red Hat keeps the two apart on purpose.
+# different namespace. The two are kept apart on purpose.
 prometheus:
   # Two independent limits. Whichever is reached first wins, so the size cap is
   # what actually protects the volume when a busy namespace outruns the window.
@@ -13,5 +14,7 @@ prometheus:
   volume:
     # Under the size cap above, so prometheus stops before the volume does.
     size: 20Gi
-    # Default on this cluster, Pure Flashblade NFS, and it allows expansion.
-    storageClassName: pure-fb-nfsv4
+    # Empty means the cluster's default storage class, which is what we want:
+    # naming one here would pin a per cluster fact into a chart that runs on
+    # several. Set it only where the default is wrong.
+    storageClassName: ""

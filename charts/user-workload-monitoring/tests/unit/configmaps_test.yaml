@@ -56,3 +56,24 @@ tests:
       - matchRegex:
           path: data["config.yaml"]
           pattern: 'retentionSize: 18GiB'
+
+  # Naming a storage class here would pin one cluster's fact into a chart that
+  # runs on several. Empty means the cluster default, which is what we want,
+  # and the key has to be absent rather than empty for that to work.
+  - it: leaves the storage class to the cluster by default
+    template: templates/tuning.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: storageClassName
+
+  - it: still allows naming one where the default is wrong
+    template: templates/tuning.yaml
+    set:
+      prometheus:
+        volume:
+          storageClassName: some-sc
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'storageClassName: some-sc'
