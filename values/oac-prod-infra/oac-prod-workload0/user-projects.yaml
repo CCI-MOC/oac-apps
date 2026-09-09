@@ -5,3 +5,7 @@ projects:
     members:
       - memalhot@redhat.com
       - gsanders@redhat.com
+
+  - name: whiteroom
+    requester: memalhot@redhat.com
+    description: "Whiteroom is middleware that shows how tokens and energy are being used and then provides dashboards/telemetry from that data"
