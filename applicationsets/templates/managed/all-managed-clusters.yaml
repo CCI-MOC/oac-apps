@@ -16,6 +16,7 @@ spec:
               requeueAfterSeconds: 180
           - list:
               elements:
+                - component: no-self-provisioners
                 - component: external-secrets
                 - component: metallb
                 - component: cert-manager

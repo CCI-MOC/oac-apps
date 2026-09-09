@@ -1,0 +1,5 @@
+apiVersion: v2
+name: no-self-provisioners
+description: Remove permission to self-provision projects
+type: application
+version: 0.1.0
