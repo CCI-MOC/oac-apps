@@ -1,0 +1,23 @@
+{{- if .Values.enable }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-workload-monitoring-config
+  namespace: openshift-user-workload-monitoring
+  annotations:
+    # The namespace is created by the platform when the switch above is set, so
+    # on a first sync this config map has nowhere to go yet.
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  config.yaml: |
+    prometheus:
+      retention: {{ .Values.prometheus.retention }}
+      retentionSize: {{ .Values.prometheus.retentionSize }}
+      volumeClaimTemplate:
+        spec:
+          storageClassName: {{ .Values.prometheus.volume.storageClassName }}
+          resources:
+            requests:
+              storage: {{ .Values.prometheus.volume.size }}
+{{- end }}

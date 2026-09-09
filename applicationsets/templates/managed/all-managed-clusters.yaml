@@ -23,6 +23,7 @@ spec:
                 - component: oac-simple-rbac
                 - component: user-projects
                 - component: moc-metrics-collector
+                - component: user-workload-monitoring
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"

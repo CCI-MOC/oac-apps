@@ -1,0 +1,18 @@
+{{- if .Values.enable }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+  annotations:
+    # This object belongs to the platform and may already exist with fields set
+    # by someone else. Server side apply changes the key we care about without
+    # claiming the whole object.
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+data:
+  # Writing this redeploys the pods in openshift-monitoring once. That is
+  # expected rather than a fault, and it is why the switch lives alone in its
+  # own template.
+  config.yaml: |
+    enableUserWorkload: true
+{{- end }}

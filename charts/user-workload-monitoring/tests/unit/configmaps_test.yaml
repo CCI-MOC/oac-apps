@@ -1,0 +1,58 @@
+suite: user-workload-monitoring
+templates:
+  - templates/enable.yaml
+  - templates/tuning.yaml
+
+tests:
+  - it: renders both config maps, the switch and the tuning
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # Red Hat keeps these two apart on purpose. This one is the enable switch and
+  # belongs to the platform stack; putting retention or storage here does
+  # nothing, because the workload prometheus does not read it.
+  - it: turns user workload monitoring on, in the platform config map
+    template: templates/enable.yaml
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: cluster-monitoring-config
+      - equal:
+          path: metadata.namespace
+          value: openshift-monitoring
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'enableUserWorkload: true'
+
+  # Saving cluster-monitoring-config redeploys the platform monitoring pods, and
+  # the object may already exist and be owned by someone else. Server side apply
+  # keeps ArgoCD from claiming the whole object.
+  - it: applies the platform config map server side
+    template: templates/enable.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true
+
+  # Retention belongs here and nowhere else. Two levels: time and size, and
+  # whichever is reached first wins.
+  - it: puts retention on the workload prometheus, not on the platform one
+    template: templates/tuning.yaml
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: user-workload-monitoring-config
+      - equal:
+          path: metadata.namespace
+          value: openshift-user-workload-monitoring
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retention: 15d'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retentionSize: 18GiB'
