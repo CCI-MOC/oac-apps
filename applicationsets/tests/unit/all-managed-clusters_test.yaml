@@ -27,3 +27,15 @@ tests:
       - equal:
           path: spec.template.spec.source.helm.valueFiles[1]
           value: "/values/oac-dev-infra/{{name}}/{{component}}.yaml"
+
+  # Metrics have to sit local to the workloads, so this goes to the managed
+  # clusters rather than to the hub. It is the deliberate exception to the
+  # otherwise hub-central plan.
+  - it: includes user workload monitoring in the component list
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: user-workload-monitoring
