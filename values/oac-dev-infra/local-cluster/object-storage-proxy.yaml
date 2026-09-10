@@ -1,0 +1,40 @@
+backend:
+  address: 10.9.0.10
+  verify: false
+  cacert: |
+    -----BEGIN CERTIFICATE-----
+    MIIDuzCCAqOgAwIBAgIQSArNaW0bXz0VG0uKTc1J4TANBgkqhkiG9w0BAQsFADBO
+    MRIwEAYDVQQDDAkxMC45LjAuMTAxGzAZBgNVBAsMElB1cmUgU3RvcmFnZSwgSW5j
+    LjEbMBkGA1UECgwSUHVyZSBTdG9yYWdlLCBJbmMuMB4XDTI2MDkxMDE5MDQ1OFoX
+    DTM2MDkwNzE5MDQ1OFowTjESMBAGA1UEAwwJMTAuOS4wLjEwMRswGQYDVQQLDBJQ
+    dXJlIFN0b3JhZ2UsIEluYy4xGzAZBgNVBAoMElB1cmUgU3RvcmFnZSwgSW5jLjCC
+    ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAKyPfIlVs/b+hyKhv+Xs3Xs0
+    4AzJncfEp28t70o93NcJDG2hB3Nqw9BrleSph/RHVYvKCiqhmdrD7ZQcIXpVkg8p
+    bnwr7khKn5drLQAmWbCQGLBk37lz1afzy/AITDaQ2hm0MGSsf7Evg6medjqrJK8w
+    Xhu2DQvLMrdhTPhAfZYtDfaDOd0jdfOQs5jpw0GEVtlrtc2elA9NTdSg++kEshqN
+    pXwc5TxIPkpUG81XpwFeO6WrKP88W/rgB/QhEFfeDLkH1UQW5siywf8ZLZZwBfdN
+    xpJGIz2UmoxDkXBY48/VS4SZuAgMN4/K6YEl5MbG8/gEI/IIqcAPmXDvL4/pWiUC
+    AwEAAaOBlDCBkTAPBgNVHREECDAGhwQKCQAKMB8GA1UdIwQYMBaAFGuMkH5aad43
+    wn26pvj3Txm12iB8MB0GA1UdDgQWBBRrjJB+WmneN8J9uqb4908ZtdogfDAMBgNV
+    HRMBAf8EAjAAMA4GA1UdDwEB/wQEAwICpDAgBgNVHSUBAf8EFjAUBggrBgEFBQcD
+    AQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAA+FLzJQkPohCr3f09G89WUE
+    ZdGxbgpOPC/iq7ADYNkIXTQbp/cqOy5r/kG6Q2LgPadhoJ52m76IpYhu87OcAr8M
+    XH5jDrGKyonbhLE1ZIqen1givB6/h4P/jQbJrcOErsqrckb75TVqc3bqLLSiGzU3
+    r3nWFwBeIC/7qqcBRPEwW44hPeQXN42SRoU6bmhu6+zUC6ug0n9juE+jEVwQobBM
+    3TU45SFg6KTCpEWBwa1asnVNMj8tqt3zGZFYEewwbjV1KD6guc/kWVEvI7zTmbTx
+    /CLPPF5xdTVhRrSRhDntUjyXQXQyOmQ6t3Xswm9TQTtijDyl1QpLeDoXn/MWLy0=
+    -----END CERTIFICATE-----
+certificate:
+  dnsName: "s3.infra.oac.int.massopen.cloud"
+
+network:
+  cidr: "10.9.0.0/24"
+  range:
+    start: "10.9.0.130"
+    end: "10.9.0.230"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.1.1
+
+service:
+  clusterIP: 172.31.0.53

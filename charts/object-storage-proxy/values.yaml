@@ -1,8 +1,3 @@
-externalSecret:
-  secretStore: aws-secrets-manager
-  secretStoreType: ClusterSecretStore
-  remoteKey: ""
-
 backend:
   address: ""
   # Override the Host header (and TLS SNI for the secure backend) sent
@@ -17,6 +12,12 @@ backend:
   # against. Only used when backend.verify is true; when empty, HAProxy
   # verifies against its default trust store.
   cacert: ""
+
+certificate:
+  dnsName: ""
+  secretName: object-storage-certificate
+  duration: 2160h
+  renewBefore: 360h
 
 network:
   name: storage-network
