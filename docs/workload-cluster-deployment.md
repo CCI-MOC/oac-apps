@@ -8,6 +8,7 @@ A workload cluster only needs nodes for additional worker nodes (since its contr
    * A workload cluster requires a cluster network and a storage network
       * [Add cluster and storage networks to the MOC inventory](network-inventory-and-configuration.md#network-inventory)
       * [Attach these networks to each node](hardware-inventory-and-configuration.md#network-configuration)
+   * Perform the [appropriate firewall configurations](network-inventory-and-configuration.md#firewall) for the cluster and storage networks
 * **`open-accelerator-infra` inventory**
    * Modify [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml) to add the new workload cluster and its associated nodes
 * **Add nodes as agents to the infra cluster**
@@ -34,9 +35,13 @@ Some shared services require additional work prior to configuration. These are d
 
 * [Pure storage configuration](pure-storage-configuration.md)
 * [IDP configuration](idp-configuration.md)
+* [Cluster certificates](network-inventory-and-configuration.md#cluster-certificates)
+* [Public IPs](network-inventory-and-configuration.md#public-ips)
+* [External DNS](network-inventory-and-configuration.md#external-dns)
 * observability (*TBD*)
-* additional networking (firewall, dns, etc) (*TBD*)
 * ??
+
+After the workload cluster is deployed, you may optionally want to [acquire a public IP](network-inventory-and-configuration.md#public-ips) and [expose the cluster's ingress and API IPs to the public internet](network-inventory-and-configuration.md#firewall).
 
 ## Example: OAC Prod Workload0 Cluster
 
@@ -48,11 +53,18 @@ Some shared services require additional work prior to configuration. These are d
       * [`MOC-R4PAC10-SW-TORS-A`](https://github.com/CCI-MOC/ansible-switches/blob/main/host_vars/MOC-R4PAC10-SW-TORS-A/interfaces.yaml) (search for `OAC Prod`)
       * [`MOC-R4PAC10-SW-TORS-B`](https://github.com/CCI-MOC/ansible-switches/blob/main/host_vars/MOC-R4PAC10-SW-TORS-B/interfaces.yaml) (search for `OAC Prod`)
       * Additional nodes are either manually configured, or managed through ESI
-* **Cluster Deployment and Configuration**
    * `open-accelerator-infra` hosts inventory
       * [`00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml#L107-L146)
+* **Cluster Deployment and Configuration**
    * `moc-keycloak` IDP configuration
       * [`main.tf`](https://github.com/CCI-MOC/moc-keycloak/blob/main/main.tf) (search for `oac_prod_workload0`)
+   * `everpure-moc` Pure storage configuration
+      * [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/everpure-moc/blob/main/ansible/group_vars/all/realms.yaml) (search for `oac-prod-workload0`)
+   * `documentation` Public IP reservation
+      * [`kaizen-networks.md`](https://github.com/CCI-MOC/documentation/blob/master/docs/source/networking/kaizen-networks.md#public-neu-vlan-127) (search for `oac_prod_workload0`)
+   * `moc-aws` cluster certificates and external DNS configuration
+      * [`main.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/main.tf) (search for `oac_prod_workload0`)
+      * [`cert-manager-policies.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/cert-manager-policies.tf) (search for `oac_prod_workload0`)
    * `oac-apps` cluster configuration
       * `hosted-clusters/oac-prod-infra/`
          * [`values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-workload0/values.yaml)
@@ -61,4 +73,5 @@ Some shared services require additional work prior to configuration. These are d
          * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
          * [`oac-prod-workload0/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0)
             * [`portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0/portworx.yaml)
+            * [`cluster-certificates.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0/cluster-certificates.yaml)
             * additional component configuration
