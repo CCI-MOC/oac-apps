@@ -175,7 +175,12 @@ tests:
   # A reencrypt route needs a TLS backend. Grafana's own service listens on
   # plain HTTP, so without overriding the port the route would reach Grafana
   # directly and never pass through the proxy.
-  - it: points the service at the proxy port, not at grafana
+  #
+  # Both ports go to the proxy on purpose. ServicePort merges on the port number,
+  # so an entry with a different number is added beside the operator's default
+  # instead of replacing it: without repeating 3000 the service would still
+  # expose Grafana directly, past the proxy and past the SAR.
+  - it: sends every service port to the proxy, including the operator default
     set:
       projects:
         - name: aibom
@@ -185,10 +190,34 @@ tests:
     asserts:
       - equal:
           path: spec.service.spec.ports[0].name
-          value: https
+          value: grafana
+      - equal:
+          path: spec.service.spec.ports[0].port
+          value: 3000
       - equal:
           path: spec.service.spec.ports[0].targetPort
           value: 8443
+      - equal:
+          path: spec.service.spec.ports[1].name
+          value: https
+      - equal:
+          path: spec.service.spec.ports[1].targetPort
+          value: 8443
+
+  # The operator's route reconciler sets targetPort to Grafana's own port and
+  # then merges the override on top, so a route that does not name a port keeps
+  # 3000 and terminates TLS against plain HTTP.
+  - it: points the route at the named https port
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.route.spec.port.targetPort
+          value: https
 
   # The service account is the OAuth client, which is what --openshift-service-account
   # does. Without it the proxy wants a separate client secret it does not have.
@@ -204,10 +233,11 @@ tests:
           path: spec.deployment.spec.template.spec.containers[0].args
           content: --openshift-service-account=grafana-sa
 
-  # The cookie secret has to be stable across renders, or ArgoCD rewrites it on
-  # every sync, and it has to decode to 16, 24 or 32 bytes or the proxy refuses
-  # to start. Derived from the project name, so both hold.
-  - it: gives the proxy a cookie secret of a length it accepts
+  # The signing key must not be derivable. It used to be a hash of the project
+  # name, which is public, so the key could be recomputed and a forged cookie
+  # would skip the SAR entirely: that check runs at login, an existing cookie is
+  # only verified against this key.
+  - it: reads the cookie secret from a file, never from the project name
     set:
       projects:
         - name: aibom
@@ -215,9 +245,30 @@ tests:
             enabled: true
     documentIndex: 5
     asserts:
-      - matchRegex:
+      - equal:
           path: spec.deployment.spec.template.spec.containers[0].args[6]
-          pattern: '^--cookie-secret=.{32}$'
+          value: --cookie-secret-file=/etc/grafana-cookie/key
+      - notMatchRegex:
+          path: spec.deployment.spec.template.spec.containers[0].args[6]
+          pattern: '^--cookie-secret='
+
+  - it: mounts the generated cookie secret into the proxy
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].volumeMounts[1].name
+          value: grafana-cookie
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].volumeMounts[1].mountPath
+          value: /etc/grafana-cookie
+      - equal:
+          path: spec.deployment.spec.template.spec.volumes[2].secret.secretName
+          value: grafana-cookie-secret
 
   # The operator sends the datasource to Grafana through its API, so a
   # ${__file{...}} expression would arrive as a literal string and every query

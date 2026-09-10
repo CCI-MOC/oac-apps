@@ -1,0 +1,26 @@
+{{- $wantsGrafana := false }}
+{{- range .Values.projects }}
+{{- if and .grafana .grafana.enabled }}{{ $wantsGrafana = true }}{{ end }}
+{{- end }}
+{{- if $wantsGrafana }}
+# 32 characters, which is one of the three lengths the 4.14 proxy accepts for a
+# cookie secret. Symbols are off because the value is passed on a command line.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ClusterGenerator
+metadata:
+  name: grafana-cookie-secret
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  kind: Password
+  generator:
+    passwordSpec:
+      length: 32
+      symbols: 0
+      digits: 10
+      noUpper: false
+      allowRepeat: true
+      secretKeys:
+        - key
+{{- end }}

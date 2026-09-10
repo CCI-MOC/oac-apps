@@ -103,6 +103,13 @@ spec:
       to:
         kind: Service
         name: grafana-service
+      # Without this the route keeps the operator's default. getRouteSpec sets
+      # targetPort to GetGrafanaPort, which is 3000, and the override is applied
+      # on top with a strategic merge, so a field we do not set stays at the
+      # default. A reencrypt route pointed at Grafana's plain HTTP port does not
+      # work, and it would also leave the proxy out of the path entirely.
+      port:
+        targetPort: https
   service:
     metadata:
       annotations:
@@ -111,9 +118,19 @@ spec:
         service.beta.openshift.io/serving-cert-secret-name: grafana-tls
     spec:
       ports:
-        # Grafana's own service would listen on plain HTTP, and a reencrypt
-        # route needs a TLS backend. Pointing the service at the proxy port
-        # is also what puts the proxy in the path at all.
+        # Both entries are deliberate, and the port numbers are the reason.
+        # ServicePort merges on patchMergeKey "port", so an entry with a
+        # different number is added next to the operator's default rather than
+        # replacing it. Repeating port 3000 is what actually replaces the
+        # default, and pointing it at the proxy closes the anonymous path:
+        # without this, grafana-service:3000 reaches Grafana directly, past the
+        # proxy and past the SAR, with the project's datasource token behind it.
+        - name: grafana
+          port: 3000
+          targetPort: 8443
+          protocol: TCP
+        # The port the route uses. Named "https" so the route above can target
+        # it by name and stays correct if the number ever changes.
         - name: https
           port: 443
           targetPort: 8443
@@ -161,11 +178,14 @@ spec:
                 # the flag that arranges it, together with the redirect
                 # annotation on the service account above.
                 - --openshift-service-account=grafana-sa
-                # Derived from the project name rather than random, for two
-                # reasons: a fresh value on every render would be rewritten by
-                # ArgoCD on every sync and log everyone out, and the proxy only
-                # accepts a secret that decodes to 16, 24 or 32 bytes.
-                - --cookie-secret={{ printf "oac-grafana-cookie-%s" .name | sha256sum | trunc 32 }}
+                # Read from a file rather than passed on the command line. The
+                # value used to be a hash of the project name, which is public,
+                # so the signing key could be recomputed by anyone and a forged
+                # cookie would walk straight past the SAR below: that check runs
+                # at login, an existing cookie is only verified against this key.
+                # The secret is generated once by external-secrets, see
+                # grafana-cookie-secret.yaml, so it stays stable across syncs.
+                - --cookie-secret-file=/etc/grafana-cookie/key
                 # This is the one that gates the browser. A person arriving at
                 # the route logs in through OAuth, and the proxy then checks
                 # this review before handing out a session cookie. Without it
@@ -184,6 +204,9 @@ spec:
               volumeMounts:
                 - name: grafana-tls
                   mountPath: /etc/tls/private
+                - name: grafana-cookie
+                  mountPath: /etc/grafana-cookie
+                  readOnly: true
           volumes:
             - name: service-ca
               configMap:
@@ -191,6 +214,9 @@ spec:
             - name: grafana-tls
               secret:
                 secretName: grafana-tls
+            - name: grafana-cookie
+              secret:
+                secretName: grafana-cookie-secret
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource
