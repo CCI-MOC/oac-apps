@@ -1,0 +1,30 @@
+suite: user-projects RoleBinding generation
+# helm-unittest renders the whole chart; templates: only scopes assertions.
+# The fail in rbac.yaml is the only validation in the chart, so the failure
+# test only needs to name that template.
+templates:
+  - templates/rbac.yaml
+
+tests:
+  - it: should fail when a project has no groups
+    set:
+      projects:
+        - name: no-groups-project
+          requester: alice@example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: 'project "no-groups-project" has no groups defined'
+
+  - it: should create one RoleBinding per group
+    set:
+      projects:
+        - name: myproject
+          requester: alice@example.com
+          groups:
+            - name: editors
+              role: edit
+            - name: viewers
+              role: view
+    asserts:
+      - hasDocuments:
+          count: 2

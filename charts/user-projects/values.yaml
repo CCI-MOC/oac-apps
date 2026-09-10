@@ -16,4 +16,20 @@ defaultLimitRange:
         cpu: "1"
         memory: "2Gi"
 
+# groups is an optional list of groups to create on the target cluster. In
+# general this isn't necessary because we manage groups in keycloak (or
+# github).
+groups: []
+# - name: example-group
+#   members:
+#   - bob@example.com
+#   - alice@example.com
+
+# projects is a list of projects to create. For each project, if you don't
+# explicitly set `group`, it will assume a group named
+# `project-<project_name>-edit` exists.
 projects: []
+# - name: aibom
+#   requester: alice@example.com
+#   description: "This is an example project."
+#   group: example-group

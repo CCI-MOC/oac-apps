@@ -1,18 +1,22 @@
-{{ range .Values.projects }}
+{{ range $project := .Values.projects }}
+{{ $namespace := (printf "project-%s" .name) }}
+{{ if not .groups }}{{ fail (printf "project %q has no groups defined" .name) }}{{ end }}
+{{ range .groups }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: "project-{{ .name }}-edit"
-  namespace: "project-{{ .name }}"
+  name: "project-{{ $project.name }}-{{ .role }}"
+  namespace: "{{ $namespace }}"
   labels:
-    massopen.cloud/project: "{{ .name }}"
+    massopen.cloud/project: "{{ $project.name }}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: edit
+  name: {{ .role }}
 subjects:
 - kind: Group
-  name: "project-{{ .name }}-edit"
-  namespace: "{{ .name }}"
+  name: "{{ .name | default (printf "project-%s-%s" $project.name .role) }}"
+  namespace: "{{ $namespace }}"
 ---
+{{ end }}
 {{ end }}
