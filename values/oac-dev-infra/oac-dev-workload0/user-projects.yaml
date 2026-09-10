@@ -1,0 +1,14 @@
+projects:
+  - name: aibom
+    requester: memalhot@redhat.com
+    description: "Gavin will be working on his AIBOM service that essentially captures metadata about different ai workloads"
+    groups:
+      - name: intern-aibom
+        role: edit
+
+  - name: gavin-test
+    requester: memalhot@redhat.com
+    description: "Code for gavin's aibom service lives in here and watches workloads in other (opted-in) namespaces"
+    groups:
+      - name: intern-aibom
+        role: edit
