@@ -19,6 +19,7 @@ After identifying the nodes that will be used for the cluster, the configuration
    * An infra cluster requires a cluster network and a storage network
       * [Add cluster and storage networks to the MOC inventory](network-inventory-and-configuration.md#network-inventory)
       * [Attach these networks to each node](hardware-inventory-and-configuration.md#network-configuration)
+   * Perform the [appropriate firewall configurations](network-inventory-and-configuration.md#firewall) for the cluster and storage networks
 * **`open-accelerator-infra` inventory**
    * Modify [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml) to add the new infra cluster and its associated nodes
 * **Additional node information**
@@ -40,6 +41,15 @@ Start by creating a cluster discovery image. The current procedure for doing so 
 * Create a directory for the new cluster in [`playbooks/group_vars/<infra-cluster>/`](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator/playbooks/group_vars)
    * Add a `secrets.yml` file that specifies the `pull_secret`
    * Copy a `vars.yml` file from an existing cluster, and update it to specify the desired hardware and networks (information obtained from booting the discovery image is required)
+      * The values for `api_ip` and `ingress_ip` should be on the cluster subnet
+   * [Update internal DNS](network-inventory-and-configuration.md#internal-dns) with these entries:
+
+```
+          api.<cluster_domain_name>.<base_domain_name>.     300 IN A     <api_ip>
+          api-int.<cluster_domain_name>.<base_domain_name>.     300 IN A     <api_ip>
+          *.apps.<cluster_domain_name>.<base_domain_name>.     300 IN A     <ingress_ip>
+```
+
 * Run `ansible-playbook playbooks/create_agent_install_media.yaml -e "cluster_name=<infra-cluster>"`
    * The [templates used](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator/playbooks/roles/create_agent_install_media/templates) are hardcoded for a compact cluster; however these templates are easily modified for a standard cluster.
 * The playbook generates a `kubeadmin` password, kubeconfig, and cluster discovery image
@@ -69,8 +79,9 @@ Make the desired customizations, and then submit them as a PR. Once the PR is me
 Some shared services require additional work prior to configuration. These are detailed here:
 
 * [Pure storage configuration](pure-storage-configuration.md)
+* [External DNS](network-inventory-and-configuration.md#external-dns)
 * keycloak (*TBD*)
-* additional networking (firewall, dns, etc) (*TBD*)
+* AWS setup (*TBD*)
 * ??
 
 ## Example: OAC Prod Infra Cluster
@@ -85,6 +96,8 @@ Some shared services require additional work prior to configuration. These are d
       * Additional nodes are either manually configured, or managed through ESI
    * `open-accelerator-infra` hosts inventory
       * [`00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml#L61-L106)
+   * `moc-dns` Internal DNS
+      * [`ocp.massopen.cloud.zone`](https://github.com/CCI-MOC/moc-dns/blob/main/zonefiles/ocp.massopen.cloud.zone) (search for `infra.oac.ocp.massopen.cloud`)
 * **Cluster Deployment**
    * `ai-ivp`
       * changes are yet to be merged
@@ -92,11 +105,21 @@ Some shared services require additional work prior to configuration. These are d
       * [`playbooks/group_vars/oac-prod-infra/vars.yml`](https://github.com/tzumainn/ai-ivp/blob/open-accelerator/playbooks/group_vars/oac-prod-infra/vars.yml)
       * [modifications to `playbooks/roles/create_agent_install_media/templates/`](https://github.com/tzumainn/ai-ivp/tree/open-accelerator/playbooks/roles/create_agent_install_media/templates) for deploying a standard cluster
 * **Cluster Configuration**
-   * `hosted-clusters/oac-prod-infra/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/values.yaml)
-   * `values/oac-prod-infra/`
-      * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
-      * [`local-cluster/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster)
-         * [`portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
-         * additional component configuration
-   * `apps/oac-prod-infra/`
-      * [`keycloak-oauth.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/apps/oac-prod-infra/keycloak-oauth.yaml)
+   * `everpure-moc` Pure storage configuration
+      * [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/moc-dns/blob/main/zonefiles/ocp.massopen.cloud.zone) (search for `oac_prod_infra`)
+   * `moc-aws` external DNS configuration
+      * [`iam-users.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/iam-users.tf) (search for `oac-massopen-cloud` and `oac-prod-external-dns`)
+      * [`hosted-zones.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/hosted-zones.tf) (search for `oac.massopen.cloud`)
+      * [`cert-manager-policies.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/cert-manager-policies.tf) (search for `oac_prod_infra`)
+      * [`external-dns-policies.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/external-dns-policies.tf) (search for `oac_massopen`)
+   * `oac-apps` cluster configuration
+      * `hosted-clusters/oac-prod-infra/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/values.yaml)
+      * `values/oac-prod-infra/`
+         * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
+         * [`local-cluster/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster)
+            * [`portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
+            * [`cluster-certificates.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/cluster-certificates.yaml)
+            * [`external-dns-operator.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/external-dns-operator.yaml)
+            * additional component configuration
+      * `apps/oac-prod-infra/`
+         * [`keycloak-oauth.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/apps/oac-prod-infra/keycloak-oauth.yaml)
