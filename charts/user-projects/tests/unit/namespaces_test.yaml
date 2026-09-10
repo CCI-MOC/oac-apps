@@ -1,0 +1,19 @@
+suite: user-projects Namespace generation
+templates:
+  - templates/namespace.yaml
+
+tests:
+  - it: should create one Namespace per project
+    set:
+      projects:
+        - name: project1
+          groups:
+            - name: editors
+              role: edit
+        - name: project2
+          groups:
+            - name: editors
+              role: edit
+    asserts:
+      - hasDocuments:
+          count: 2

@@ -1,7 +1,23 @@
 projects:
   - name: example1
     requester: alice@example.com
-    description: This is a test project.
-    members:
-      - alice@example.com
-      - bob@example.com
+    description: "This is an example project"
+    groups:
+      - name: example-group
+        role: edit
+      - name: other-group
+        role: view
+
+  - name: example2
+    requester: bob@example.com
+    description: "Another test with a custom quota"
+    groups:
+      - name: example-group
+        role: edit
+    quota:
+      hard:
+        pods: "100"
+        requests.cpu: "40"
+        requests.memory: "40Gi"
+        limits.cpu: "80"
+        limits.memory: "80Gi"

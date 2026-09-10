@@ -1,11 +1,10 @@
 projects:
-  - name: aibom
-    requester: memalhot@redhat.com
-    description: "Gavin will be working on his AIBOM service that essentially captures metadata about different ai workloads"
-    members:
-      - memalhot@redhat.com
-      - gsanders@redhat.com
-
   - name: whiteroom
     requester: memalhot@redhat.com
     description: "Whiteroom is middleware that shows how tokens and energy are being used and then provides dashboards/telemetry from that data"
+    groups:
+      # Two entries because we are about to rename this group
+      - name: project-whiteroom-edit
+        role: edit
+      - name: project-whiteroom
+        role: edit
