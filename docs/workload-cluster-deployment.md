@@ -33,8 +33,8 @@ Make the desired customizations, and then submit them as a PR. Once the PR is me
 Some shared services require additional work prior to configuration. These are detailed here:
 
 * [Pure storage configuration](pure-storage-configuration.md)
+* [IDP configuration](idp-configuration.md)
 * observability (*TBD*)
-* keycloak (*TBD*)
 * additional networking (firewall, dns, etc) (*TBD*)
 * ??
 
@@ -51,8 +51,12 @@ Some shared services require additional work prior to configuration. These are d
 * **Cluster Deployment and Configuration**
    * `open-accelerator-infra` hosts inventory
       * [`00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml#L107-L146)
+   * `moc-keycloak` IDP configuration
+      * [`main.tf`](https://github.com/CCI-MOC/moc-keycloak/blob/main/main.tf) (search for `oac_prod_workload0`)
    * `oac-apps` cluster configuration
-      * `hosted-clusters/oac-prod-infra/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-workload0/values.yaml)
+      * `hosted-clusters/oac-prod-infra/`
+         * [`values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-workload0/values.yaml)
+         * [`oac-prod-workload0/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/oac-prod-workload0/values.yaml)
       * `values/oac-prod-infra/`
          * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
          * [`oac-prod-workload0/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0)
