@@ -25,12 +25,9 @@ This section assumes that a [network has already been reserved](network-inventor
 
 Currently network configuration is accomplished through a combination of ESI APIs, `CCI-MOC` repositories (which record configurations and applies them through playbooks), and direct sysadmin requests. The `CCI-MOC` repositories used are: 
 
-* [`ansible-switches`](https://github.com/CCI-MOC/ansible-switches/): manages VLANs and node port configuration
-* *TBD*
-
 #### Non-Inventoried
 
-Nodes on a Dell switch should have their networks configured by modifying the appropriate interface within [`host_vars`](https://github.com/CCI-MOC/ansible-switches/tree/main/host_vars) (since these nodes are currently un-inventoried, the easiest way locate an interface for a node is to search the [ESI manifests](https://github.com/CCI-MOC/esi-pilot/tree/main/nodes)). For example [`MOC-R4PAC10-SW-TORS-A/interfaces.yaml`](https://github.com/CCI-MOC/ansible-switches/blob/main/host_vars/MOC-R4PAC10-SW-TORS-A/interfaces.yaml) has the following entry:
+Nodes on a Dell switch have their node ports inventoried in the [`ansible-switches`](https://github.com/CCI-MOC/ansible-switches/) repository. Configure the networking for these node ports by modifying the appropriate interface within [`host_vars`](https://github.com/CCI-MOC/ansible-switches/tree/main/host_vars) (since these nodes are currently un-inventoried, the easiest way locate an interface for a node is to search the [ESI manifests](https://github.com/CCI-MOC/esi-pilot/tree/main/nodes)). For example [`MOC-R4PAC10-SW-TORS-A/interfaces.yaml`](https://github.com/CCI-MOC/ansible-switches/blob/main/host_vars/MOC-R4PAC10-SW-TORS-A/interfaces.yaml) has the following entry:
 
 ```
   twentyFiveGigE 1/6/4:
