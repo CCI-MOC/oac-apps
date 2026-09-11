@@ -1,0 +1,27 @@
+apiVersion: nfd.openshift.io/v1
+kind: NodeFeatureDiscovery
+metadata:
+  name: nfd-instance
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  # spec.operand is deliberately unset. Pinning operand.image ties the NFD
+  # operand to one OpenShift release; left empty the operator picks the image
+  # matching the cluster's version. Same for servicePort, which only needs
+  # setting to dodge a port conflict.
+  workerConfig:
+    configData: |
+      core:
+        sleepInterval: {{ .Values.nodeFeatureDiscovery.sleepInterval }}
+      sources:
+        pci:
+          deviceClassWhitelist:
+          {{- range .Values.nodeFeatureDiscovery.pci.deviceClassWhitelist }}
+            - {{ . | quote }}
+          {{- end }}
+          deviceLabelFields:
+          {{- range .Values.nodeFeatureDiscovery.pci.deviceLabelFields }}
+            - {{ . | quote }}
+          {{- end }}
