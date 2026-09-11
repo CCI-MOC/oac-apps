@@ -3,8 +3,11 @@
 {{- if and .grafana .grafana.enabled }}{{ $wantsGrafana = true }}{{ end }}
 {{- end }}
 {{- if $wantsGrafana }}
-# 32 characters, which is one of the three lengths the 4.14 proxy accepts for a
-# cookie secret. Symbols are off because the value is passed on a command line.
+# 32 alphanumeric characters, which the proxy base64url-decodes to 24 bytes, and
+# 24 is one of the three sizes it accepts. Characters and decoded bytes are not
+# the same thing here: secretBytes in options.go decodes first and only falls
+# back to raw bytes if that fails, and 32 alphanumerics are valid base64url.
+# Symbols stay off because the value is read from a file the proxy decodes.
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: ClusterGenerator
 metadata:

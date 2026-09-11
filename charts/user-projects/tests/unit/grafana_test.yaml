@@ -58,8 +58,10 @@ tests:
           path: spec.datasource.jsonData.customQueryParameters
           value: namespace=project-aibom
 
-  # The oauth-proxy checks the same namespace the datasource filters on, so
-  # entering Grafana and reading metrics test one permission, not two.
+  # The proxy and the datasource both scope to the project namespace, but they
+  # do not check the same permission: the proxy asks for "get services" there,
+  # while port 9092 checks "get pods" in apiGroup metrics.k8s.io. Both happen to
+  # be granted by the view role, which is why it works, not because they match.
   - it: delegates the access check to the project namespace
     set:
       projects:
@@ -68,9 +70,9 @@ tests:
             enabled: true
     documentIndex: 5
     asserts:
-      - matchRegex:
-          path: spec.deployment.spec.template.spec.containers[1].args[8]
-          pattern: 'project-aibom'
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: '--openshift-delegate-urls={"/": {"namespace": "project-aibom", "resource": "services", "verb": "get"}}'
 
   - it: renders for each opted-in project independently
     set:
@@ -267,7 +269,7 @@ tests:
           path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].mountPath
           value: /etc/grafana-cookie
       - equal:
-          path: spec.deployment.spec.template.spec.volumes[2].secret.secretName
+          path: spec.deployment.spec.template.spec.volumes[1].secret.secretName
           value: grafana-cookie-secret
 
   # The operator sends the datasource to Grafana through its API, so a
@@ -316,9 +318,9 @@ tests:
             enabled: true
     documentIndex: 5
     asserts:
-      - matchRegex:
-          path: spec.deployment.spec.template.spec.containers[1].args[7]
-          pattern: '^--openshift-sar=.*project-aibom'
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: '--openshift-sar={"namespace": "project-aibom", "resource": "services", "verb": "get"}'
 
   # Grafana caps a dashboard uid at 40 characters. "project-<name>-overview"
   # would pass that with 24 characters of project name, and the failure would
@@ -354,3 +356,40 @@ tests:
       - equal:
           path: spec.deployment.spec.template.spec.containers[0].resources.requests.memory
           value: 256Mi
+
+  # The SAR only runs when the code is redeemed. A cookie loaded later is just
+  # checked against the signing key, so without a refresh interval a revoked
+  # user keeps the session for the full cookie lifetime, which defaults to
+  # seven days.
+  - it: expires and revalidates the session instead of trusting it for a week
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: --cookie-expire=4h
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: --cookie-refresh=30m
+
+  # The queries are only safe today because port 9092 injects the namespace.
+  # Spelling it out means the dashboard stays scoped if the datasource is ever
+  # repointed, or if somebody copies this JSON somewhere else.
+  - it: scopes the dashboard queries to the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 7
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: 'container_cpu_usage_seconds_total\{namespace=..project-aibom'
+      - matchRegex:
+          path: spec.json
+          pattern: 'container_memory_working_set_bytes\{namespace=..project-aibom'
