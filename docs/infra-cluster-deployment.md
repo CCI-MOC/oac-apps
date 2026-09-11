@@ -69,7 +69,7 @@ Make the desired customizations, and then submit them as a PR. Once the PR is me
 Some shared services require additional work prior to configuration. These are detailed here:
 
 * [Pure storage configuration](pure-storage-configuration.md)
-* keycloak (*TBD*)
+* [IDP configuration](idp-configuration.md)
 * additional networking (firewall, dns, etc) (*TBD*)
 * ??
 
@@ -92,11 +92,15 @@ Some shared services require additional work prior to configuration. These are d
       * [`playbooks/group_vars/oac-prod-infra/vars.yml`](https://github.com/tzumainn/ai-ivp/blob/open-accelerator/playbooks/group_vars/oac-prod-infra/vars.yml)
       * [modifications to `playbooks/roles/create_agent_install_media/templates/`](https://github.com/tzumainn/ai-ivp/tree/open-accelerator/playbooks/roles/create_agent_install_media/templates) for deploying a standard cluster
 * **Cluster Configuration**
-   * `hosted-clusters/oac-prod-infra/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/values.yaml)
-   * `values/oac-prod-infra/`
-      * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
-      * [`local-cluster/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster)
-         * [`portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
-         * additional component configuration
-   * `apps/oac-prod-infra/`
-      * [`keycloak-oauth.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/apps/oac-prod-infra/keycloak-oauth.yaml)
+   * `moc-keycloak` IDP configuration
+      * [`main.tf`](https://github.com/CCI-MOC/moc-keycloak/blob/main/main.tf) (search for `oac_prod_workload0`)
+   * `oac-apps` cluster configuration
+      * [`hosted-clusters/oac-prod-infra/values.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/hosted-clusters/oac-prod-infra/values.yaml)
+      * `values/oac-prod-infra/`
+         * [`hcp-config.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/hcp-config.yaml)
+         * [`local-cluster/`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster)
+            * [`portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
+            * [`keycloak-oauth.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/keycloak-oauth.yaml)
+            * additional component configuration
+      * `apps/oac-prod-infra/`
+         * [`keycloak-oauth.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/apps/oac-prod-infra/keycloak-oauth.yaml)

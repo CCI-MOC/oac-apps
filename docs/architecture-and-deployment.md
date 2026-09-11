@@ -53,8 +53,7 @@ These clusters rely on a number of shared services, described below.
 * [Network inventory and configuration](network-inventory-and-configuration.md)
 * [Hardware inventory and configuration](hardware-inventory-and-configuration.md)
 * [Pure storage configuration](pure-storage-configuration.md)
-* *Link to IDP (Keycloak) doc*
-   * includes details on how to configure for a cluster; that subsection will be linked from the cluster deployment doc
+* [IDP configuration](idp-configuration.md)
 
 ## Cluster Deployment
 
