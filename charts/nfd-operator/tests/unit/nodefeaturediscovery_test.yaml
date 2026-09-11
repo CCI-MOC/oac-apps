@@ -57,6 +57,14 @@ tests:
                 deviceLabelFields:
                   - "vendor"
 
+  # NFD drops NodeFeatureRule taints unless this is set, which would make the
+  # taints in nodefeaturerule.yaml inert rather than merely absent.
+  - it: should enable taints so the NodeFeatureRule taints apply
+    asserts:
+      - equal:
+          path: spec.enableTaints
+          value: true
+
   # Pinning operand.image ties the operand to one OpenShift release; leaving it
   # unset lets the operator pick the image matching the cluster version.
   - it: should not pin the operand image or service port
