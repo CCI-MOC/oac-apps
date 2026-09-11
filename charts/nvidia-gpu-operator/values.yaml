@@ -7,3 +7,21 @@ subscription:
   source: certified-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+
+# Knobs on the gpu-cluster-policy ClusterPolicy. The rest of the spec is fixed
+# in the template; only the settings that plausibly differ per cluster are here.
+clusterPolicy:
+  driver:
+    # Disable on clusters where the NVIDIA driver is pre-installed on the host.
+    enabled: true
+    autoUpgrade: true
+    maxParallelUpgrades: 1
+    maxUnavailable: 25%
+  # "single" exposes one MIG profile per node; "mixed" exposes all of them.
+  mig:
+    strategy: single
+  dcgmExporter:
+    serviceMonitor:
+      enabled: true
+  sandboxWorkloads:
+    enabled: false
