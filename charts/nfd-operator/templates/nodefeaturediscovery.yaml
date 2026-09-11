@@ -11,6 +11,10 @@ spec:
   # operand to one OpenShift release; left empty the operator picks the image
   # matching the cluster's version. Same for servicePort, which only needs
   # setting to dodge a port conflict.
+  #
+  # Required for the taints in nodefeaturerule.yaml to take effect: NFD
+  # silently drops NodeFeatureRule taints unless this is true.
+  enableTaints: {{ .Values.nodeFeatureDiscovery.enableTaints }}
   workerConfig:
     configData: |
       core:

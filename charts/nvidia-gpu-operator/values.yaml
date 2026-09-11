@@ -25,3 +25,13 @@ clusterPolicy:
       enabled: true
   sandboxWorkloads:
     enabled: false
+  # Applied to every operator-managed daemonset. Must cover the taints that
+  # nfd-operator's NodeFeatureRule puts on GPU nodes, or those nodes end up
+  # with the driver stack unschedulable and zero allocatable GPUs.
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+    - key: nvidia.com/gpu.product
+      operator: Exists
+      effect: NoSchedule

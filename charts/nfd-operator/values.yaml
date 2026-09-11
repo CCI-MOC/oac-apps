@@ -10,6 +10,8 @@ subscription:
 # The NodeFeatureDiscovery instance the operator reconciles into a
 # master/worker deployment.
 nodeFeatureDiscovery:
+  # Needs to be set for taints to take effect
+  enableTaints: true
   sleepInterval: 60s
   pci:
     # 0200 = ethernet, 03 = display (GPUs), 12 = processing accelerator.
