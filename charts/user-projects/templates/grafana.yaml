@@ -162,6 +162,13 @@ spec:
         spec:
           serviceAccountName: grafana-sa
           containers:
+            # The operator does not read defaultGrafana.resources on its own,
+            # and a container without resources gets the project LimitRange
+            # defaults, 1 CPU and 2Gi. Naming the container here is what makes
+            # the merge land on Grafana itself rather than on a second one.
+            - name: grafana
+              resources:
+                {{- toYaml $.Values.defaultGrafana.resources | nindent 16 }}
             - name: oauth-proxy
               image: {{ $.Values.defaultGrafana.oauthProxyImage | quote }}
               ports:
@@ -289,7 +296,11 @@ spec:
   json: |
     {
       "title": "Project overview",
-      "uid": "project-{{ .name }}-overview",
+      {{- /* Grafana caps a dashboard uid at 40 characters, and
+             "project-<name>-overview" would pass that at 24 characters of
+             project name. A hash keeps it fixed at 24 and stable across
+             renders, so ArgoCD does not recreate the dashboard. */}}
+      "uid": "project-{{ .name | sha256sum | trunc 16 }}-ovw",
       "time": {"from": "now-6h", "to": "now"},
       "panels": [
         {

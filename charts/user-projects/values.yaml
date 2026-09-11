@@ -43,7 +43,8 @@ defaultGrafana:
   version: "11.3.0"
   # The image the console itself uses for authenticating routes.
   oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.14
-  # Grafana itself. The operator applies these to its own container.
+  # Grafana itself. Applied through a named container override in the
+  # template, the operator does not pick these up on its own.
   resources:
     requests:
       cpu: 100m

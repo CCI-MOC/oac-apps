@@ -69,7 +69,7 @@ tests:
     documentIndex: 5
     asserts:
       - matchRegex:
-          path: spec.deployment.spec.template.spec.containers[0].args[8]
+          path: spec.deployment.spec.template.spec.containers[1].args[8]
           pattern: 'project-aibom'
 
   - it: renders for each opted-in project independently
@@ -116,7 +116,7 @@ tests:
       - isKind:
           of: Grafana
       - notContains:
-          path: spec.deployment.spec.template.spec.containers[0].args
+          path: spec.deployment.spec.template.spec.containers[1].args
           content: --cookie-secret-file=/etc/oauth/config/cookie_secret
 
   # Verifying against the cluster CA beats skipping verification, and the
@@ -230,7 +230,7 @@ tests:
     documentIndex: 5
     asserts:
       - contains:
-          path: spec.deployment.spec.template.spec.containers[0].args
+          path: spec.deployment.spec.template.spec.containers[1].args
           content: --openshift-service-account=grafana-sa
 
   # The signing key must not be derivable. It used to be a hash of the project
@@ -246,10 +246,10 @@ tests:
     documentIndex: 5
     asserts:
       - equal:
-          path: spec.deployment.spec.template.spec.containers[0].args[6]
+          path: spec.deployment.spec.template.spec.containers[1].args[6]
           value: --cookie-secret-file=/etc/grafana-cookie/key
       - notMatchRegex:
-          path: spec.deployment.spec.template.spec.containers[0].args[6]
+          path: spec.deployment.spec.template.spec.containers[1].args[6]
           pattern: '^--cookie-secret='
 
   - it: mounts the generated cookie secret into the proxy
@@ -261,10 +261,10 @@ tests:
     documentIndex: 5
     asserts:
       - equal:
-          path: spec.deployment.spec.template.spec.containers[0].volumeMounts[1].name
+          path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].name
           value: grafana-cookie
       - equal:
-          path: spec.deployment.spec.template.spec.containers[0].volumeMounts[1].mountPath
+          path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].mountPath
           value: /etc/grafana-cookie
       - equal:
           path: spec.deployment.spec.template.spec.volumes[2].secret.secretName
@@ -301,7 +301,7 @@ tests:
     documentIndex: 5
     asserts:
       - equal:
-          path: spec.deployment.spec.template.spec.containers[0].resources.requests.memory
+          path: spec.deployment.spec.template.spec.containers[1].resources.requests.memory
           value: 64Mi
 
   # delegate-urls only covers requests that arrive with a bearer token. A
@@ -317,5 +317,40 @@ tests:
     documentIndex: 5
     asserts:
       - matchRegex:
-          path: spec.deployment.spec.template.spec.containers[0].args[7]
+          path: spec.deployment.spec.template.spec.containers[1].args[7]
           pattern: '^--openshift-sar=.*project-aibom'
+
+  # Grafana caps a dashboard uid at 40 characters. "project-<name>-overview"
+  # would pass that with 24 characters of project name, and the failure would
+  # only show up when someone creates a project with a long name.
+  - it: keeps the dashboard uid inside Grafana's limit whatever the name
+    set:
+      projects:
+        - name: a-very-long-project-name-for-testing-purposes
+          grafana:
+            enabled: true
+    documentIndex: 7
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: '"uid": "project-[0-9a-f]{16}-ovw"'
+
+  # A container without resources gets the project LimitRange defaults, 1 CPU
+  # and 2Gi, which is most of a project's quota spent on Grafana itself.
+  - it: gives grafana its own resources, not the LimitRange defaults
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].name
+          value: grafana
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].resources.requests.memory
+          value: 256Mi
