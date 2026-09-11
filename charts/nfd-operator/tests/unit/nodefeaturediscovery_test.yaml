@@ -1,0 +1,65 @@
+suite: NodeFeatureDiscovery
+templates:
+  - templates/nodefeaturediscovery.yaml
+
+tests:
+  - it: should render the NodeFeatureDiscovery instance
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: NodeFeatureDiscovery
+      - equal:
+          path: metadata.name
+          value: nfd-instance
+
+  # NodeFeatureDiscovery is namespaced. Without an explicit namespace (the
+  # Application's destination namespace is empty), ArgoCD rejects it with an
+  # InvalidSpecError once the CRD is installed, so the CR is never created.
+  - it: should be created in the operator namespace
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: openshift-nfd
+
+  # Without SkipDryRunOnMissingResource, ArgoCD's pre-sync dry-run fails on a
+  # cluster where the nfd.openshift.io CRDs are not yet installed, which aborts
+  # the entire sync (including the operator Subscription that installs those
+  # CRDs).
+  - it: should skip the dry-run when the CRD is missing
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  # Must sync after the operator (wave 0) so the CRD exists first.
+  - it: should sync in a later wave than the operator
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+
+  # The worker config is a YAML blob inside a string field, so a templating
+  # slip produces a CR that applies cleanly but silently mislabels nodes.
+  - it: should render the worker config as parseable YAML with quoted classes
+    asserts:
+      - equal:
+          path: spec.workerConfig.configData
+          value: |
+            core:
+              sleepInterval: 60s
+            sources:
+              pci:
+                deviceClassWhitelist:
+                  - "0200"
+                  - "03"
+                  - "12"
+                deviceLabelFields:
+                  - "vendor"
+
+  # Pinning operand.image ties the operand to one OpenShift release; leaving it
+  # unset lets the operator pick the image matching the cluster version.
+  - it: should not pin the operand image or service port
+    asserts:
+      - notExists:
+          path: spec.operand

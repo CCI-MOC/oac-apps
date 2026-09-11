@@ -7,6 +7,19 @@ subscription:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+# The NodeFeatureDiscovery instance the operator reconciles into a
+# master/worker deployment.
+nodeFeatureDiscovery:
+  sleepInterval: 60s
+  pci:
+    # 0200 = ethernet, 03 = display (GPUs), 12 = processing accelerator.
+    deviceClassWhitelist:
+      - "0200"
+      - "03"
+      - "12"
+    deviceLabelFields:
+      - "vendor"
+
 gpuDevices:
   - name: Tesla-V100-PCIE-32GB
     deviceId: "1db6"
