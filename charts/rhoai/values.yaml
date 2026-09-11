@@ -7,3 +7,28 @@ subscription:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+
+# The DataScienceCluster that turns the installed operator into a running
+# RHOAI. Every component takes Managed or Removed.
+dataScienceCluster:
+  name: default-dsc
+  components:
+    codeflare: Managed
+    dashboard: Managed
+    datasciencepipelines: Managed
+    kserve: Managed
+    kueue: Managed
+    modelmeshserving: Managed
+    modelregistry: Removed
+    ray: Managed
+    trainingoperator: Removed
+    trustyai: Managed
+    workbenches: Managed
+  kserve:
+    serving:
+      managementState: Managed
+      name: knative-serving
+      certificateType: SelfSigned
+  modelregistry:
+    # Set even when modelregistry is Removed; the CRD requires the field.
+    registriesNamespace: rhoai-model-registries
