@@ -45,3 +45,22 @@ spec:
         matchExpressions:
           - key: {{ .Values.sharedServiceKey }}
             operator: Exists
+  # Port 9092 only, and the port is the whole point of this rule.
+  # A tenant needs to reach thanos-querier to read its own metrics, but 9091 on
+  # the same service does not filter by namespace at all, so opening the
+  # namespace without naming the port would hand every tenant a view of the
+  # entire cluster. 9092 runs prom-label-proxy with --error-on-replace, which
+  # pins the namespace to the caller's own.
+  - name: "allow-tenant-metrics-egress"
+    action: Allow
+    to:
+    - namespaces:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+          - openshift-monitoring
+    ports:
+    - portNumber:
+        protocol: TCP
+        port: {{ .Values.tenantMetricsPort }}
