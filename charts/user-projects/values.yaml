@@ -41,8 +41,12 @@ projects: []
 # in the same pod, against its own quota.
 defaultGrafana:
   version: "11.3.0"
-  # The image the console itself uses for authenticating routes.
-  oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.14
+  # The image the console itself uses for authenticating routes. Matches the
+  # cluster version rather than trailing it: v4.14 was in here by mistake and
+  # nothing depended on it. The three files this chart relies on, oauthproxy.go,
+  # options.go and providers/openshift/provider.go, are byte identical between
+  # the release-4.14 and release-4.21 branches, so the bump changes no behaviour.
+  oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.21
   # Grafana itself. Applied through a named container override in the
   # template, the operator does not pick these up on its own.
   resources:
