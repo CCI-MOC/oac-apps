@@ -54,6 +54,13 @@ spec:
     updateStrategy: RollingUpdate
     rollingUpdate:
       maxUnavailable: "1"
+    # The operator's own daemonsets only tolerate the standard nvidia.com/gpu
+    # taint. nfd-operator's NodeFeatureRule taints GPU nodes with the
+    # non-standard key nvidia.com/gpu.product, and taint keys match exactly, so
+    # without this the device plugin cannot schedule and the node advertises
+    # zero allocatable GPUs.
+    tolerations:
+      {{- toYaml .Values.clusterPolicy.tolerations | nindent 6 }}
   devicePlugin:
     enabled: true
     config:
