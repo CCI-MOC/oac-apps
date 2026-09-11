@@ -1,0 +1,50 @@
+{{- $dsc := .Values.dataScienceCluster }}
+apiVersion: datasciencecluster.opendatahub.io/v1
+kind: DataScienceCluster
+metadata:
+  # DataScienceCluster is cluster-scoped and the operator only reconciles one.
+  name: {{ $dsc.name }}
+  labels:
+    app.kubernetes.io/name: datasciencecluster
+    app.kubernetes.io/instance: {{ $dsc.name }}
+    app.kubernetes.io/part-of: rhods-operator
+  annotations:
+    # The operator goes in wave 0 (set by operator-library), this CR follows in
+    # wave 1. SkipDryRun is needed because the datasciencecluster CRD is absent
+    # on a first sync, and a failed dry-run would abort the whole sync,
+    # including the Subscription that installs the CRD.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  components:
+    codeflare:
+      managementState: {{ $dsc.components.codeflare }}
+    dashboard:
+      managementState: {{ $dsc.components.dashboard }}
+    datasciencepipelines:
+      managementState: {{ $dsc.components.datasciencepipelines }}
+    kserve:
+      managementState: {{ $dsc.components.kserve }}
+      # Requires the serverless and servicemesh operators, which the
+      # gpu-clusters ApplicationSet deploys alongside this chart.
+      serving:
+        managementState: {{ $dsc.kserve.serving.managementState }}
+        name: {{ $dsc.kserve.serving.name }}
+        ingressGateway:
+          certificate:
+            type: {{ $dsc.kserve.serving.certificateType }}
+    kueue:
+      managementState: {{ $dsc.components.kueue }}
+    modelmeshserving:
+      managementState: {{ $dsc.components.modelmeshserving }}
+    modelregistry:
+      managementState: {{ $dsc.components.modelregistry }}
+      registriesNamespace: {{ $dsc.modelregistry.registriesNamespace }}
+    ray:
+      managementState: {{ $dsc.components.ray }}
+    trainingoperator:
+      managementState: {{ $dsc.components.trainingoperator }}
+    trustyai:
+      managementState: {{ $dsc.components.trustyai }}
+    workbenches:
+      managementState: {{ $dsc.components.workbenches }}
