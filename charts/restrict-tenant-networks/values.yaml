@@ -1,2 +1,5 @@
 tenantKey: "massopen.cloud/project"
 sharedServiceKey: "massopen.cloud/shared-services"
+# The tenancy-aware port on thanos-querier. 9091 exists too and shows every
+# namespace, so this must never be widened to the whole service.
+tenantMetricsPort: 9092
