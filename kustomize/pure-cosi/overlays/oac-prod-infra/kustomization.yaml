@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+ - ../../base
+
+patches:
+  - target:
+      kind: BucketClass
+      name: fb-bucket
+    patch: |-
+      - op: replace
+        path: /parameters/s3Endpoint
+        value: s3.infra.oac.ocp.massopen.cloud
+
+  - target:
+      kind: ExternalSecret
+      name: pure-cosi-config
+    patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: cluster/oac-prod-infra/pure-cosi
