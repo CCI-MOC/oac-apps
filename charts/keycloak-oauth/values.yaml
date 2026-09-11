@@ -4,6 +4,8 @@ keycloak:
   clientID: ""
   secretName: keycloak-client-secret
   issuer: https://sso.massopen.cloud/realms/moc
+  extraScopes:
+    - groups
 
 externalSecret:
   secretStore: aws-secrets-manager

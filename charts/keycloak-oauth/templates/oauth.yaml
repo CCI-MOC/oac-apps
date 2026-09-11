@@ -26,3 +26,7 @@ spec:
           groups:
             - groups
         issuer: {{ .Values.keycloak.issuer }}
+        {{- with .Values.keycloak.extraScopes }}
+        extraScopes:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
