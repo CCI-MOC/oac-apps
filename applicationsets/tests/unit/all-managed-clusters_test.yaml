@@ -39,3 +39,14 @@ tests:
           path: spec.generators[0].matrix.generators[1].list.elements
           content:
             component: user-workload-monitoring
+
+  # The Grafana operator has to run where the projects are, since that is where
+  # user-projects puts the Grafana resources it reconciles.
+  - it: includes the grafana operator in the component list
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: grafana-operator

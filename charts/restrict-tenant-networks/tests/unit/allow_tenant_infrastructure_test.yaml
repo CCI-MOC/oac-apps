@@ -1,0 +1,41 @@
+suite: restrict-tenant-networks admin policy
+templates:
+  - templates/allow-tenant-infrastructure.yaml
+tests:
+  # A tenant has to reach thanos-querier to see its own metrics. Without this
+  # rule the namespaced NetworkPolicy decides, and that one only allows egress
+  # inside the namespace, so every dashboard panel fails with no error anywhere
+  # that points at a network policy.
+  - it: lets tenants reach the monitoring namespace
+    asserts:
+      - contains:
+          path: spec.egress
+          content:
+            name: "allow-tenant-metrics-egress"
+          any: true
+
+  # This is the load bearing part. Port 9091 sits on the same service and does
+  # not filter by namespace at all, so a rule that opens the namespace without
+  # naming the port would let any tenant read the whole cluster's metrics.
+  # Project members hold namespaced edit, so they can run a pod and curl it.
+  - it: opens only the tenancy port, never the whole monitoring namespace
+    asserts:
+      - equal:
+          path: spec.egress[2].ports[0].portNumber.port
+          value: 9092
+      - equal:
+          path: spec.egress[2].ports[0].portNumber.protocol
+          value: TCP
+      - equal:
+          path: spec.egress[2].to[0].namespaces.matchExpressions[0].values[0]
+          value: openshift-monitoring
+
+  # The rule is worth nothing if it does not apply to the tenants themselves.
+  - it: applies to namespaces carrying the tenant key
+    asserts:
+      - equal:
+          path: spec.subject.namespaces.matchExpressions[0].key
+          value: massopen.cloud/project
+      - equal:
+          path: spec.subject.namespaces.matchExpressions[0].operator
+          value: Exists

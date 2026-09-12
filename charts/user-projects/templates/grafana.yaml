@@ -1,0 +1,346 @@
+{{ range .Values.projects }}
+{{- if and .grafana .grafana.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-sa
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    # This makes the service account itself an OAuth client, so no client
+    # secret and no Keycloak client is needed per startup. The proxy sends
+    # users to the route named below after they log in.
+    serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
+      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: grafana-view
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: grafana-sa
+    namespace: "project-{{ .name }}"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: "project-{{ .name }}-grafana-auth-delegator"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+subjects:
+  - kind: ServiceAccount
+    name: grafana-sa
+    namespace: "project-{{ .name }}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  # This is for --openshift-delegate-urls, not for the SAR. The SAR path sends
+  # the end user's own token, so the service account's rights do not matter
+  # there. delegate-urls is different: the proxy runs a TokenReview and a
+  # SubjectAccessReview as itself, and creating those is cluster scoped, which
+  # the namespaced view binding above does not cover.
+  #
+  # Worth knowing: this gives one service account per project the right to
+  # create TokenReviews and SubjectAccessReviews cluster wide. That comes with
+  # delegate-urls and cannot be scoped down, so it is a deliberate cost.
+  name: system:auth-delegator
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-sa-token
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    kubernetes.io/service-account.name: grafana-sa
+# The API server fills this in and keeps it valid. The chart never carries a
+# token, and the datasource reads it from here through valuesFrom, because the
+# operator sends the datasource to Grafana over its API where a ${__file{...}}
+# expression would arrive as a literal string.
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-service-ca
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    # OpenShift writes the bundle into this ConfigMap under service-ca.crt.
+    # The cluster-wide openshift-service-ca.crt ConfigMap exists too, but a
+    # datasource can only read a key from a ConfigMap it names, so this one is
+    # ours to point at.
+    service.beta.openshift.io/inject-cabundle: "true"
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+    # The operator matches dashboards and datasources to instances by this label.
+    dashboards: "project-{{ .name }}"
+  annotations:
+    # The CRD only exists once the operator from the grafana-operator chart has
+    # installed, which is a different Application, so the first sync would
+    # otherwise fail its dry run.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  version: {{ $.Values.defaultGrafana.version | quote }}
+  route:
+    metadata:
+      name: grafana-route
+    spec:
+      tls:
+        termination: reencrypt
+      to:
+        kind: Service
+        name: grafana-service
+      # Without this the route keeps the operator's default. getRouteSpec sets
+      # targetPort to GetGrafanaPort, which is 3000, and the override is applied
+      # on top with a strategic merge, so a field we do not set stays at the
+      # default. A reencrypt route pointed at Grafana's plain HTTP port does not
+      # work, and it would also leave the proxy out of the path entirely.
+      port:
+        targetPort: https
+  service:
+    metadata:
+      annotations:
+        # OpenShift mints the certificate and puts it in this secret, which is
+        # the one the proxy mounts below. Nothing has to create it by hand.
+        service.beta.openshift.io/serving-cert-secret-name: grafana-tls
+    spec:
+      ports:
+        # Both entries are deliberate, and the port numbers are the reason.
+        # ServicePort merges on patchMergeKey "port", so an entry with a
+        # different number is added next to the operator's default rather than
+        # replacing it. Repeating port 3000 is what actually replaces the
+        # default, and pointing it at the proxy closes the anonymous path:
+        # without this, grafana-service:3000 reaches Grafana directly, past the
+        # proxy and past the SAR, with the project's datasource token behind it.
+        - name: grafana
+          port: 3000
+          targetPort: 8443
+          protocol: TCP
+        # The port the route uses. Named "https" so the route above can target
+        # it by name and stays correct if the number ever changes.
+        - name: https
+          port: 443
+          targetPort: 8443
+          protocol: TCP
+  serviceAccount:
+    metadata:
+      name: grafana-sa
+  config:
+    auth:
+      # The oauth-proxy in front is what enforces access, so Grafana itself
+      # does not ask a second time.
+      disable_login_form: "true"
+    auth.anonymous:
+      enabled: "true"
+      # Viewer, not Editor. An Editor can add datasources, and a second
+      # datasource pointed at port 9091 would see every namespace on the
+      # cluster, which is exactly what this chart exists to prevent.
+      org_role: "Viewer"
+    users:
+      # Viewers may still open dashboard settings and try things, they just
+      # cannot save. Dashboards belong in git as GrafanaDashboard resources,
+      # because Grafana OSS cannot grant "may save dashboards" without also
+      # granting "may create datasources", and a second datasource on port
+      # 9091 would see the whole cluster.
+      viewers_can_edit: "false"
+  deployment:
+    spec:
+      template:
+        spec:
+          serviceAccountName: grafana-sa
+          containers:
+            # The operator does not read defaultGrafana.resources on its own,
+            # and a container without resources gets the project LimitRange
+            # defaults, 1 CPU and 2Gi. Naming the container here is what makes
+            # the merge land on Grafana itself rather than on a second one.
+            - name: grafana
+              resources:
+                {{- toYaml $.Values.defaultGrafana.resources | nindent 16 }}
+            - name: oauth-proxy
+              image: {{ $.Values.defaultGrafana.oauthProxyImage | quote }}
+              ports:
+                - containerPort: 8443
+                  name: https
+              args:
+                - --https-address=:8443
+                - --provider=openshift
+                - --upstream=http://localhost:3000
+                - --tls-cert=/etc/tls/private/tls.crt
+                - --tls-key=/etc/tls/private/tls.key
+                # The service account is the OAuth client, so its own token is
+                # the client secret and no separate one has to exist. This is
+                # the flag that arranges it, together with the redirect
+                # annotation on the service account above.
+                - --openshift-service-account=grafana-sa
+                # Read from a file rather than passed on the command line. The
+                # value used to be a hash of the project name, which is public,
+                # so the signing key could be recomputed by anyone and a forged
+                # cookie would walk straight past the SAR below: that check runs
+                # at login, an existing cookie is only verified against this key.
+                # The secret is generated once by external-secrets, see
+                # grafana-cookie-secret.yaml, so it stays stable across syncs.
+                - --cookie-secret-file=/etc/grafana-cookie/key
+                # Without these two the proxy keeps a session for seven days
+                # and never looks at it again: the SAR below runs once, when
+                # the code is redeemed, and a cookie loaded on a later request
+                # is only checked against the signing key. Removing somebody
+                # from the project group would leave them reading its metrics
+                # for a week, with the service account's token doing the
+                # reading. cookie-refresh is what makes the proxy revalidate.
+                - --cookie-expire=4h
+                - --cookie-refresh=30m
+                # This is the one that gates the browser. A person arriving at
+                # the route logs in through OAuth, and the proxy then checks
+                # this review before handing out a session cookie. Without it
+                # any authenticated cluster user could open this Grafana.
+                - '--openshift-sar={"namespace": "project-{{ .name }}", "resource": "services", "verb": "get"}'
+                # And this one gates requests that arrive with a bearer token
+                # instead of a cookie, which the SAR above never sees. Same
+                # namespace, so both paths are scoped to this project. Not the
+                # same permission as the datasource though: port 9092 checks
+                # "get pods" in apiGroup metrics.k8s.io, this checks "get
+                # services". Both come with the view role, which is why one
+                # RoleBinding covers all of it.
+                - '--openshift-delegate-urls={"/": {"namespace": "project-{{ .name }}", "resource": "services", "verb": "get"}}'
+              resources:
+                # Without this the project's own LimitRange defaults the sidecar
+                # to 1 CPU and 2Gi, which quietly eats the quota it is meant to
+                # be cheap against.
+                {{- toYaml $.Values.defaultGrafana.proxyResources | nindent 16 }}
+              volumeMounts:
+                - name: grafana-tls
+                  mountPath: /etc/tls/private
+                - name: grafana-cookie
+                  mountPath: /etc/grafana-cookie
+                  readOnly: true
+          volumes:
+            - name: grafana-tls
+              secret:
+                secretName: grafana-tls
+            - name: grafana-cookie
+              secret:
+                secretName: grafana-cookie-secret
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: thanos
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "project-{{ .name }}"
+  datasource:
+    name: thanos
+    type: prometheus
+    access: proxy
+    isDefault: true
+    # Port 9092 is the tenancy port. 9091 returns every namespace on the
+    # cluster regardless of who asks, which is why Perses shows everything.
+    url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9092
+    jsonData:
+      timeInterval: "30s"
+      # Verify against the cluster's own CA rather than skipping the check.
+      # OpenShift maintains an openshift-service-ca.crt ConfigMap in every
+      # namespace, carrying the inject-cabundle annotation itself, so the
+      # bundle is there without this chart creating anything. It is mounted
+      # into the pod below.
+      tlsAuthWithCACert: true
+      httpHeaderName1: "Authorization"
+      # prom-label-proxy runs with --error-on-replace, so this value cannot be
+      # overridden by a query. That is what makes the separation real.
+      customQueryParameters: "namespace=project-{{ .name }}"
+    # Nobody edits this in the UI. It is the only datasource a project sees, and
+    # an edited one would be an unfiltered one.
+    editable: false
+    secureJsonData:
+      # ${token} and ${service-ca.crt} are placeholders the operator substitutes
+      # from the references below, named after the key in the secret and the
+      # config map. It replaces the placeholder inside the string, which is why
+      # the Bearer prefix can simply stay here.
+      httpHeaderValue1: "Bearer ${token}"
+      tlsCACert: "${service-ca.crt}"
+  valuesFrom:
+    - targetPath: secureJsonData.httpHeaderValue1
+      valueFrom:
+        secretKeyRef:
+          name: grafana-sa-token
+          key: token
+    - targetPath: secureJsonData.tlsCACert
+      valueFrom:
+        configMapKeyRef:
+          name: grafana-service-ca
+          key: service-ca.crt
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: project-overview
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: "project-{{ .name }}"
+  json: |
+    {
+      "title": "Project overview",
+      {{- /* Grafana caps a dashboard uid at 40 characters, and
+             "project-<name>-overview" would pass that at 24 characters of
+             project name. A hash keeps it fixed at 24 and stable across
+             renders, so ArgoCD does not recreate the dashboard. */}}
+      "uid": "project-{{ .name | sha256sum | trunc 16 }}-ovw",
+      "time": {"from": "now-6h", "to": "now"},
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "CPU usage by pod",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"project-{{ .name }}\", container!=\"\"}[5m]))",
+              "legendFormat": "{{`{{pod}}`}}"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory usage by pod",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"project-{{ .name }}\", container!=\"\"})",
+              "legendFormat": "{{`{{pod}}`}}"
+            }
+          ]
+        }
+      ]
+    }
+---
+{{- end }}
+{{ end }}
