@@ -21,3 +21,7 @@ projects:
         requests.memory: "40Gi"
         limits.cpu: "80"
         limits.memory: "80Gi"
+    # ct lint only renders what the values file asks for, so without a project
+    # that switches Grafana on the whole template would go untested there.
+    grafana:
+      enabled: true
