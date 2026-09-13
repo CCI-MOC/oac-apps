@@ -1,0 +1,395 @@
+suite: user-projects grafana
+templates:
+  - templates/grafana.yaml
+
+tests:
+  # Grafana is opt-in. Existing projects must not change shape just because
+  # the chart grew a template.
+  - it: renders nothing for a project without a grafana block
+    set:
+      projects:
+        - name: plain
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders the full set for a project that opts in
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    asserts:
+      - hasDocuments:
+          count: 8
+
+  - it: puts the Grafana instance in the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - isKind:
+          of: Grafana
+      - equal:
+          path: metadata.namespace
+          value: project-aibom
+
+  # Port 9092 is the tenancy port. Port 9091 does not filter at all, which is
+  # why the Perses datasource shows every namespace on the cluster. The proxy
+  # chain behind 9092 runs prom-label-proxy with --error-on-replace, so the
+  # namespace cannot be overridden by whoever is querying.
+  - it: points the datasource at the tenancy port with the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 6
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - matchRegex:
+          path: spec.datasource.url
+          pattern: ":9092$"
+      - equal:
+          path: spec.datasource.jsonData.customQueryParameters
+          value: namespace=project-aibom
+
+  # The proxy and the datasource both scope to the project namespace, but they
+  # do not check the same permission: the proxy asks for "get services" there,
+  # while port 9092 checks "get pods" in apiGroup metrics.k8s.io. Both happen to
+  # be granted by the view role, which is why it works, not because they match.
+  - it: delegates the access check to the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: '--openshift-delegate-urls={"/": {"namespace": "project-aibom", "resource": "services", "verb": "get"}}'
+
+  - it: renders for each opted-in project independently
+    set:
+      projects:
+        - name: one
+          grafana:
+            enabled: true
+        - name: two
+        - name: three
+          grafana:
+            enabled: true
+    asserts:
+      - hasDocuments:
+          count: 16
+
+  # OpenShift mints the serving certificate from this annotation, so the secret
+  # the proxy mounts exists without anyone creating it by hand.
+  - it: asks OpenShift for a serving certificate
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - isKind:
+          of: Grafana
+      - equal:
+          path: spec.service.metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
+          value: grafana-tls
+
+  # No cookie secret is rendered on purpose. Helm would generate a different
+  # value on every render, so ArgoCD would rewrite it on every sync and log
+  # everyone out. The proxy makes its own at startup instead.
+  - it: does not render a cookie secret that would churn on every sync
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - isKind:
+          of: Grafana
+      - notContains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: --cookie-secret-file=/etc/oauth/config/cookie_secret
+
+  # Verifying against the cluster CA beats skipping verification, and the
+  # bundle is in every namespace already.
+  - it: verifies thanos against the service CA instead of skipping it
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 6
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - notExists:
+          path: spec.datasource.jsonData.tlsSkipVerify
+      - equal:
+          path: spec.datasource.jsonData.tlsAuthWithCACert
+          value: true
+
+  # An Editor can add datasources in Grafana, and a second datasource pointed
+  # at port 9091 would see every namespace on the cluster. The whole point of
+  # this chart is that it cannot, so the anonymous role stays Viewer.
+  - it: does not let viewers add their own datasource
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.config["auth.anonymous"].org_role
+          value: Viewer
+      - equal:
+          path: spec.config.users.viewers_can_edit
+          value: "false"
+
+  # The proxy performs SubjectAccessReviews, which are cluster scoped. A
+  # namespaced view binding does not cover them, so the proxy would be
+  # forbidden at startup. This is what system:auth-delegator is for.
+  - it: binds the service account to auth-delegator as well as view
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: roleRef.name
+          value: system:auth-delegator
+
+  # A reencrypt route needs a TLS backend. Grafana's own service listens on
+  # plain HTTP, so without overriding the port the route would reach Grafana
+  # directly and never pass through the proxy.
+  #
+  # Both ports go to the proxy on purpose. ServicePort merges on the port number,
+  # so an entry with a different number is added beside the operator's default
+  # instead of replacing it: without repeating 3000 the service would still
+  # expose Grafana directly, past the proxy and past the SAR.
+  - it: sends every service port to the proxy, including the operator default
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.service.spec.ports[0].name
+          value: grafana
+      - equal:
+          path: spec.service.spec.ports[0].port
+          value: 3000
+      - equal:
+          path: spec.service.spec.ports[0].targetPort
+          value: 8443
+      - equal:
+          path: spec.service.spec.ports[1].name
+          value: https
+      - equal:
+          path: spec.service.spec.ports[1].targetPort
+          value: 8443
+
+  # The operator's route reconciler sets targetPort to Grafana's own port and
+  # then merges the override on top, so a route that does not name a port keeps
+  # 3000 and terminates TLS against plain HTTP.
+  - it: points the route at the named https port
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.route.spec.port.targetPort
+          value: https
+
+  # The service account is the OAuth client, which is what --openshift-service-account
+  # does. Without it the proxy wants a separate client secret it does not have.
+  - it: uses the service account as the oauth client
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: --openshift-service-account=grafana-sa
+
+  # The signing key must not be derivable. It used to be a hash of the project
+  # name, which is public, so the key could be recomputed and a forged cookie
+  # would skip the SAR entirely: that check runs at login, an existing cookie is
+  # only verified against this key.
+  - it: reads the cookie secret from a file, never from the project name
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[1].args[6]
+          value: --cookie-secret-file=/etc/grafana-cookie/key
+      - notMatchRegex:
+          path: spec.deployment.spec.template.spec.containers[1].args[6]
+          pattern: '^--cookie-secret='
+
+  - it: mounts the generated cookie secret into the proxy
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].name
+          value: grafana-cookie
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].mountPath
+          value: /etc/grafana-cookie
+      - equal:
+          path: spec.deployment.spec.template.spec.volumes[1].secret.secretName
+          value: grafana-cookie-secret
+
+  # The operator sends the datasource to Grafana through its API, so a
+  # ${__file{...}} expression would arrive as a literal string and every query
+  # would fail. valuesFrom is how the operator injects real values.
+  - it: injects the token and the CA through valuesFrom
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 6
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - equal:
+          path: spec.valuesFrom[0].targetPath
+          value: secureJsonData.httpHeaderValue1
+      - equal:
+          path: spec.valuesFrom[1].targetPath
+          value: secureJsonData.tlsCACert
+
+  # Without this the LimitRange defaults the sidecar to 1 CPU and 2Gi, eating
+  # far more of the project quota than the values file claims.
+  - it: sets resources on the proxy sidecar
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[1].resources.requests.memory
+          value: 64Mi
+
+  # delegate-urls only covers requests that arrive with a bearer token. A
+  # browser session is loaded from its cookie before that check runs, so
+  # without a SAR at login any authenticated cluster user could open this
+  # Grafana. The SAR is what gates the OAuth callback.
+  - it: gates the browser login on rights in the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: '--openshift-sar={"namespace": "project-aibom", "resource": "services", "verb": "get"}'
+
+  # Grafana caps a dashboard uid at 40 characters. "project-<name>-overview"
+  # would pass that with 24 characters of project name, and the failure would
+  # only show up when someone creates a project with a long name.
+  - it: keeps the dashboard uid inside Grafana's limit whatever the name
+    set:
+      projects:
+        - name: a-very-long-project-name-for-testing-purposes
+          grafana:
+            enabled: true
+    documentIndex: 7
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: '"uid": "project-[0-9a-f]{16}-ovw"'
+
+  # A container without resources gets the project LimitRange defaults, 1 CPU
+  # and 2Gi, which is most of a project's quota spent on Grafana itself.
+  - it: gives grafana its own resources, not the LimitRange defaults
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].name
+          value: grafana
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.deployment.spec.template.spec.containers[0].resources.requests.memory
+          value: 256Mi
+
+  # The SAR only runs when the code is redeemed. A cookie loaded later is just
+  # checked against the signing key, so without a refresh interval a revoked
+  # user keeps the session for the full cookie lifetime, which defaults to
+  # seven days.
+  - it: expires and revalidates the session instead of trusting it for a week
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: --cookie-expire=4h
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: --cookie-refresh=30m
+
+  # The queries are only safe today because port 9092 injects the namespace.
+  # Spelling it out means the dashboard stays scoped if the datasource is ever
+  # repointed, or if somebody copies this JSON somewhere else.
+  - it: scopes the dashboard queries to the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 7
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: 'container_cpu_usage_seconds_total\{namespace=..project-aibom'
+      - matchRegex:
+          path: spec.json
+          pattern: 'container_memory_working_set_bytes\{namespace=..project-aibom'

@@ -32,4 +32,37 @@ projects: []
 # - name: aibom
 #   requester: alice@example.com
 #   description: "This is an example project."
-#   group: example-group
+#   groups:
+#     - name: example-group
+#       role: edit
+
+# Per project Grafana. Off unless a project opts in, so existing projects are
+# untouched. Enabling it costs the project Grafana plus the oauth-proxy sidecar
+# in the same pod, against its own quota.
+defaultGrafana:
+  version: "11.3.0"
+  # The image the console itself uses for authenticating routes. Matches the
+  # cluster version rather than trailing it: v4.14 was in here by mistake and
+  # nothing depended on it. The three files this chart relies on, oauthproxy.go,
+  # options.go and providers/openshift/provider.go, are byte identical between
+  # the release-4.14 and release-4.21 branches, so the bump changes no behaviour.
+  oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.21
+  # Grafana itself. Applied through a named container override in the
+  # template, the operator does not pick these up on its own.
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # The oauth-proxy sidecar, which needs its own entry: a container without
+  # resources gets the project LimitRange defaults, 1 CPU and 2Gi, and that is
+  # far more of the quota than a proxy should cost.
+  proxyResources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
