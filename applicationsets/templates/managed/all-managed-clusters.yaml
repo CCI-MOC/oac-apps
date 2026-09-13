@@ -27,6 +27,7 @@ spec:
                 - component: user-workload-monitoring
                 - component: cluster-observability-operator
                 - component: restrict-tenant-networks
+                - component: grafana-operator
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"

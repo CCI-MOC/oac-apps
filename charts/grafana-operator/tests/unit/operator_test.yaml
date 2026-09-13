@@ -1,0 +1,51 @@
+suite: grafana-operator
+templates:
+  - templates/operator.yaml
+
+tests:
+  - it: renders namespace, operatorgroup and subscription
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: creates the operator namespace
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Namespace
+      - equal:
+          path: metadata.name
+          value: grafana-operator
+
+  # The operator has to watch every namespace, otherwise it never sees the
+  # Grafana resources that user-projects puts in the project namespaces.
+  # An empty spec means cluster scope.
+  - it: has a cluster-scoped operatorgroup
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: OperatorGroup
+      - equal:
+          path: spec
+          value: {}
+
+  # Confirmed against the catalog with oc get packagemanifest. This operator
+  # only ships in community-operators, unlike every other operator in this
+  # repository, so the source is deliberate and this test records it.
+  - it: subscribes to grafana-operator from community-operators
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Subscription
+      - equal:
+          path: spec.name
+          value: grafana-operator
+      - equal:
+          path: spec.channel
+          value: v5
+      - equal:
+          path: spec.source
+          value: community-operators
+      - equal:
+          path: spec.sourceNamespace
+          value: openshift-marketplace
