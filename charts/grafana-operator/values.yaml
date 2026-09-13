@@ -1,0 +1,16 @@
+namespace: grafana-operator
+
+operatorgroup:
+  # Cluster scope. The operator reconciles Grafana resources in the project
+  # namespaces, which it can only see if it watches all of them.
+  targetNamespaces: false
+
+# The Grafana operator is only published in the community catalog. Every other
+# operator in this repository comes from redhat-operators, so this is a
+# deliberate exception: there is no Red Hat supported build of it.
+subscription:
+  channel: v5
+  name: grafana-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
