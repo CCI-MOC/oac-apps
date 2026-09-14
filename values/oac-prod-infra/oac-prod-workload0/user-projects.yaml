@@ -8,3 +8,10 @@ projects:
         role: edit
       - name: project-whiteroom
         role: edit
+
+  - name: noah-labs
+    requester: memalhot@redhat.com
+    description: "Sentinel is an Air-gapped AI IDE for regulated codebases."
+    groups:
+      - name: project-noah-labs
+        role: edit
