@@ -30,8 +30,8 @@ tests:
           value: {}
 
   # Confirmed against the catalog with oc get packagemanifest. This operator
-  # only ships in community-operators, unlike every other operator in this
-  # repository, so the source is deliberate and this test records it.
+  # only ships in community-operators, which carries no official support, so
+  # the source is deliberate and this test records it.
   - it: subscribes to grafana-operator from community-operators
     documentIndex: 2
     asserts:
