@@ -104,10 +104,10 @@ tests:
           path: spec.service.metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
           value: grafana-tls
 
-  # No cookie secret is rendered on purpose. Helm would generate a different
-  # value on every render, so ArgoCD would rewrite it on every sync and log
-  # everyone out. The proxy makes its own at startup instead.
-  - it: does not render a cookie secret that would churn on every sync
+  # Helm would generate a different value on every render, so a rendered
+  # secret would churn on every sync and log everyone out. The key comes from
+  # external-secrets instead, mounted at this path.
+  - it: reads the cookie secret from the mounted generated key
     set:
       projects:
         - name: aibom
@@ -117,9 +117,9 @@ tests:
     asserts:
       - isKind:
           of: Grafana
-      - notContains:
+      - contains:
           path: spec.deployment.spec.template.spec.containers[1].args
-          content: --cookie-secret-file=/etc/oauth/config/cookie_secret
+          content: --cookie-secret-file=/etc/grafana-cookie/key
 
   # Verifying against the cluster CA beats skipping verification, and the
   # bundle is in every namespace already.
@@ -371,10 +371,13 @@ tests:
     asserts:
       - contains:
           path: spec.deployment.spec.template.spec.containers[1].args
-          content: --cookie-expire=4h
+          content: --cookie-expire=30m
       - contains:
           path: spec.deployment.spec.template.spec.containers[1].args
-          content: --cookie-refresh=30m
+          content: --cookie-refresh=10m
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: --pass-basic-auth=false
 
   # The queries are only safe today because port 9092 injects the namespace.
   # Spelling it out means the dashboard stays scoped if the datasource is ever

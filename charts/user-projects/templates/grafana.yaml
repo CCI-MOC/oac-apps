@@ -200,15 +200,18 @@ spec:
                 # The secret is generated once by external-secrets, see
                 # grafana-cookie-secret.yaml, so it stays stable across syncs.
                 - --cookie-secret-file=/etc/grafana-cookie/key
-                # Without these two the proxy keeps a session for seven days
-                # and never looks at it again: the SAR below runs once, when
-                # the code is redeemed, and a cookie loaded on a later request
-                # is only checked against the signing key. Removing somebody
-                # from the project group would leave them reading its metrics
-                # for a week, with the service account's token doing the
-                # reading. cookie-refresh is what makes the proxy revalidate.
-                - --cookie-expire=4h
-                - --cookie-refresh=30m
+                # The default session lasts seven days, so this shortens it.
+                # The SAR below runs once, at code redemption. A refresh only
+                # revalidates the token against the API server, it does not run
+                # the SAR again, so removing somebody from the project group
+                # takes effect when the cookie expires and not before. That is
+                # why the expiry is short rather than the refresh frequent.
+                - --cookie-expire=30m
+                - --cookie-refresh=10m
+                # The proxy sends Authorization: Basic <user>: upstream by
+                # default, which Grafana 11.3 reads as a login attempt instead
+                # of letting the anonymous Viewer through.
+                - --pass-basic-auth=false
                 # This is the one that gates the browser. A person arriving at
                 # the route logs in through OAuth, and the proxy then checks
                 # this review before handing out a session cookie. Without it
@@ -271,10 +274,8 @@ spec:
     jsonData:
       timeInterval: "30s"
       # Verify against the cluster's own CA rather than skipping the check.
-      # OpenShift maintains an openshift-service-ca.crt ConfigMap in every
-      # namespace, carrying the inject-cabundle annotation itself, so the
-      # bundle is there without this chart creating anything. It is mounted
-      # into the pod below.
+      # The bundle comes from the grafana-service-ca ConfigMap created above
+      # and reaches the datasource through valuesFrom, not through a volume.
       tlsAuthWithCACert: true
       httpHeaderName1: "Authorization"
       # prom-label-proxy runs with --error-on-replace, so this value cannot
