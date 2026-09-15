@@ -5,9 +5,9 @@ operatorgroup:
   # namespaces, which it can only see if it watches all of them.
   targetNamespaces: false
 
-# The Grafana operator is only published in the community catalog. Every other
-# operator in this repository comes from redhat-operators, so this is a
-# deliberate exception: there is no Red Hat supported build of it.
+# The Grafana operator is only published in the community catalog, which means
+# no official support and no Red Hat certification. Deliberate: there is no Red
+# Hat supported build of it.
 subscription:
   channel: v5
   name: grafana-operator
