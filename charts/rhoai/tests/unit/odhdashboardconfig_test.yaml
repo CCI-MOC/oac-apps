@@ -1,0 +1,56 @@
+suite: OdhDashboardConfig
+templates:
+  - templates/odhdashboardconfig.yaml
+
+tests:
+  - it: should render the dashboard config the controller reconciles
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: OdhDashboardConfig
+      - equal:
+          path: metadata.name
+          value: odh-dashboard-config
+
+  # The dashboard runs in the applications namespace, not the operator's.
+  # Created anywhere else the CR is simply ignored.
+  - it: should be created in the applications namespace
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: redhat-ods-applications
+
+  # Without SkipDryRunOnMissingResource, ArgoCD's pre-sync dry-run fails on a
+  # cluster where the opendatahub.io CRDs are not yet installed, aborting the
+  # whole sync including the Subscription that installs them.
+  - it: should skip the dry-run when the CRD is missing
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  # Must follow the DataScienceCluster (wave 1), which is what brings up the
+  # dashboard component in the first place.
+  - it: should sync after the DataScienceCluster
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
+
+  # Hardware profiles gate GPU requests from workbenches and model servers, so
+  # a flipped boolean here quietly makes the GPU nodes unusable from the UI.
+  - it: should enable hardware profiles
+    asserts:
+      - equal:
+          path: spec.dashboardConfig.disableHardwareProfiles
+          value: false
+
+  # Everything else in dashboardConfig belongs to the dashboard's own
+  # defaults; declaring extra fields here would freeze them at chart values.
+  - it: should manage only the hardware profile setting
+    asserts:
+      - equal:
+          path: spec.dashboardConfig
+          value:
+            disableHardwareProfiles: false
