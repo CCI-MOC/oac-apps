@@ -1,4 +1,7 @@
 namespace: redhat-ods-operator
+# Where the dashboard and the rest of the RHOAI workloads run, as opposed to
+# `namespace` above, which holds the operator itself.
+applicationsNamespace: redhat-ods-applications
 operatorgroup:
   targetNamespaces: false
 subscription:
@@ -32,3 +35,11 @@ dataScienceCluster:
   modelregistry:
     # Set even when modelregistry is Removed; the CRD requires the field.
     registriesNamespace: rhoai-model-registries
+
+# The dashboard owns the rest of OdhDashboardConfig; only the fields listed
+# here are managed by the chart.
+dashboardConfig:
+  # Hardware profiles are how workbenches and model servers request GPUs. The
+  # operator default (true) hides the profiles page and leaves the GPU nodes
+  # unreachable from the UI.
+  disableHardwareProfiles: false
