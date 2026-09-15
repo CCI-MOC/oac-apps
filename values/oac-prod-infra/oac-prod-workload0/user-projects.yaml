@@ -15,3 +15,10 @@ projects:
     groups:
       - name: project-noah-labs
         role: edit
+
+  - name: accelidea
+    requester: memalhot@redhat.com
+    description: "Accelidea maps product decisions to their downstream regulatory, quality, engineering, and submission throghout the product's lifecycle."
+    groups:
+      - name: project-accelidea
+        role: edit
