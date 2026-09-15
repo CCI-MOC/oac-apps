@@ -23,7 +23,7 @@ The steps required to perform hardware configuration varies, due to the mix of n
 
 This section assumes that a [network has already been reserved](network-inventory-and-configuration.md#network-inventory).
 
-Currently network configuration is accomplished through a combination of ESI APIs, `CCI-MOC` repositories (which record configurations and applies them through playbooks), and direct sysadmin requests. The `CCI-MOC` repositories used are: 
+Currently network configuration is accomplished through a combination of ESI APIs, `CCI-MOC` repositories (which record configurations and applies them through playbooks), and direct sysadmin requests. The `CCI-MOC` repositories used are:
 
 * [`ansible-switches`](https://github.com/CCI-MOC/ansible-switches/): manages VLANs and node port configuration
 * *TBD*
