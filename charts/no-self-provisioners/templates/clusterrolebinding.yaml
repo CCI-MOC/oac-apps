@@ -9,4 +9,3 @@ roleRef:
   kind: ClusterRole
   name: self-provisioner
 subjects: []
-
