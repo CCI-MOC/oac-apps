@@ -31,7 +31,7 @@ clusterPolicy:
   tolerations:
     - key: nvidia.com/gpu
       operator: Exists
-      effect: NoSchedule
+      effect: NoExecute
     - key: nvidia.com/gpu.product
       operator: Exists
-      effect: NoSchedule
+      effect: NoExecute
