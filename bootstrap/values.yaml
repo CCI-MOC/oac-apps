@@ -3,3 +3,7 @@
 # The `required` guard in templates/bootstrap.yaml fails the render if it is
 # unset or empty, so an unparameterized deploy fails closed.
 hubName: ""
+
+# targetRevision is the git branch all ApplicationSets will track.
+# Override for production hubs (e.g. --set targetRevision=prod).
+targetRevision: main

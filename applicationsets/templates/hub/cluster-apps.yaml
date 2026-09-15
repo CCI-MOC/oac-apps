@@ -27,7 +27,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/CCI-MOC/oac-apps.git
-    targetRevision: main
+    targetRevision: {{ .Values.targetRevision }}
     path: apps
     directory:
       recurse: true

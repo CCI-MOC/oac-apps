@@ -9,7 +9,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
-        revision: main
+        revision: {{ .Values.targetRevision }}
         directories:
           - path: "hosted-clusters/{{ $hub }}/*"
   template:
@@ -20,7 +20,7 @@ spec:
       project: default
       source:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
-        targetRevision: main
+        targetRevision: {{ .Values.targetRevision }}
         path: charts/hosted-cluster
         helm:
           ignoreMissingValueFiles: true

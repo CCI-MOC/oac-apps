@@ -35,7 +35,7 @@ You may want:
 
 ## How it works
 
-`bootstrap/` is a small Helm chart that renders an ArgoCD Application pointing at `applicationsets/`. Deploy it per hub with `helm template bootstrap ./bootstrap --set hubName=<hub> | oc apply -f -`; `hubName` has no default, so an unparameterized render fails closed. The hub name flows through to the bootstrap Application's `hubName` parameter, and ArgoCD discovers all ApplicationSets under that directory:
+`bootstrap/` is a small Helm chart that renders an ArgoCD Application pointing at `applicationsets/`. Deploy it per hub with `helm template bootstrap ./bootstrap --set hubName=<hub> | oc apply -f -`; `hubName` has no default, so an unparameterized render fails closed. Pass `--set targetRevision=<branch>` to track a branch other than `main` (e.g. a stable production branch). The hub name flows through to the bootstrap Application's `hubName` parameter, and ArgoCD discovers all ApplicationSets under that directory:
 
 - `applicationsets/templates/hub/hub-components.yaml` deploys charts to the hub cluster. Each Application lists a hub-wide values file (`values/<hub>/<component>.yaml`) then a per-cluster file (`values/<hub>/local-cluster/<component>.yaml`), both optional via `ignoreMissingValueFiles`.
 - `applicationsets/templates/hub/hosted-clusters.yaml` uses a Git directory generator to deploy the `hosted-cluster` chart once per directory under `hosted-clusters/<hub>/`, creating a HyperShift HostedCluster on the hub for each. Its hub-side prerequisites (the `clusters` namespace, pull secret, SSH key, and IngressController) are installed by the `hcp-config` chart.
@@ -103,6 +103,7 @@ configured for `oac-dev-infra`, so they now live as per-hub drop-ins.
 
 1. Render and apply the bootstrap Application with the new hub's name:
    `helm template bootstrap ./bootstrap --set hubName=<newhub> | oc apply -f -`.
+   For a production hub that should track a stable branch instead of `main`, also pass `--set targetRevision=<branch>`.
 2. Create `values/<newhub>/` and per-cluster subdirectories only where a
    chart needs an override.
 3. Add `hosted-clusters/<newhub>/` if that hub runs HyperShift hosted clusters.
@@ -110,5 +111,7 @@ configured for `oac-dev-infra`, so they now live as per-hub drop-ins.
 No `apps/<newhub>/` directory is needed up front; create it only when you have a
 per-hub drop-in app for that hub.
 
-Everything on `main` is shared across hubs; the only per-hub input is the
-`hubName` parameter in the bootstrap Application.
+The per-hub inputs to the bootstrap Application are `hubName` (required) and
+`targetRevision` (optional, defaults to `main`). All hubs tracking the same branch
+share its contents; hubs can be pointed at different branches to stage changes
+before rolling them to production.

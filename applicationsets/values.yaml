@@ -2,3 +2,7 @@
 # per-hub by the bootstrap Application and has no safe default, so it is
 # left empty here and enforced with `required` in every template.
 hubName: ""
+
+# targetRevision controls which git branch all ApplicationSets track.
+# Override per-hub (e.g. "prod" on the production hub) via the bootstrap chart.
+targetRevision: main
