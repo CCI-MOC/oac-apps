@@ -80,7 +80,7 @@ nodePools:
       massopen.cloud/cluster: oac-prod-workload0
       openstack/resource-class: fc830
   - name: gpu
-    replicas: 3
+    replicas: 5
     agentLabelSelector:
       massopen.cloud/cluster: oac-prod-workload0
       openstack/resource-class: lenovo-sd665nv3-h100
