@@ -37,7 +37,3 @@ spec:
   network:
     dataInterface: "net1"
     mgmtInterface: "net1"
-  placement:
-    tolerations:
-      - key: nvidia.com/gpu.product
-        operator: Exists
