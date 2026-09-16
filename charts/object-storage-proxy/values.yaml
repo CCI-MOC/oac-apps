@@ -1,3 +1,5 @@
+namespace: object-storage-proxy
+
 backend:
   address: ""
   # Override the Host header (and TLS SNI for the secure backend) sent
