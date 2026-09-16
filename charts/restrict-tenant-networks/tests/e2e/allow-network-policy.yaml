@@ -1,0 +1,48 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-client-to-whoami
+  namespace: ($namespace)
+spec:
+  podSelector:
+    matchLabels:
+      app: whoami
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              massopen.cloud/e2e-role: client
+          podSelector:
+            matchLabels:
+              app: network-policy-client
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-client-to-whoami
+  namespace: ($clientNamespace)
+spec:
+  podSelector:
+    matchLabels:
+      app: network-policy-client
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              massopen.cloud/e2e-role: target
+          podSelector:
+            matchLabels:
+              app: whoami
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
