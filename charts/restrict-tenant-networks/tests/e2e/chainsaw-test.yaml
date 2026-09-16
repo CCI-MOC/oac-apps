@@ -1,0 +1,80 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: restrict-tenant-networks
+spec:
+  description: Verify tenant isolation, external egress, and explicit NetworkPolicy exceptions
+  template: true
+  namespaceTemplate:
+    metadata:
+      labels:
+        massopen.cloud/project: network-policy-e2e
+        massopen.cloud/e2e-role: target
+  bindings:
+    - name: clientNamespace
+      value: (join('-', [$namespace, 'client']))
+  timeouts:
+    apply: 30s
+    assert: 120s
+    cleanup: 60s
+    exec: 30s
+  steps:
+    - name: Create client namespace and target web service
+      try:
+        - apply:
+            file: namespaces.yaml
+        - apply:
+            file: whoami.yaml
+        - assert:
+            file: whoami-ready.yaml
+
+    - name: Create client pod
+      try:
+        - apply:
+            file: client.yaml
+        - assert:
+            file: client-running.yaml
+
+    - name: Confirm that cross-namespace network access is denied
+      try:
+        - script:
+            env:
+              - name: TARGET_NAMESPACE
+                value: ($namespace)
+              - name: CLIENT_NAMESPACE
+                value: ($clientNamespace)
+            content: >-
+              kubectl exec -n "$CLIENT_NAMESPACE" network-policy-client --
+              curl --fail --silent --show-error --connect-timeout 3 --max-time 5
+              "http://whoami.${TARGET_NAMESPACE}.svc.cluster.local/"
+            check:
+              ($error != null): true
+
+    - name: Confirm that external egress is allowed
+      try:
+        - script:
+            env:
+              - name: CLIENT_NAMESPACE
+                value: ($clientNamespace)
+            content: >-
+              kubectl exec -n "$CLIENT_NAMESPACE" network-policy-client --
+              curl --fail --silent --show-error --location --connect-timeout 10
+              --max-time 20 --output /dev/null https://google.com
+
+    - name: Permit cross-namespace access with an explicit NetworkPolicy
+      try:
+        - apply:
+            file: allow-network-policy.yaml
+
+    - name: Confirm that the target service is now accessible
+      try:
+        - script:
+            env:
+              - name: TARGET_NAMESPACE
+                value: ($namespace)
+              - name: CLIENT_NAMESPACE
+                value: ($clientNamespace)
+            content: >-
+              kubectl exec -n "$CLIENT_NAMESPACE" network-policy-client --
+              curl --fail --silent --show-error --connect-timeout 10 --max-time 20
+              "http://whoami.${TARGET_NAMESPACE}.svc.cluster.local/"

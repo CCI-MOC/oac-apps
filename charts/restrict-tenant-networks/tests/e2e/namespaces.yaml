@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ($clientNamespace)
+  labels:
+    massopen.cloud/project: network-policy-e2e
+    massopen.cloud/e2e-role: client
+    chainsaw-test: network-policy-e2e

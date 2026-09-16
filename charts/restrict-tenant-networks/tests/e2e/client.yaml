@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: network-policy-client
+  namespace: ($clientNamespace)
+  labels:
+    app: network-policy-client
+spec:
+  terminationGracePeriodSeconds: 0
+  containers:
+    - name: curl
+      image: docker.io/curlimages/curl:8.10.1
+      command:
+        - sleep
+        - "3600"
