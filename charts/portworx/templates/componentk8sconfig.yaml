@@ -17,6 +17,11 @@ spec:
             - px-pure-csi-controller
         - workloadNames:
             - px-pure-csi-node
+          placement:
+            tolerations:
+              - key: nvidia.com/gpu.product
+                operator: Exists
+                effect: NoExecute
     - componentNames:
         - PureCSITelemetry
       workloadConfigs:
