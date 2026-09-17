@@ -1,0 +1,6 @@
+# moc-r4pcc02u30, moc-r4pcc04u09 and moc-r4pcc04u11 carry H100 80GB HBM3;
+# moc-r8pac23u26 and moc-r8pac23u31 carry A100 SXM4 40GB. Both models are
+# present, so both profiles schedule.
+enabledHardwareProfiles:
+  - nvidia-h100-gpu
+  - nvidia-a100-gpu
