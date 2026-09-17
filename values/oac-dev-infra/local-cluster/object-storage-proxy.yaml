@@ -34,7 +34,7 @@ network:
     end: "10.9.0.230"
   routes:
     - dst: 10.3.11.50/32
-      gw: 10.9.1.1
+      gw: 10.9.0.1
 
 service:
   clusterIP: 172.30.0.53
