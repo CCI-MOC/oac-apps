@@ -1,0 +1,5 @@
+clusterDomain: oac-dev-workload1.hcp.oac.int.massopen.cloud
+certificates:
+  issuer_name: letsencrypt-prod-dns01
+  api:
+    enabled: false
