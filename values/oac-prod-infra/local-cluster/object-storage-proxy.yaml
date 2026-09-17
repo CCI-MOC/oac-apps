@@ -38,4 +38,4 @@ network:
       gw: 10.9.1.1
 
 service:
-  clusterIP: 172.31.0.53
+  clusterIP: 172.30.0.53
