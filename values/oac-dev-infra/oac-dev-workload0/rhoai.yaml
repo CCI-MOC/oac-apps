@@ -1,0 +1,5 @@
+# moc-r4pcc02u05 and moc-r4pcc02u09 carry four H100 80GB HBM3 each. No A100s
+# on this cluster, so that profile stays out of the dashboard rather than
+# offering one that could never schedule.
+enabledHardwareProfiles:
+  - nvidia-h100-gpu
