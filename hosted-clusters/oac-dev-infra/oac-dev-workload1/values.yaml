@@ -1,7 +1,7 @@
 clusterName: oac-dev-workload1
 release:
   channel: stable-4.21
-  image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
+  image: quay.io/openshift-release-dev/ocp-release:4.21.32-multi
 
 oauth:
   identityProviders:
