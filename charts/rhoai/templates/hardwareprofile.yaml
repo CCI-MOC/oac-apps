@@ -1,0 +1,25 @@
+{{- $enabled := .Values.enabledHardwareProfiles | default list }}
+{{- range .Values.hardwareProfiles }}
+{{- if has .name $enabled }}
+---
+apiVersion: infrastructure.opendatahub.io/v1alpha1
+kind: HardwareProfile
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.applicationsNamespace }}
+  annotations:
+    # spec carries neither a display name nor an enabled flag. A profile
+    # without opendatahub.io/disabled is not counted as enabled, which is what
+    # the dashboard means by "no enabled or valid profiles".
+    opendatahub.io/display-name: {{ .displayName }}
+    opendatahub.io/disabled: "false"
+    opendatahub.io/dashboard-feature-visibility: {{ .featureVisibility | default list | toJson | quote }}
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  identifiers:
+    {{- toYaml .identifiers | nindent 4 }}
+  scheduling:
+    {{- toYaml .scheduling | nindent 4 }}
+{{- end }}
+{{- end }}

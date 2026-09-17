@@ -43,3 +43,72 @@ dashboardConfig:
   # operator default (true) hides the profiles page and leaves the GPU nodes
   # unreachable from the UI.
   disableHardwareProfiles: false
+
+enabledHardwareProfiles: []
+
+hardwareProfiles:
+  - name: nvidia-h100-gpu
+    displayName: NVIDIA H100 GPU
+    identifiers:
+      - identifier: cpu
+        displayName: CPU
+        resourceType: CPU
+        minCount: 1
+        maxCount: "14"
+        defaultCount: 2
+      - identifier: memory
+        displayName: Memory
+        resourceType: Memory
+        minCount: 2Gi
+        maxCount: 56Gi
+        defaultCount: 8Gi
+      - identifier: nvidia.com/gpu
+        displayName: gpu
+        resourceType: Accelerator
+        minCount: 1
+        maxCount: 4
+        defaultCount: 1
+    scheduling:
+      type: Node
+      node:
+        nodeSelector: {}
+        # Must match the taint on the GPU nodes, or workbenches are never
+        # scheduled and anything already running is evicted. nfd-operator
+        # taints every GPU node NoExecute, keyed on the product name, so each
+        # profile tolerates only its own GPU model.
+        tolerations:
+          - key: nvidia.com/gpu.product
+            operator: Equal
+            value: NVIDIA-H100-80GB-HBM3
+            effect: NoExecute
+
+  - name: nvidia-a100-gpu
+    displayName: NVIDIA A100 GPU
+    identifiers:
+      - identifier: cpu
+        displayName: CPU
+        resourceType: CPU
+        minCount: 1
+        maxCount: "14"
+        defaultCount: 2
+      - identifier: memory
+        displayName: Memory
+        resourceType: Memory
+        minCount: 2Gi
+        maxCount: 56Gi
+        defaultCount: 8Gi
+      - identifier: nvidia.com/gpu
+        displayName: gpu
+        resourceType: Accelerator
+        minCount: 1
+        maxCount: 4
+        defaultCount: 1
+    scheduling:
+      type: Node
+      node:
+        nodeSelector: {}
+        tolerations:
+          - key: nvidia.com/gpu.product
+            operator: Equal
+            value: NVIDIA-A100-SXM4-40GB
+            effect: NoExecute
