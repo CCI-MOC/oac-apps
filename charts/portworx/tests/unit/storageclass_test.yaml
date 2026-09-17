@@ -1,0 +1,58 @@
+suite: StorageClass
+templates:
+  - templates/storageclass.yaml
+
+tests:
+  - it: should render the Pure file storage class
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: StorageClass
+      - equal:
+          path: metadata.name
+          value: pure-fb-nfsv4
+      - equal:
+          path: provisioner
+          value: pxd.portworx.com
+
+  # The RHOAI dashboard parses this annotation as a whole JSON object and
+  # falls back to its own defaults (ReadWriteOnce only) if the parse fails, so
+  # the value has to be a string, not a nested YAML mapping.
+  - it: should carry the dashboard config as a JSON string
+    asserts:
+      - equal:
+          path: metadata.annotations["opendatahub.io/sc-config"]
+          value: >-
+            {"accessModeSettings":{"ReadOnlyMany":false,"ReadWriteMany":true,"ReadWriteOnce":true,"ReadWriteOncePod":false},"displayName":"pure-fb-nfsv4","isDefault":true,"isEnabled":true,"lastModified":"2026-09-17T00:00:00Z"}
+
+  # RWX is the whole point of putting the annotation here: the dashboard only
+  # offers the access modes flagged true, so without this users get RWO alone
+  # and cannot share a volume between workbenches.
+  - it: should offer ReadWriteMany
+    asserts:
+      - matchRegex:
+          path: metadata.annotations["opendatahub.io/sc-config"]
+          pattern: '"ReadWriteMany":true'
+
+  # Access modes are booleans in the dashboard's schema. Quoted strings parse
+  # fine but fail its validation, which flags the row as corrupted metadata
+  # rather than enabling anything.
+  - it: should render the access modes as booleans
+    asserts:
+      - matchRegex:
+          path: metadata.annotations["opendatahub.io/sc-config"]
+          pattern: '"ReadWriteOncePod":false'
+
+  # The dashboard tracks a default of its own, separate from OpenShift's.
+  # Leaving them out of step would hand users a default class in the UI that
+  # is not the one the cluster provisions with.
+  - it: should follow the OpenShift default class setting
+    set:
+      portworx.is_default_storage_class: false
+    asserts:
+      - notExists:
+          path: metadata.annotations["storageclass.kubernetes.io/is-default-class"]
+      - matchRegex:
+          path: metadata.annotations["opendatahub.io/sc-config"]
+          pattern: '"isDefault":false'
