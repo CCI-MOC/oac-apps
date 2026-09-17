@@ -1,0 +1,127 @@
+suite: HardwareProfile
+templates:
+  - templates/hardwareprofile.yaml
+
+tests:
+  # A profile on a cluster without the matching GPU is offered in the
+  # dashboard and then never schedules, so nothing renders until a cluster
+  # opts in.
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render only the profiles a cluster enables
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HardwareProfile
+      - isAPIVersion:
+          of: infrastructure.opendatahub.io/v1alpha1
+      - equal:
+          path: metadata.name
+          value: nvidia-h100-gpu
+
+  - it: should render both when a cluster has both GPUs
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+        - nvidia-a100-gpu
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  # The dashboard only lists profiles from the applications namespace.
+  - it: should be created in the applications namespace
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: redhat-ods-applications
+
+  # The enabled flag the dashboard reads lives in an annotation, not in spec,
+  # and is separate from the values toggle that decides whether to render at
+  # all. Omit it and the dashboard reports no enabled profiles even though the
+  # CR exists. Must be the string "false", not a bare boolean.
+  - it: should mark rendered profiles enabled for the dashboard
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - equal:
+          path: metadata.annotations["opendatahub.io/disabled"]
+          value: "false"
+      - equal:
+          path: metadata.annotations["opendatahub.io/dashboard-feature-visibility"]
+          value: "[]"
+
+  # Queue scheduling needs a LocalQueue, which these clusters do not define.
+  - it: should not use queue scheduling
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - equal:
+          path: spec.scheduling.type
+          value: Node
+      - isNull:
+          path: spec.scheduling.kueue
+
+  # A profile advertising GPUs is useless unless the accelerator identifier
+  # matches the resource the device plugin actually exposes.
+  - it: should request the accelerator the device plugin exposes
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - contains:
+          path: spec.identifiers
+          content:
+            identifier: nvidia.com/gpu
+            displayName: gpu
+            resourceType: Accelerator
+            minCount: 1
+            maxCount: 4
+            defaultCount: 1
+
+  # The GPU nodes are tainted NoExecute, so a mismatched toleration does not
+  # merely block scheduling, it evicts anything already running there.
+  - it: should tolerate the H100 NoExecute taint
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - equal:
+          path: metadata.annotations["opendatahub.io/display-name"]
+          value: NVIDIA H100 GPU
+      - contains:
+          path: spec.scheduling.node.tolerations
+          content:
+            key: nvidia.com/gpu.product
+            operator: Equal
+            value: NVIDIA-H100-80GB-HBM3
+            effect: NoExecute
+
+  # Same taint effect as the H100 nodes, but keyed on a different product
+  # value. Sharing the H100 toleration would strand the profile.
+  - it: should tolerate the A100 NoExecute taint
+    set:
+      enabledHardwareProfiles:
+        - nvidia-a100-gpu
+    asserts:
+      - equal:
+          path: metadata.annotations["opendatahub.io/display-name"]
+          value: NVIDIA A100 GPU
+      - contains:
+          path: spec.scheduling.node.tolerations
+          content:
+            key: nvidia.com/gpu.product
+            operator: Equal
+            value: NVIDIA-A100-SXM4-40GB
+            effect: NoExecute
