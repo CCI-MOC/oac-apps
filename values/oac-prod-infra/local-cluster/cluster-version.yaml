@@ -1,0 +1,5 @@
+clusterID: 37676f1e-2c59-4e66-96be-a029018e67c5
+
+release:
+  channel: stable-4.21
+  version: "4.21.0"

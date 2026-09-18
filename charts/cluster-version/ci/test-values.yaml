@@ -1,0 +1,5 @@
+clusterID: test-cluster-id-1234
+
+release:
+  channel: stable-4.21
+  version: "4.21.0"

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cluster-version
+description: Manage OpenShift cluster version and upgrade channel
+type: application
+version: 0.1.0
