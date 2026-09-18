@@ -3,6 +3,9 @@ managementCluster: oac-infra-dev
 hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
 
 clusterName: oac-prod
+release:
+  channel: stable-4.21
+  image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
 
 issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/oac-dev-workload0"
 

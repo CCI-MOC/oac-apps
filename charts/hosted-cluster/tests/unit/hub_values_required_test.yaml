@@ -10,6 +10,9 @@ suite: hub-level values are required (fail closed, no dev defaults)
 # own positive tests.
 set:
   clusterName: test-cluster
+  release:
+    channel: stable-4.21
+    image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
 
 tests:
   - it: should fail closed when baseDomain is not supplied by the hub

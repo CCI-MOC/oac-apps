@@ -6,6 +6,8 @@ set:
   baseDomain: apps.infra.oac.int.massopen.cloud
   managementCluster: test-hub
   hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
 
 tests:
   - it: should render nothing when no node pools are defined

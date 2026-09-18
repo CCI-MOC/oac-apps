@@ -1,4 +1,6 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- $release_channel := required "release.channel is required" .Values.release.channel }}
+{{- $release_image := required "release.image is required" .Values.release.image }}
 {{- $baseDomain := include "hosted-cluster.baseDomain" . }}
 {{- $kubeAPIServerDNSName := include "hosted-cluster.kubeAPIServerDNSName" . }}
 {{- $oauthHostname := include "hosted-cluster.oauthHostname" . }}
@@ -43,8 +45,9 @@ spec:
     type: Agent
   pullSecret:
     name: {{ .Values.pullSecret.name }}
+  channel: {{ $release_channel }}
   release:
-    image: {{ .Values.release.image }}
+    image: {{ $release_image }}
   secretEncryption:
     aescbc:
       activeKey:
