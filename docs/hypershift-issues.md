@@ -11,6 +11,7 @@ in normal operation, and the quality of the available workaround.
 | P0       | [CAPI MachineSet creates unbounded Machine objects when agents are installing](#capi-machineset-creates-unbounded-machine-objects-when-agents-are-installing)         |
 | P0       | [NetworkPolicy blocks Route-published services](#networkpolicy-blocks-route-published-services)                                                                       |
 | P0       | [Agents stuck reclaiming after HostedCluster destroy-and-recreate](#agents-stuck-reclaiming-after-hostedcluster-destroy-and-recreate)                                 |
+| P0       | [Route objects missing hosted-control-plane label are silently excluded from the ingress shard](#route-objects-missing-hosted-control-plane-label-are-silently-excluded-from-the-ingress-shard) |
 | P1       | [namedCertificates with NodePort publishing breaks kubelet TLS trust](#namedcertificates-with-nodeport-publishing-breaks-kubelet-tls-trust)                           |
 | P2       | [Stale ignition CA due to race condition in assisted-service](#stale-ignition-ca-due-to-race-condition-in-assisted-service)                                           |
 | P2       | [HostedCluster deletion stuck on AgentMachine pre-terminate hook](#hostedcluster-deletion-stuck-on-agentmachine-pre-terminate-hook)                                   |
@@ -47,15 +48,45 @@ spec:
 
 This workaround must be applied per HCP namespace. Every new HostedCluster deploys its control plane into a new namespace with the same restrictive `same-namespace` NetworkPolicy, so this problem will recur for each cluster. The correct fix is in the HyperShift operator itself — it should either include an ingress-allowing NetworkPolicy when Route publishing is configured, or not create a policy that is incompatible with its own routes.
 
-<!--
-Removed because I'm not sure if this was hypershift or a copy-and-paste from an old config.
+## Route objects missing hosted-control-plane label are silently excluded from the ingress shard
 
-## Default IngressController routeSelector excludes HCP routes
+(This confirms and supersedes an earlier note that was removed from this document because it wasn't clear at the time whether the cause was HyperShift or a stale copy-pasted config. It is HyperShift.)
 
-The HyperShift operator labels all HCP routes with `hypershift.openshift.io/hosted-control-plane`. If the management cluster's default IngressController has a `routeSelector` with `operator: DoesNotExist` for this label (as is the case when a dedicated HCP IngressController was previously configured), these routes are excluded from the default router. The routes appear admitted in their status, but the router does not serve them, and connections fall through to default TLS termination with the wildcard certificate.
+The `hosted-clusters` IngressController on `oac-infra` (the hub cluster hosting `oac-dev-workload0` and `oac-dev-workload1`) selects routes to serve with:
 
-**Fix:** Remove the `routeSelector` exclusion from the default IngressController if no dedicated HCP IngressController exists.
--->
+```yaml
+namespaceSelector:
+  matchLabels:
+    hypershift.openshift.io/hosted-control-plane: "true"
+routeSelector:
+  matchExpressions:
+  - key: hypershift.openshift.io/hosted-control-plane
+    operator: Exists
+```
+
+The HCP namespace (`clusters-oac-dev-workload1`) has the required namespace label, but the individual `Route` objects the control-plane-operator creates in that namespace (`ignition-server`, `konnectivity-server`, `oauth`) had **no labels at all** — `metadata.labels: null`. The equivalent routes for `oac-dev-workload0`, by contrast, all carry `hypershift.openshift.io/hosted-control-plane: clusters-oac-dev-workload0`. Since the `routeSelector` requires the label to merely exist, workload1's unlabeled routes never match it and are excluded from the shard's live HAProxy configuration — confirmed by inspecting `/var/lib/haproxy/conf/os_sni_passthrough.map` directly inside both `router-hosted-clusters` replicas, which contained only the workload0 hostnames.
+
+Despite this, `oc get route -n clusters-oac-dev-workload1 -o yaml` reports `status.ingress[].conditions[type=Admitted].status: "True"` for the `hosted-clusters` router on all three routes. This status is stale/misleading: it does not reflect whether the route selector actually matches, so nothing in `oc get route` or `oc describe route` output indicates the problem. Restarting both `router-hosted-clusters` pods (which rebuilds the HAProxy config from scratch) did not pick up the missing routes, confirming this is a route-selector mismatch and not a stale-cache/reload issue.
+
+Symptoms observed on `oac-dev-workload1` while its control-plane upgrade (4.21.0 → 4.21.32) was in progress:
+
+- `konnectivity-agent` pods in the guest cluster stuck at `0/1 Ready`, readiness probe returning `503` (never established a tunnel to `konnectivity-server`).
+- `oc logs` / `oc exec` against any pod in the guest cluster failing with `Error from server: ... EOF`.
+- Guest cluster's `console` ClusterOperator `Degraded`/`Unavailable` (route returning `503`), because its `RouteHealth` check depends on the same broken path.
+- Guest cluster's `ingress` ClusterOperator `Degraded` on canary checks, because the hub-side `ingress-operator` pod reaches the canary route through its own `konnectivity-proxy-https` sidecar, which was equally unable to tunnel through.
+- `HostedCluster.status.conditions[type=ClusterVersionProgressing]` reporting `reason: MultipleErrors`, blocking the upgrade (`Cluster operator console is not available`, `Cluster operator ingress is degraded`).
+- TCP connections to the router's LoadBalancer IP succeed and DNS resolves correctly, but a TLS handshake with any workload1 SNI hostname returns the router's *default* certificate (`*.hcp.infra.oac.int.massopen.cloud`, self-signed by `ingress-operator`) instead of passing through to the intended backend — the tell that SNI routing fell through to the default backend rather than a network/firewall block.
+
+The underlying cause of why the control-plane-operator created workload1's routes without the label (while workload0's routes have it) was not determined — it may be a one-off reconciliation gap specific to this cluster rather than a general regression, since a `hypershift.openshift.io/hosted-control-plane` label already exists as a well-established labeling scheme in this deployment.
+
+**Workaround:** Manually add the missing label to match the working cluster's pattern:
+
+```bash
+oc label route -n clusters-oac-dev-workload1 ignition-server konnectivity-server oauth \
+  hypershift.openshift.io/hosted-control-plane=clusters-oac-dev-workload1
+```
+
+**Diagnostic tip:** When `oc exec`/`oc logs` against a hosted cluster fail with `EOF` and `konnectivity-agent` readiness probes report `503`, don't assume the tunnel/network path is broken before checking whether the relevant HCP `Route` objects actually carry the label the ingress shard's `routeSelector` requires — `status.ingress[].conditions` reporting `Admitted: True` does not guarantee the router's live config actually includes the route.
 
 ## In-cluster API access fails with TLS error when using Route-based API publishing
 
