@@ -10,10 +10,6 @@ metadata:
 spec:
   domain: {{ required "ingressController.domain is required" .Values.ingressController.domain }}
   replicas: {{ .Values.ingressController.replicas | default 2 }}
-  routeSelector:
-    matchExpressions:
-      - key: hypershift.openshift.io/hosted-control-plane
-        operator: Exists
   namespaceSelector:
     matchLabels:
       hypershift.openshift.io/hosted-control-plane: "true"
