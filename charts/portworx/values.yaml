@@ -17,6 +17,16 @@ portworx:
   nfs_server: nfs-server
   nfs_policy: export-policy
 
+  # What the RHOAI dashboard shows for this storage class.
+  dashboard:
+    display_name: pure-fb-nfsv4
+    last_modified: "2026-09-17T00:00:00Z"
+    access_modes:
+      ReadWriteOnce: true
+      ReadWriteMany: true
+      ReadOnlyMany: false
+      ReadWriteOncePod: false
+
 network:
   cidr: ""
   range:
