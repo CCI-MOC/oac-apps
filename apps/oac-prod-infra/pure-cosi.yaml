@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hub-pure-cosi
+  namespace: openshift-gitops
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/CCI-MOC/oac-apps.git
+    targetRevision: main
+    path: "kustomize/pure-cosi/overlays/oac-prod-infra"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pure-cosi-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
