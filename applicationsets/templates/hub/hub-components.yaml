@@ -26,6 +26,7 @@ spec:
           - component: acm-gitops-integration
           - component: acm-placements
           - component: cluster-observability-operator
+          - component: cluster-version
           - component: object-storage-proxy
   template:
     metadata:

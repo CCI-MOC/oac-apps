@@ -1,0 +1,12 @@
+{{- $release_channel := required "release.channel is required" .Values.release.channel }}
+{{- $release_version := required "release.version is required" .Values.release.version }}
+apiVersion: config.openshift.io/v1
+kind: ClusterVersion
+metadata:
+  name: version
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+spec:
+  channel: {{ $release_channel }}
+  desiredUpdate:
+    version: {{ $release_version | quote }}
