@@ -1,0 +1,52 @@
+suite: ClusterVersion template
+templates:
+  - templates/clusterversion.yaml
+set:
+  release:
+    channel: stable-4.21
+    version: "4.21.0"
+
+tests:
+  - it: should render a ClusterVersion resource
+    asserts:
+      - isKind:
+          of: ClusterVersion
+      - equal:
+          path: metadata.name
+          value: version
+
+  - it: should set the ServerSideApply sync option
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true
+
+  - it: should set the channel
+    asserts:
+      - equal:
+          path: spec.channel
+          value: stable-4.21
+
+  - it: should set the desired update version as a quoted string
+    asserts:
+      - equal:
+          path: spec.desiredUpdate.version
+          value: "4.21.0"
+
+  - it: should fail when release.channel is not set
+    set:
+      release:
+        channel: ""
+        version: "4.21.0"
+    asserts:
+      - failedTemplate:
+          errorMessage: "release.channel is required"
+
+  - it: should fail when release.version is not set
+    set:
+      release:
+        channel: stable-4.21
+        version: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: "release.version is required"
