@@ -6,15 +6,21 @@
 
 This section assumes that a [storage network has already been reserved](network-inventory-and-configuration.md#network-inventory).
 
-Request Pure storage from a sysadmin, providing them the following information:
+Request Pure storage by submitting a PR to the [`everpure-moc` repository](https://github.com/CCI-MOC/everpure-moc) modifying [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/everpure-moc/blob/main/ansible/group_vars/all/realms.yaml) to add a new realm:
 
-* storage network
-* cluster name
+```
+  - name: <cluster>
+    interface_address: <storage subnet .10 address>
+    s3_endpoint: storage.massopen.cloud
+    subnet_prefix: <storage subnet CIDR>
+    subnet_vlan: <storage network VLAN>
+    subnet_gateway: <storage subnet .1 address>
+    dns_domain: massopen.cloud
+    dns_nameservers:
+      - <storage subnet .1 address>
+```
 
-The sysadmin will:
-
-* Provision a Pure storage realm
-* Create a secret for the realm and upload it to AWS Secrets Manager with the name `cluster/<cluster>/portworx`.
+Once the PR is merged, the sysadmin will run a playbook to provision a Pure storage realm, and to create a secret for the realm and upload it to AWS Secrets Manager with the name `cluster/<cluster>/portworx`.
 
 ## Configure Cluster
 
@@ -50,5 +56,13 @@ Once your changes are ready, submit a PR. When the PR is merged, the ArgoCD inst
 
 ## Examples: OAC Prod Infra and Prod Workload0 Storage Configurations
 
-* **OAC Prod Infra**: [`values/local-cluster/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
-* **OAC Prod Workload0**: [`values/oac-prod-workload0/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0/portworx.yaml)
+* **OAC Prod Infra**:
+   * `everpure-moc`
+      * [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/moc-dns/blob/main/zonefiles/ocp.massopen.cloud.zone) (search for `oac_prod_infra`)
+   * `oac-apps`
+      * [`values/oac-prod-infra/local-cluster/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
+* **OAC Prod Workload0**:
+   * `everpure-moc`
+      * [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/moc-dns/blob/main/zonefiles/ocp.massopen.cloud.zone) (search for `oac_prod_workload0`)
+   * `oac-apps`
+      * [`values/oac-prod-infra/oac-prod-workload0/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0/portworx.yaml)
