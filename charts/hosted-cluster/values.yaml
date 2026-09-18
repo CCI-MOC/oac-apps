@@ -22,7 +22,8 @@ hcpExternalDomain: ""
 controllerAvailabilityPolicy: HighlyAvailable
 
 release:
-  image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
+  channel: ""
+  image: ""
 
 platform:
   agentNamespace: hardware-inventory
