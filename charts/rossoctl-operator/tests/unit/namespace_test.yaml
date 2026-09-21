@@ -1,0 +1,86 @@
+suite: rossoctl-operator namespace and SCC
+templates:
+  - templates/namespace.yaml
+  - templates/authbridge-scc.yaml
+
+tests:
+  # The subchart's resources carry no sync-wave annotation, so they land in wave
+  # 0. A namespace created in the same wave is a coin flip on a first sync.
+  - it: creates the operator namespace ahead of the operator
+    template: templates/namespace.yaml
+    asserts:
+      - isKind:
+          of: Namespace
+      - equal:
+          path: metadata.name
+          value: rossoctl-system
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-1"
+
+  # The SCC and its ClusterRole come from the upstream platform chart, which we
+  # do not install. The operator subchart only ships a ClusterRoleBinding to the
+  # ClusterRole below, so dropping these two would leave that binding dangling
+  # and every injected agent pod rejected by admission.
+  - it: ships the authbridge SCC and its use ClusterRole
+    template: templates/authbridge-scc.yaml
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: SecurityContextConstraints
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: rossoctl-authbridge
+        documentIndex: 0
+      - isKind:
+          of: ClusterRole
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: system:openshift:scc:rossoctl-authbridge
+        documentIndex: 1
+
+  # proxy-init needs root plus NET_ADMIN/NET_RAW for the iptables redirect and
+  # the sidecar runs as UID 1337, but neither needs a privileged container.
+  - it: grants the sidecars capabilities without a privileged container
+    template: templates/authbridge-scc.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: allowPrivilegedContainer
+          value: false
+      - equal:
+          path: allowPrivilegeEscalation
+          value: true
+      - equal:
+          path: allowedCapabilities
+          value:
+            - NET_ADMIN
+            - NET_RAW
+      - equal:
+          path: runAsUser.type
+          value: RunAsAny
+
+  # The operator creates a RoleBinding per agent namespace it reconciles, so the
+  # group list is only for pre-authorising a namespace before that happens.
+  - it: binds no service account groups by default
+    template: templates/authbridge-scc.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: groups
+          value: []
+
+  - it: binds the configured agent namespaces
+    template: templates/authbridge-scc.yaml
+    documentIndex: 0
+    set:
+      agentNamespaces:
+        - team1
+    asserts:
+      - equal:
+          path: groups
+          value:
+            - system:serviceaccounts:team1

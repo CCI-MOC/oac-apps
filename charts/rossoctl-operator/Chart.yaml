@@ -1,0 +1,14 @@
+apiVersion: v2
+name: rossoctl-operator
+description: Install the Rossoctl agent operator (AgentRuntime, AgentCard, AuthorizationPolicy)
+type: application
+version: 0.1.0
+
+# Rossoctl ships no OLM catalog, so unlike the other operators in this repo it
+# cannot use operator-library. Upstream publishes the operator on its own as an
+# OCI Helm chart, which is what we pull here; the full rossoctl platform chart
+# (UI, MCP gateway, Keycloak, SPIRE, Istio) is deliberately not installed.
+dependencies:
+  - name: operator-chart
+    version: 0.4.0-alpha.1
+    repository: oci://ghcr.io/rossoctl/operator
