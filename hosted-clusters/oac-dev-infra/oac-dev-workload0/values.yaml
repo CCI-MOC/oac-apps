@@ -92,3 +92,4 @@ clusterLabels:
   massopen.cloud/feature-portworx: "true"
   massopen.cloud/feature-gpu: "true"
   massopen.cloud/feature-virtualization: "true"
+  massopen.cloud/feature-rossoctl: "true"

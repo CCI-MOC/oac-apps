@@ -11,3 +11,6 @@ placements:
   - name: virtualization-clusters
     matchLabels:
       massopen.cloud/feature-virtualization: "true"
+  - name: rossoctl-clusters
+    matchLabels:
+      massopen.cloud/feature-rossoctl: "true"
