@@ -2,3 +2,19 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - https://github.com/CCI-MOC/pure-cosi/k8s?ref=v0.1.0
+
+patches:
+  - target:
+      kind: Namespace
+      name: pure-cosi-system
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: portworx
+
+  - target:
+      namespace: pure-cosi-system
+    patch: |-
+      - op: replace
+        path: /metadata/namespace
+        value: portworx

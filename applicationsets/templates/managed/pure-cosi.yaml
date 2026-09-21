@@ -23,7 +23,7 @@ spec:
        path: "kustomize/pure-cosi/overlays/{{`{{name}}`}}"
      destination:
        server: "{{`{{server}}`}}"
-       namespace: pure-cosi-system
+       namespace: portworx
      syncPolicy:
        automated:
          prune: true
