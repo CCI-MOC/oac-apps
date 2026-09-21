@@ -1,0 +1,67 @@
+# The operator subchart renders everything into .Release.Namespace, which ArgoCD
+# takes from the Application's destination namespace. Keep this in sync with the
+# destination namespace set by the rossoctl-clusters ApplicationSet.
+namespace: rossoctl-system
+
+# Extra namespaces whose service accounts may use the rossoctl-authbridge SCC.
+# Normally left empty: the operator creates a RoleBinding in each agent
+# namespace it reconciles, so a group entry is only needed to pre-authorise a
+# namespace before the operator has seen it.
+agentNamespaces: []
+
+operator-chart:
+  # Without this the webhook Service is named after the ArgoCD Application
+  # (<cluster>-rossoctl-operator-operator-chart-webhook-service), which blows
+  # past the 63-character Service name limit.
+  fullnameOverride: rossoctl-operator
+
+  controllerManager:
+    container:
+      image:
+        # The subchart defaults the tag to "" and renders an image reference
+        # ending in ":", so the tag has to be set here. It tracks the chart
+        # version in Chart.yaml.
+        tag: 0.4.0-alpha.1
+      # Upstream's default args with --enable-client-registration=true removed:
+      # client registration talks to Keycloak, which we do not install.
+      args:
+        - "--leader-elect"
+        - "--metrics-bind-address=:8443"
+        - "--health-probe-bind-address=:8081"
+        - "--webhook-cert-path=/tmp/k8s-webhook-server/serving-certs"
+        - "--config-path=/etc/rossoctl/config.yaml"
+        - "--feature-gates-path=/etc/rossoctl/feature-gates/feature-gates.yaml"
+
+  # Without Keycloak there are no credentials to write, and the reconciler would
+  # otherwise block agent namespaces waiting for a secret that never appears.
+  authbridgeConfig:
+    enabled: false
+
+  # Webhook and metrics serving certificates come from a self-signed cert-manager
+  # Issuer the subchart creates. cert-manager is already installed on every
+  # managed cluster by the cert-manager chart.
+  certmanager:
+    enable: true
+
+  # Everything below needs SPIRE (zero-trust workload identity manager), which we
+  # do not install. mtlsMode: disabled on an AgentRuntime is the matching
+  # per-workload posture.
+  spiffe:
+    enabled: false
+  verifiedFetch:
+    enabled: false
+  signatureVerification:
+    enabled: false
+
+  # Operands for components we do not run.
+  kuadrant:
+    enable: false
+  mlflow:
+    enable: false
+  otelBootstrap:
+    enable: false
+
+  # Metrics are served over TLS on :8443; scraping them needs a ServiceMonitor,
+  # which only exists once user workload monitoring is pointed at this namespace.
+  prometheus:
+    enable: false

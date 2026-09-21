@@ -1,0 +1,67 @@
+# The AuthBridge SCC and its "use" ClusterRole normally come from the upstream
+# rossoctl platform chart, which we do not install. The operator subchart only
+# ships a ClusterRoleBinding granting its own service account "use" of that
+# ClusterRole, so without these two objects the operator cannot delegate SCC
+# access to agent namespaces and every injected pod is rejected by admission.
+#
+# Copied from rossoctl v0.8.0-rc.1
+# charts/rossoctl/templates/rossoctl-authbridge-scc.yaml.
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: rossoctl-authbridge
+{{- if .Values.agentNamespaces }}
+groups:
+  {{- range .Values.agentNamespaces }}
+  - system:serviceaccounts:{{ . }}
+  {{- end }}
+{{- else }}
+groups: []
+{{- end }}
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+# proxy-init uses NET_ADMIN/NET_RAW capabilities (not privileged mode).
+allowPrivilegedContainer: false
+# proxy-init needs privilege escalation for iptables; other sidecars set false.
+allowPrivilegeEscalation: true
+allowedCapabilities:
+  - NET_ADMIN
+  - NET_RAW
+defaultAddCapabilities: []
+requiredDropCapabilities:
+  - MKNOD
+fsGroup:
+  type: RunAsAny
+# proxy-init runs as root and the AuthBridge sidecar as UID 1337.
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+seccompProfiles:
+  - runtime/default
+volumes:
+  - configMap
+  - csi
+  - downwardAPI
+  - emptyDir
+  - ephemeral
+  - persistentVolumeClaim
+  - projected
+  - secret
+---
+# OpenShift auto-creates ClusterRoles for built-in SCCs but not reliably for
+# custom ones, so the operator's RoleBindings need this created explicitly.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:openshift:scc:rossoctl-authbridge
+rules:
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    resourceNames: ["rossoctl-authbridge"]
+    verbs: ["use"]

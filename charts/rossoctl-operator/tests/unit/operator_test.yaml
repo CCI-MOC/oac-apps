@@ -1,0 +1,67 @@
+suite: rossoctl-operator subchart wiring
+templates:
+  - charts/operator-chart/templates/manager/manager.yaml
+  - charts/operator-chart/templates/webhook/webhooks.yaml
+
+tests:
+  # The subchart defaults the image tag to "" and renders "repository:", which
+  # OpenShift rejects outright. Losing this value is a silent upgrade hazard.
+  - it: pins the operator image to the subchart version
+    template: charts/operator-chart/templates/manager/manager.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/rossoctl/operator/rossoctl-operator:0.4.0-alpha.1
+
+  # We install the operator alone, without the rossoctl platform chart, so there
+  # is no Keycloak to register agent OAuth clients against and no credentials for
+  # the authbridge-config reconciler to wait on.
+  - it: runs without the Keycloak-backed reconcilers
+    template: charts/operator-chart/templates/manager/manager.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-client-registration=true"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-authbridge-config=false"
+
+  # SPIRE (zero-trust workload identity manager) is not installed. Any of these
+  # flags would make the operator mount the SPIFFE CSI socket and block.
+  - it: runs without SPIRE
+    template: charts/operator-chart/templates/manager/manager.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-verified-fetch=true"
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--require-a2a-signature=true"
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--use-spiffe-auth=true"
+
+  # The webhook serving certificate is issued by cert-manager and mounted from
+  # this secret; the webhook configurations get the CA injected into them.
+  - it: serves the webhook with the cert-manager certificate
+    template: charts/operator-chart/templates/manager/manager.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: webhook-cert
+            secret:
+              secretName: rossoctl-operator-webhook-server-cert
+
+  # Service names are capped at 63 characters. The subchart derives this one from
+  # the release name, which under ArgoCD is "<cluster>-rossoctl-operator" unless
+  # overridden, and the certificate's dnsNames have to match it exactly.
+  - it: keeps the webhook service name short and matching the certificate
+    template: charts/operator-chart/templates/webhook/webhooks.yaml
+    release:
+      name: oac-dev-workload0-rossoctl-operator
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: webhooks[0].clientConfig.service.name
+          value: rossoctl-operator-webhook-service
