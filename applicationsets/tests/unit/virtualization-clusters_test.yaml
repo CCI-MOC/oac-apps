@@ -1,0 +1,50 @@
+suite: virtualization-clusters ApplicationSet
+templates:
+  - templates/managed/virtualization-clusters.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should render the ApplicationSet with hub-wide then per-cluster value files
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: ApplicationSet
+          apiVersion: argoproj.io/v1alpha1
+          name: virtualization-clusters
+      - equal:
+          path: spec.template.spec.source.helm.ignoreMissingValueFiles
+          value: true
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[0]
+          value: "/values/oac-dev-infra/{{component}}.yaml"
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[1]
+          value: "/values/oac-dev-infra/{{name}}/{{component}}.yaml"
+
+  # The generator picks up clusters from the Placement of the same name defined
+  # in values/<hub>/local-cluster/acm-placements.yaml. If the two names drift,
+  # the ApplicationSet silently matches zero clusters and nothing deploys.
+  - it: should select clusters via the virtualization-clusters placement
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].matrix.generators[0].clusterDecisionResource.labelSelector.matchLabels["cluster.open-cluster-management.io/placement"]
+          value: virtualization-clusters
+
+  # The chart creates openshift-cnv itself (wave 0), so unlike portworx-clusters
+  # this ApplicationSet must not set a destination namespace: doing so would
+  # push every namespaced resource into it and strand the Subscription.
+  - it: should leave the destination namespace to the chart
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - notExists:
+          path: spec.template.spec.destination.namespace

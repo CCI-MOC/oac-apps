@@ -8,3 +8,6 @@ placements:
   - name: portworx-clusters
     matchLabels:
       massopen.cloud/feature-portworx: "true"
+  - name: virtualization-clusters
+    matchLabels:
+      massopen.cloud/feature-virtualization: "true"

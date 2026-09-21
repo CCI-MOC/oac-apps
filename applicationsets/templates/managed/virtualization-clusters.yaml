@@ -1,0 +1,45 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: virtualization-clusters
+  namespace: openshift-gitops
+spec:
+  generators:
+    - matrix:
+        generators:
+          - clusterDecisionResource:
+              configMapRef: acm-placement
+              labelSelector:
+                matchLabels:
+                  cluster.open-cluster-management.io/placement: virtualization-clusters
+              requeueAfterSeconds: 180
+          - list:
+              elements:
+                - component: openshift-virtualization
+  template:
+    metadata:
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{`{{component}}`}}"
+        helm:
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - "/values/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
+      destination:
+        server: "{{`{{server}}`}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m
