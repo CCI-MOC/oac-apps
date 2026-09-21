@@ -1,0 +1,70 @@
+suite: openshift-virtualization operator
+templates:
+  - templates/operator.yaml
+
+tests:
+  - it: renders namespace, operatorgroup and subscription
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  # openshift-cnv, not openshift-virtualization: the operator is hardcoded to
+  # its old Container Native Virtualization namespace and silently does nothing
+  # if installed anywhere else.
+  - it: creates the operator namespace
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Namespace
+      - equal:
+          path: metadata.name
+          value: openshift-cnv
+
+  # HCO is an own-namespace operator: Red Hat's install docs give it an
+  # OperatorGroup scoped to openshift-cnv. An empty spec (all-namespaces) makes
+  # OLM refuse to install the CSV, so this test locks the scoping.
+  - it: has an own-namespace operatorgroup
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: OperatorGroup
+      - equal:
+          path: spec.targetNamespaces
+          value:
+            - openshift-cnv
+
+  # Values confirmed against the redhat-operators catalog on oac-dev-workload0
+  # (oc get packagemanifest kubevirt-hyperconverged). The package is named for
+  # the upstream project while the console calls it "OpenShift Virtualization",
+  # so the name is easy to get wrong.
+  - it: subscribes to the kubevirt-hyperconverged package from redhat-operators
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Subscription
+      - equal:
+          path: metadata.namespace
+          value: openshift-cnv
+      - equal:
+          path: spec.name
+          value: kubevirt-hyperconverged
+      - equal:
+          path: spec.channel
+          value: stable
+      - equal:
+          path: spec.source
+          value: redhat-operators
+      - equal:
+          path: spec.sourceNamespace
+          value: openshift-marketplace
+
+  # Pinning startingCSV would freeze the operator at one z-stream and make the
+  # Subscription drift from the catalog as the channel head moves.
+  - it: tracks the channel head rather than a pinned CSV
+    documentIndex: 2
+    asserts:
+      - notExists:
+          path: spec.startingCSV
+      - equal:
+          path: spec.installPlanApproval
+          value: Automatic

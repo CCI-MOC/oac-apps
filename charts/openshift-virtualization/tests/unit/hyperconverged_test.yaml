@@ -1,0 +1,78 @@
+suite: HyperConverged
+templates:
+  - templates/hyperconverged.yaml
+
+tests:
+  - it: should render the HyperConverged instance
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: HyperConverged
+      - equal:
+          path: apiVersion
+          value: hco.kubevirt.io/v1beta1
+
+  # HCO watches for exactly this name. Rename it and the operator installs
+  # nothing while reporting no error, so the chart looks healthy and no
+  # virtualization components ever appear.
+  - it: should use the only name the operator reconciles
+    asserts:
+      - equal:
+          path: metadata.name
+          value: kubevirt-hyperconverged
+
+  # HyperConverged is namespaced. Without an explicit namespace (the
+  # Application's destination namespace is empty), ArgoCD rejects it with an
+  # InvalidSpecError once the CRD is installed, so the CR is never created.
+  - it: should be created in the operator namespace
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: openshift-cnv
+
+  # Without SkipDryRunOnMissingResource, ArgoCD's pre-sync dry-run fails on a
+  # cluster where the hco.kubevirt.io CRDs are not yet installed, which aborts
+  # the entire sync (including the operator Subscription that installs those
+  # CRDs).
+  - it: should skip the dry-run when the CRD is missing
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  # Must sync after the operator (wave 0) so the CRD exists first.
+  - it: should sync in a later wave than the operator
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+
+  # The operator's own catalog example ships spec: {} and fills in defaults for
+  # the installed version. An omitted spec would render as null, which is not
+  # the same thing: the CRD rejects a null spec.
+  - it: should render an empty object spec by default
+    asserts:
+      - equal:
+          path: spec
+          value: {}
+
+  # Per-cluster tuning is meant to arrive through values rather than template
+  # edits, so confirm the passthrough actually lands under spec.
+  - it: should merge caller-supplied spec fields
+    set:
+      hyperConverged:
+        spec:
+          featureGates:
+            deployKubeSecondaryDNS: true
+          infra:
+            nodePlacement:
+              nodeSelector:
+                node-role.kubernetes.io/worker: ""
+    asserts:
+      - equal:
+          path: spec.featureGates.deployKubeSecondaryDNS
+          value: true
+      - equal:
+          path: spec.infra.nodePlacement.nodeSelector["node-role.kubernetes.io/worker"]
+          value: ""

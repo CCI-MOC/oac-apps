@@ -1,0 +1,22 @@
+apiVersion: hco.kubevirt.io/v1beta1
+kind: HyperConverged
+metadata:
+  # The HCO operator only reconciles a HyperConverged named
+  # kubevirt-hyperconverged inside its own namespace. Any other name is ignored
+  # and nothing is deployed, so this name is not configurable.
+  name: kubevirt-hyperconverged
+  namespace: {{ .Values.namespace }}
+  annotations:
+    # The operator goes in wave 0 (set by operator-library), this CR follows in
+    # wave 1. Same chart means same Application, so the wave really does order
+    # them. SkipDryRun is still needed because the CRD is absent on a first sync.
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+{{- if .Values.hyperConverged.spec }}
+spec:
+  {{- toYaml .Values.hyperConverged.spec | nindent 2 }}
+{{- else }}
+# An empty spec is what the operator's own catalog example ships: HCO then
+# applies the full set of defaults for the version actually installed.
+spec: {}
+{{- end }}
