@@ -1,0 +1,55 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: rossoctl-clusters
+  namespace: openshift-gitops
+spec:
+  generators:
+    - matrix:
+        generators:
+          - clusterDecisionResource:
+              configMapRef: acm-placement
+              labelSelector:
+                matchLabels:
+                  cluster.open-cluster-management.io/placement: rossoctl-clusters
+              requeueAfterSeconds: 180
+          - list:
+              elements:
+                - component: rossoctl-operator
+  template:
+    metadata:
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{`{{component}}`}}"
+        helm:
+          ignoreMissingValueFiles: true
+          # The upstream operator subchart names its Deployment selector labels
+          # after the release. Pinning the release name keeps those labels (which
+          # are immutable once applied) identical on every cluster instead of
+          # inheriting the per-cluster Application name.
+          releaseName: rossoctl
+          valueFiles:
+            - "/values/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
+      destination:
+        server: "{{`{{server}}`}}"
+        # Unlike the operators installed through OLM, the whole upstream subchart
+        # renders into .Release.Namespace, so the destination namespace is what
+        # actually places the operator. Keep it in sync with the chart's
+        # .Values.namespace, which creates the namespace in wave -1.
+        namespace: rossoctl-system
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m
