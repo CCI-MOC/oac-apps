@@ -29,3 +29,8 @@ spec:
           {{- range .Values.nodeFeatureDiscovery.pci.deviceLabelFields }}
             - {{ . | quote }}
           {{- end }}
+  {{- with .Values.workerTolerations }}
+  operand:
+    workerTolerations:
+      {{ . | toYaml | nindent 6 }}
+  {{- end }}
