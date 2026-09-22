@@ -29,3 +29,8 @@ gpuDevices:
     deviceId: "20b0"
   - name: NVIDIA-H100-80GB-HBM3
     deviceId: "2330"
+
+workerTolerations:
+  - key: nvidia.com/gpu.product
+    operator: Exists
+    effect: NoExecute
