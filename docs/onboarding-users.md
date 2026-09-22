@@ -36,7 +36,7 @@
             pods: "100"
             limits.cpu: "50"
             limits.memory: "128Gi"
-            limits.nvidia.com/gpu: "2"
+            requests.nvidia.com/gpu: "2"
       ```
 
 4. Get a list of email addresses for project members, and submit these to someone on the [keycloak-workers] team. We will preconfigure these addresses in Keycloak and assign them to the appropriate group.
