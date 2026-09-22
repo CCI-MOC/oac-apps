@@ -1,0 +1,57 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-external-secrets-deployments
+  labels:
+    healthcheck: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: external-secrets
+    - bindings:
+        - name: deployment
+          value: external-secrets-cert-controller
+    - bindings:
+        - name: deployment
+          value: external-secrets-operator-controller-manager
+    - bindings:
+        - name: deployment
+          value: external-secrets-webhook
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: external-secrets
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-clustersecretstores
+  labels:
+    healthcheck: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - try:
+        # Fails if any ClusterSecretStore is not Ready; passes if there are none.
+        # We're using `error` here (and a negative test) rather than `assert`
+        # because `assert` would pass if *any* ClusterSecretStore were Ready, whereas
+        # we want to test that *all* ClusterSecretStores are Ready.
+        - error:
+            resource:
+              apiVersion: external-secrets.io/v1
+              kind: ClusterSecretStore
+              status:
+                (conditions[?type=='Ready']|[0].status != 'True'): true

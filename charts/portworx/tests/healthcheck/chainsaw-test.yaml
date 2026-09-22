@@ -1,0 +1,59 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-portworx-deployments
+  labels:
+    healthcheck: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: portworx-operator
+    - bindings:
+        - name: deployment
+          value: px-pure-csi-controller
+    - bindings:
+        - name: deployment
+          value: px-pure-csi-telemetry-registration
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: portworx
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-portworx-daemonsets
+  labels:
+    healthcheck: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - use:
+        template: ../../../../tests/templates/daemonset-available.yaml
+        with:
+          bindings:
+            - name: daemonset
+              value: px-pure-csi-node
+            - name: targetNamespace
+              value: portworx
+    - use:
+        template: ../../../../tests/templates/daemonset-available.yaml
+        with:
+          bindings:
+            - name: daemonset
+              value: px-pure-csi-telemetry
+            - name: targetNamespace
+              value: portworx

@@ -1,13 +1,11 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: portworx-storage
+  name: test-portworx-function
+  labels:
+    functional: "true"
 spec:
   description: Verify that Portworx storage is functional by creating a PVC and mounting it in a pod
-  timeouts:
-    apply: 30s
-    assert: 120s
-    cleanup: 60s
   steps:
     - name: Create PVC and verify it binds
       try:

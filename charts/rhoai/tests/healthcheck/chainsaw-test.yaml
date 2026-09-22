@@ -1,0 +1,107 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-rhods-deployments
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: rhods-operator
+        - name: targetNamespace
+          value: redhat-ods-operator
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: ($targetNamespace)
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-datasciencecluster
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: datasciencecluster.opendatahub.io/v1
+              kind: DataScienceCluster
+              status:
+                phase: Ready
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-datascience-components
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: conditionType
+          value: DashboardReady
+    - bindings:
+        - name: conditionType
+          value: WorkbenchesReady
+    - bindings:
+        - name: conditionType
+          value: DataSciencePipelinesReady
+    - bindings:
+        - name: conditionType
+          value: CodeFlareReady
+    - bindings:
+        - name: conditionType
+          value: KserveReady
+    - bindings:
+        - name: conditionType
+          value: RayReady
+    - bindings:
+        - name: conditionType
+          value: TrustyAIReady
+    - bindings:
+        - name: conditionType
+          value: ModelMeshServingReady
+    - bindings:
+        - name: conditionType
+          value: KueueReady
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: datasciencecluster.opendatahub.io/v1
+              kind: DataScienceCluster
+              metadata:
+                name: default-dsc
+              status:
+                (conditions[?type == $conditionType] | [0].status): "True"
+      catch:
+        - script:
+            skipCommandOutput: true
+            content: |
+              echo "FAILED conditionType=$CONDITION_TYPE" >&2
+            env:
+              - name: CONDITION_TYPE
+                value: ($conditionType)

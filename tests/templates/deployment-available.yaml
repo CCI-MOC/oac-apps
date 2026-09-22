@@ -1,0 +1,15 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: StepTemplate
+metadata:
+  name: deployment-available
+spec:
+  try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ($deployment)
+            namespace: ($targetNamespace)
+          status:
+            (conditions[?type == 'Available'] | [0].status): "True"

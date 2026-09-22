@@ -1,0 +1,30 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-nodes-healthy
+  labels:
+    healthcheck: "true"
+spec:
+  description: Every node must be Ready and free of resource pressure.
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - name: all-nodes-healthy
+      try:
+        # No node has a Ready condition other than True (this also catches
+        # nodes with no Ready condition at all).
+        - error:
+            resource:
+              apiVersion: v1
+              kind: Node
+              status:
+                (conditions[?type == 'Ready'] | [0].status != 'True'): true
+        # No node is reporting memory, disk, or PID pressure.
+        - error:
+            resource:
+              apiVersion: v1
+              kind: Node
+              status:
+                (length(conditions[?(type == 'MemoryPressure' || type == 'DiskPressure' || type == 'PIDPressure') && status == 'True']) > `0`): true

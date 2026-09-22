@@ -1,0 +1,29 @@
+# Every original (non-copied) ClusterServiceVersion, in any namespace, must be
+# in status.phase == Succeeded.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: csvs-succeeded
+  labels:
+    healthcheck: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  bindings:
+    # All CSVs in all namespaces ('' == all), minus the copies OLM creates in
+    # every namespace for AllNamespaces-mode operators (label olm.copiedFrom).
+    - name: csvs
+      value: (x_k8s_list($client, 'operators.coreos.com/v1alpha1', 'ClusterServiceVersion', '').items[?metadata.labels."olm.copiedFrom" == null])
+  steps:
+    - name: all-csvs-succeeded
+      try:
+        - assert:
+            resource:
+              # At least one CSV exists (mirrors the "no ClusterServiceVersions
+              # found" failure in check_csvs).
+              (length($csvs) > `0`): true
+              # No CSV is in any phase other than Succeeded.
+              "($csvs[?status.phase != 'Succeeded'].{namespace: metadata.namespace, name: metadata.name, phase: status.phase})":
+                []

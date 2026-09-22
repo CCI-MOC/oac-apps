@@ -1,0 +1,68 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-gitops-deployments
+  labels:
+    healthcheck: "true"
+    hub: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: cluster
+    - bindings:
+        - name: deployment
+          value: gitops-plugin
+    - bindings:
+        - name: deployment
+          value: openshift-gitops-applicationset-controller
+    - bindings:
+        - name: deployment
+          value: openshift-gitops-dex-server
+    - bindings:
+        - name: deployment
+          value: openshift-gitops-redis
+    - bindings:
+        - name: deployment
+          value: openshift-gitops-repo-server
+    - bindings:
+        - name: deployment
+          value: openshift-gitops-server
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: openshift-gitops
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-gitops-statefulsets
+  labels:
+    healthcheck: "true"
+    hub: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: StatefulSet
+              metadata:
+                name: openshift-gitops-application-controller
+                namespace: openshift-gitops
+              status:
+                (readyReplicas == replicas): true
+                (replicas > `0`): true

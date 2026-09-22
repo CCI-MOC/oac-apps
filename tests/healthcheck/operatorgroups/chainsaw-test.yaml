@@ -1,0 +1,24 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-operatorgroups
+  labels:
+    healthcheck: "true"
+spec:
+  description: Every namespace must have at most one OperatorGroup.
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  bindings:
+    - name: operatorgroups
+      value: (x_k8s_list($client, 'operators.coreos.com/v1', 'OperatorGroup', '').items)
+    - name: operatorgroupsByNamespace
+      value: (group_by($operatorgroups, &metadata.namespace))
+  steps:
+    - try:
+        - assert:
+            resource:
+              # Namespaces with no OperatorGroup do not appear in the groups;
+              # any namespace that does appear must have exactly one.
+              "(values($operatorgroupsByNamespace)[?length(@) > `1`])": []

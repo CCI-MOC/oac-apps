@@ -1,0 +1,76 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-nfd-deployments
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: nfd-controller-manager
+    - bindings:
+        - name: deployment
+          value: nfd-gc
+    - bindings:
+        - name: deployment
+          value: nfd-master
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: openshift-nfd
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-nfd-daemonset
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - use:
+        template: ../../../../tests/templates/daemonset-available.yaml
+        with:
+          bindings:
+            - name: daemonset
+              value: nfd-worker
+            - name: targetNamespace
+              value: openshift-nfd
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-nfd-instance
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: nfd.openshift.io/v1
+              kind: NodeFeatureDiscovery
+              metadata:
+                namespace: openshift-nfd
+              status:
+                (conditions[?type=='Available'] | [0].status): "True"
