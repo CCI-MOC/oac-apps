@@ -1,0 +1,11 @@
+invoiceProcessors:
+  - name: daily-check
+    uploadToS3: false
+    schedule: "0 7 * * *"
+  - name: monthly-processing
+    uploadToS3: true
+    schedule: "0 14 1 * *"
+
+s3RemoteKey: b2-key/oac-invoicing-rw
+keycloakRemoteKey: cluster/oac-prod-infra/invoicing-keycloak
+ghRemoteKey: cluster/oac-prod-infra/invoicing-gh-deploy-key

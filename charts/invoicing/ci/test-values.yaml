@@ -1,0 +1,16 @@
+name: invoicing
+
+invoiceProcessors:
+  - name: daily-check
+    uploadToS3: false
+    schedule: "0 7 * * *"
+  - name: monthly-processing
+    uploadToS3: true
+    schedule: "0 14 1 * *"
+
+image: ghcr.io/cci-moc/invoicing:main
+timeZone: Etc/UTC
+
+s3RemoteKey: test/workload0/invoicing/bucket
+keycloakRemoteKey: test/workload0/invoicing/keycloak
+ghRemoteKey: test/workload0/invoicing/github-deploy-key
