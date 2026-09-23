@@ -12,3 +12,10 @@ projects:
     groups:
       - name: intern-aibom
         role: edit
+
+  - name: asago
+    requester: memalhot@redhat.com
+    description: "Project Asago is an open-source AI safety and governance orchestration project"
+    groups:
+      - name: project-asago
+        role: edit
