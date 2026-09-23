@@ -19,3 +19,10 @@ projects:
     groups:
       - name: project-asago
         role: edit
+
+  - name: eldritchjs-sandbox
+    requester: jschless@redhat.com
+    description: "EldritchJS tasks"
+    groups:
+      - name: eldritch-things
+        role: edit
