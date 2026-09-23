@@ -1,0 +1,41 @@
+suite: DaemonSet
+templates:
+  - templates/daemonset.yaml
+  - templates/configmap.yaml
+values:
+  - ../../ci/test-values.yaml
+
+tests:
+  # Without this the proxy skips our NoSchedule-tainted GPU nodes, so workloads
+  # there cannot use the node-local proxy.
+  - it: should tolerate NoSchedule taints by default
+    template: templates/daemonset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - operator: Exists
+              effect: NoSchedule
+
+  - it: should allow the tolerations to be overridden
+    template: templates/daemonset.yaml
+    set:
+      tolerations:
+        - key: nvidia.com/gpu.product
+          operator: Exists
+          effect: NoSchedule
+    asserts:
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - key: nvidia.com/gpu.product
+              operator: Exists
+              effect: NoSchedule
+
+  - it: should omit tolerations when set to an empty list
+    template: templates/daemonset.yaml
+    set:
+      tolerations: []
+    asserts:
+      - notExists:
+          path: spec.template.spec.tolerations
