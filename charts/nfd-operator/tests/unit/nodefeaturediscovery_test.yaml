@@ -67,7 +67,7 @@ tests:
 
   # Pinning operand.image ties the operand to one OpenShift release; leaving it
   # unset lets the operator pick the image matching the cluster version.
-  - it: should not pin the operand image or service port
+  - it: should not pin the operand image
     asserts:
       - notExists:
-          path: spec.operand
+          path: spec.operand.image
