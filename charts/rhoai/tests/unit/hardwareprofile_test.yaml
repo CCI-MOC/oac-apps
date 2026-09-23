@@ -90,9 +90,9 @@ tests:
             maxCount: 4
             defaultCount: 1
 
-  # The GPU nodes are tainted NoExecute, so a mismatched toleration does not
+  # The GPU nodes are tainted NoSchedule, so a mismatched toleration does not
   # merely block scheduling, it evicts anything already running there.
-  - it: should tolerate the H100 NoExecute taint
+  - it: should tolerate the H100 NoSchedule taint
     set:
       enabledHardwareProfiles:
         - nvidia-h100-gpu
@@ -106,11 +106,11 @@ tests:
             key: nvidia.com/gpu.product
             operator: Equal
             value: NVIDIA-H100-80GB-HBM3
-            effect: NoExecute
+            effect: NoSchedule
 
   # Same taint effect as the H100 nodes, but keyed on a different product
   # value. Sharing the H100 toleration would strand the profile.
-  - it: should tolerate the A100 NoExecute taint
+  - it: should tolerate the A100 NoSchedule taint
     set:
       enabledHardwareProfiles:
         - nvidia-a100-gpu
@@ -124,4 +124,4 @@ tests:
             key: nvidia.com/gpu.product
             operator: Equal
             value: NVIDIA-A100-SXM4-40GB
-            effect: NoExecute
+            effect: NoSchedule

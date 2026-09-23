@@ -21,7 +21,7 @@ spec:
             tolerations:
               - key: nvidia.com/gpu.product
                 operator: Exists
-                effect: NoExecute
+                effect: NoSchedule
     - componentNames:
         - PureCSITelemetry
       workloadConfigs:

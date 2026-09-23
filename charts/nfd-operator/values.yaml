@@ -33,4 +33,4 @@ gpuDevices:
 workerTolerations:
   - key: nvidia.com/gpu.product
     operator: Exists
-    effect: NoExecute
+    effect: NoSchedule
