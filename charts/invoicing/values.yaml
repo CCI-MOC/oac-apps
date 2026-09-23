@@ -1,0 +1,14 @@
+name: invoicing
+
+# Invoice CronJobs to create. Empty by default, so no jobs are rendered until
+# processors are configured:
+#
+# invoiceProcessors:
+#   - name: daily-check        # required; appended to "invoicing-" for the CronJob name
+#     uploadToS3: false        # required boolean; sets the UPLOAD_TO_S3 environment variable
+#     schedule: "0 7 * * *"   # required cron schedule, interpreted in timeZone below
+#   - name: ...
+invoiceProcessors: []
+
+image: ghcr.io/cci-moc/invoicing:main
+timeZone: Etc/UTC

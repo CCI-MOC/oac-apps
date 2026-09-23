@@ -1,0 +1,58 @@
+{{- range .Values.invoiceProcessors }}
+{{- if not (hasKey . "uploadToS3") }}
+{{- fail "invoiceProcessors[].uploadToS3 is required" }}
+{{- end }}
+{{- if not (kindIs "bool" .uploadToS3) }}
+{{- fail "invoiceProcessors[].uploadToS3 must be a boolean" }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invoicing-{{ required "invoiceProcessors[].name is required" .name }}
+spec:
+  schedule: {{ required "invoiceProcessors[].schedule is required" .schedule | quote }}
+  timeZone: {{ $.Values.timeZone | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: invoicing-processor
+            image: {{ $.Values.image | quote }}
+            env:
+            - name: S3_BUCKET_NAME
+              value: "oac-invoicing"
+            - name: GH_NONBILLABLE_DEPLOYKEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoicing-gh-deploykey
+                  key: gh-deploy-key
+            - name: S3_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: invoicing-bucket
+                  key: b2-key-id
+            - name: S3_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoicing-bucket
+                  key: b2-app-key
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: invoicing-keycloak
+                  key: keycloak-client-id
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: invoicing-keycloak
+                  key: keycloak-client-secret
+            - name: UPLOAD_TO_S3
+              value: {{ .uploadToS3 | quote }}
+            - name: NEW_PI_CREDIT_AMOUNT
+              value: "0"
+            - name: BU_SUBSIDY_AMOUNT
+              value: "0"
+          restartPolicy: OnFailure
+{{- end }}
