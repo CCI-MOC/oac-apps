@@ -51,28 +51,35 @@ tests:
   # The operator's own catalog example ships spec: {} and fills in defaults for
   # the installed version. An omitted spec would render as null, which is not
   # the same thing: the CRD rejects a null spec.
-  - it: should render an empty object spec by default
+  - it: should render an empty object spec when nothing is configured
+    set:
+      workloadTolerations: []
     asserts:
       - equal:
           path: spec
           value: {}
 
-  # Per-cluster tuning is meant to arrive through values rather than template
-  # edits, so confirm the passthrough actually lands under spec.
-  - it: should merge caller-supplied spec fields
-    set:
-      hyperConverged:
-        spec:
-          featureGates:
-            deployKubeSecondaryDNS: true
-          infra:
-            nodePlacement:
-              nodeSelector:
-                node-role.kubernetes.io/worker: ""
+  # virt-handler, bridge-marker and kube-cni-linux-bridge-plugin are daemonsets
+  # whose only toleration for taints is for unschedulable nodes. Without this,
+  # they skip our NoSchedule-tainted GPU nodes and VMs cannot run there.
+  - it: should let workload daemonsets tolerate NoSchedule taints by default
     asserts:
       - equal:
-          path: spec.featureGates.deployKubeSecondaryDNS
-          value: true
+          path: spec.workloads.nodePlacement.tolerations
+          value:
+            - operator: Exists
+              effect: NoSchedule
+
+  - it: should allow the workload tolerations to be overridden
+    set:
+      workloadTolerations:
+        - key: nvidia.com/gpu.product
+          operator: Exists
+          effect: NoSchedule
+    asserts:
       - equal:
-          path: spec.infra.nodePlacement.nodeSelector["node-role.kubernetes.io/worker"]
-          value: ""
+          path: spec.workloads.nodePlacement.tolerations
+          value:
+            - key: nvidia.com/gpu.product
+              operator: Exists
+              effect: NoSchedule

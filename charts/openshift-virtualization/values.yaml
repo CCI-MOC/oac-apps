@@ -7,5 +7,11 @@ subscription:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
-hyperConverged:
-  spec: {}
+
+# Tolerations for the workload daemonsets (virt-handler, bridge-marker,
+# kube-cni-linux-bridge-plugin), so they can run on tainted nodes such as our
+# GPU nodes. Rendered into spec.workloads.nodePlacement.tolerations. Note that
+# HCO rejects changes to this field while VMs exist.
+workloadTolerations:
+  - operator: Exists
+    effect: NoSchedule

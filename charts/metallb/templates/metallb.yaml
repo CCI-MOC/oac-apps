@@ -6,4 +6,10 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     argocd.argoproj.io/sync-wave: "1"
+{{- with .Values.speakerTolerations }}
+spec:
+  speakerTolerations:
+    {{- . | toYaml | nindent 4}}
+{{- else }}
 spec: {}
+{{- end }}

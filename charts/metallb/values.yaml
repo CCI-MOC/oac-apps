@@ -10,6 +10,10 @@ subscription:
   sourceNamespace: openshift-marketplace
   channel: stable
 
+speakerTolerations:
+  - operator: "Exists"
+    effect: "NoSchedule"
+
 # addressPools:
 #   - name: default
 #     addresses:
