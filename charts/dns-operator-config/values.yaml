@@ -1,0 +1,10 @@
+# Tolerations for the dns-default daemonset, rendered into
+# spec.nodePlacement.tolerations of dns.operator/default. The default
+# tolerates any NoSchedule taint so cluster DNS runs on tainted nodes such as
+# our GPU nodes. Setting this field replaces the operator's built-in master
+# toleration rather than adding to it; the blanket NoSchedule toleration
+# already covers the control plane taints. Set to [] to hand the field back to
+# the operator's default.
+tolerations:
+  - operator: Exists
+    effect: NoSchedule

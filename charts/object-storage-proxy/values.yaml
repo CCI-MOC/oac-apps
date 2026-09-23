@@ -1,5 +1,11 @@
 namespace: object-storage-proxy
 
+# Tolerations for the proxy pods. The default tolerates any NoSchedule taint so
+# the proxy runs on tainted nodes such as our GPU nodes.
+tolerations:
+  - operator: Exists
+    effect: NoSchedule
+
 backend:
   address: ""
   # Override the Host header (and TLS SNI for the secure backend) sent

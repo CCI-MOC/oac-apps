@@ -1,0 +1,61 @@
+suite: DNS operator config
+templates:
+  - templates/dns.yaml
+
+tests:
+  # The DNS operator only reconciles the DNS named default; any other name is
+  # ignored and dns-default would never change.
+  - it: should render the default DNS resource
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DNS
+      - equal:
+          path: apiVersion
+          value: operator.openshift.io/v1
+      - equal:
+          path: metadata.name
+          value: default
+
+  # The operator creates this object, so a client-side apply would make Argo CD
+  # fight it over every field it defaulted.
+  - it: should set the ServerSideApply sync option
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true
+
+  # Without this dns-default only tolerates the master taint and skips our
+  # NoSchedule-tainted GPU nodes.
+  - it: should tolerate NoSchedule taints by default
+    asserts:
+      - equal:
+          path: spec.nodePlacement.tolerations
+          value:
+            - operator: Exists
+              effect: NoSchedule
+
+  - it: should allow the tolerations to be overridden
+    set:
+      tolerations:
+        - key: nvidia.com/gpu.product
+          operator: Exists
+          effect: NoSchedule
+    asserts:
+      - equal:
+          path: spec.nodePlacement.tolerations
+          value:
+            - key: nvidia.com/gpu.product
+              operator: Exists
+              effect: NoSchedule
+
+  # A null spec is rejected by the CRD, so an empty list must still render an
+  # object.
+  - it: should render an empty object spec when tolerations are cleared
+    set:
+      tolerations: []
+    asserts:
+      - equal:
+          path: spec
+          value: {}

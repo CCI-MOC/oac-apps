@@ -1,0 +1,16 @@
+# The DNS operator creates dns.operator/default itself. We server-side apply
+# only the fields set here, so the operator keeps ownership of everything else.
+apiVersion: operator.openshift.io/v1
+kind: DNS
+metadata:
+  name: default
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+{{- with .Values.tolerations }}
+spec:
+  nodePlacement:
+    tolerations:
+      {{- toYaml . | nindent 6 }}
+{{- else }}
+spec: {}
+{{- end }}

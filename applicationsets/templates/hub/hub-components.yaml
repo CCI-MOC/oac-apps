@@ -28,6 +28,7 @@ spec:
           - component: cluster-observability-operator
           - component: cluster-version
           - component: object-storage-proxy
+          - component: dns-operator-config
   template:
     metadata:
       name: "hub-{{`{{component}}`}}"
