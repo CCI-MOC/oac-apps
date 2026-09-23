@@ -27,6 +27,10 @@ portworx:
       ReadOnlyMany: false
       ReadWriteOncePod: false
 
+  tolerations:
+    - operator: "Exists"
+      effect: "NoSchedule"
+
 network:
   cidr: ""
   range:

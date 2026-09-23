@@ -17,14 +17,19 @@ spec:
             - px-pure-csi-controller
         - workloadNames:
             - px-pure-csi-node
+          {{- with .Values.portworx.tolerations }}
           placement:
             tolerations:
-              - key: nvidia.com/gpu.product
-                operator: Exists
-                effect: NoSchedule
+              {{- . | toYaml | nindent 14 }}
+          {{- end }}
     - componentNames:
         - PureCSITelemetry
       workloadConfigs:
         - workloadNames:
             - px-pure-csi-telemetry-registration
             - px-pure-csi-telemetry
+          {{- with .Values.portworx.tolerations }}
+          placement:
+            tolerations:
+              {{- . | toYaml | nindent 14 }}
+          {{- end }}
