@@ -2,21 +2,29 @@
 
 *TBD: Pure storage explanatory text*
 
-## Request Storage for a Cluster
+## PVC Storage
+
+### Request PVC Storage for a Cluster
 
 This section assumes that a [storage network has already been reserved](network-inventory-and-configuration.md#network-inventory).
 
-Request Pure storage from a sysadmin, providing them the following information:
+Request Pure storage by submitting a PR to the [`everpure-moc` repository](https://github.com/CCI-MOC/everpure-moc) modifying [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/everpure-moc/blob/main/ansible/group_vars/all/realms.yaml) to add a new realm:
 
-* storage network
-* cluster name
+```
+  - name: <cluster>
+    interface_address: <storage subnet .10 address>
+    s3_endpoint: s3.<cluster subdomain>
+    subnet_prefix: <storage subnet CIDR>
+    subnet_vlan: <storage network VLAN>
+    subnet_gateway: <storage subnet .1 address>
+    dns_domain: massopen.cloud
+    dns_nameservers:
+      - <storage subnet .1 address>
+```
 
-The sysadmin will:
+Once the PR is merged, the sysadmin will run a playbook to provision a Pure storage realm, and to create a secret for the realm and upload it to AWS Secrets Manager with the name `cluster/<cluster>/portworx`.
 
-* Provision a Pure storage realm
-* Create a secret for the realm and upload it to AWS Secrets Manager with the name `cluster/<cluster>/portworx`.
-
-## Configure Cluster
+### Configure Cluster
 
 Start by ensuring that [the storage network is attached to each node in the cluster](hardware-inventory-and-configuration.md#network-configuration). You'll need to identify the storage interface used by each node for the storage network; you can do this by logging into the node and running `ip a`.
 
@@ -48,7 +56,15 @@ Configure a cluster for Pure storage by creating a fork of the [`oac-apps` repos
 
 Once your changes are ready, submit a PR. When the PR is merged, the ArgoCD instance running on the infra cluster will apply these changes.
 
-## Examples: OAC Prod Infra and Prod Workload0 Storage Configurations
+### Examples: OAC Prod Infra and Prod Workload0 Storage Configurations
 
-* **OAC Prod Infra**: [`values/local-cluster/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
-* **OAC Prod Workload0**: [`values/oac-prod-workload0/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0/portworx.yaml)
+* **OAC Prod Infra**:
+   * `everpure-moc`
+      * [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/moc-dns/blob/main/zonefiles/ocp.massopen.cloud.zone) (search for `oac_prod_infra`)
+   * `oac-apps`
+      * [`values/oac-prod-infra/local-cluster/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/local-cluster/portworx.yaml)
+* **OAC Prod Workload0**:
+   * `everpure-moc`
+      * [`ansible/group_vars/all/realms.yaml`](https://github.com/CCI-MOC/moc-dns/blob/main/zonefiles/ocp.massopen.cloud.zone) (search for `oac_prod_workload0`)
+   * `oac-apps`
+      * [`values/oac-prod-infra/oac-prod-workload0/portworx.yaml`](https://github.com/CCI-MOC/oac-apps/blob/main/values/oac-prod-infra/oac-prod-workload0/portworx.yaml)
