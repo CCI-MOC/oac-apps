@@ -74,13 +74,13 @@ hardwareProfiles:
         nodeSelector: {}
         # Must match the taint on the GPU nodes, or workbenches are never
         # scheduled and anything already running is evicted. nfd-operator
-        # taints every GPU node NoExecute, keyed on the product name, so each
+        # taints every GPU node NoSchedule, keyed on the product name, so each
         # profile tolerates only its own GPU model.
         tolerations:
           - key: nvidia.com/gpu.product
             operator: Equal
             value: NVIDIA-H100-80GB-HBM3
-            effect: NoExecute
+            effect: NoSchedule
 
   - name: nvidia-a100-gpu
     displayName: NVIDIA A100 GPU
@@ -111,4 +111,4 @@ hardwareProfiles:
           - key: nvidia.com/gpu.product
             operator: Equal
             value: NVIDIA-A100-SXM4-40GB
-            effect: NoExecute
+            effect: NoSchedule

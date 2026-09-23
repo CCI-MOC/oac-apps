@@ -39,7 +39,7 @@ spec:
               op: In
               value: ["{{ .deviceId }}"]
       taints:
-        - effect: NoExecute
+        - effect: NoSchedule
           key: nvidia.com/gpu.product
           value: {{ .name }}
 {{- end }}
