@@ -12,3 +12,8 @@ projects:
     groups:
       - name: intern-aibom
         role: edit
+    # Only here, and only on dev. Nothing on prod sets this, so no Grafana is
+    # rendered there at all. The point is to measure the tenancy filter with a
+    # real token before any production project switches it on.
+    grafana:
+      enabled: true
