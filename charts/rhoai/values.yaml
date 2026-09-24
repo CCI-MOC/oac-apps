@@ -24,7 +24,7 @@ dataScienceCluster:
     modelmeshserving: Managed
     modelregistry: Removed
     ray: Managed
-    trainingoperator: Removed
+    trainingoperator: Managed
     trustyai: Managed
     workbenches: Managed
   kserve:
