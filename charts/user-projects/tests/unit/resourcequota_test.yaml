@@ -1,0 +1,16 @@
+suite: user-projects ResourceQuota generation
+templates:
+  - templates/resourcequota.yaml
+
+tests:
+  - it: should apply the default storage quota
+    set:
+      projects:
+        - name: myproject
+          groups:
+            - name: editors
+              role: edit
+    asserts:
+      - equal:
+          path: spec.hard["requests.storage"]
+          value: 100Gi
