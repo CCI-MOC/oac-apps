@@ -14,3 +14,31 @@ tests:
       - equal:
           path: spec.hard["requests.storage"]
           value: 100Gi
+
+  - it: should merge a project quota over the defaults without leaking it
+    set:
+      projects:
+        - name: bigproject
+          groups:
+            - name: editors
+              role: edit
+          quota:
+            hard:
+              requests.storage: 700Gi
+        - name: smallproject
+          groups:
+            - name: editors
+              role: edit
+    asserts:
+      - equal:
+          path: spec.hard["requests.storage"]
+          value: 700Gi
+        documentIndex: 0
+      - equal:
+          path: spec.hard.pods
+          value: "20"
+        documentIndex: 0
+      - equal:
+          path: spec.hard["requests.storage"]
+          value: 100Gi
+        documentIndex: 1

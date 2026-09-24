@@ -1,5 +1,5 @@
 {{- range .Values.projects }}
-{{- $quota := coalesce .quota $.Values.defaultQuota }}
+{{- $quota := mergeOverwrite (deepCopy $.Values.defaultQuota) (.quota | default dict) }}
 {{- if $quota }}
 apiVersion: v1
 kind: ResourceQuota
