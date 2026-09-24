@@ -1,0 +1,27 @@
+suite: user-projects NetworkPolicy generation
+templates:
+  - templates/networkpolicy.yaml
+
+tests:
+  - it: should create one NetworkPolicy per project
+    set:
+      projects:
+        - name: project1
+          groups:
+            - name: editors
+              role: edit
+        - name: project2
+          groups:
+            - name: editors
+              role: edit
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.namespace
+          value: project-project1
+        documentIndex: 0
+      - equal:
+          path: metadata.namespace
+          value: project-project2
+        documentIndex: 1
