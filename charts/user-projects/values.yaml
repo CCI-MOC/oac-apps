@@ -5,6 +5,7 @@ defaultQuota:
     requests.memory: "10Gi"
     limits.cpu: "20"
     limits.memory: "40Gi"
+    requests.storage: "100Gi"
 
 defaultLimitRange:
   limits:
