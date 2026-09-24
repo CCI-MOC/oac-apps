@@ -3,9 +3,3 @@
 # offering one that could never schedule.
 enabledHardwareProfiles:
   - nvidia-h100-gpu
-
-# Installs the Kubeflow Training Operator, which provides PyTorchJob
-# (kubeflow.org/v1).
-dataScienceCluster:
-  components:
-    trainingoperator: Managed
