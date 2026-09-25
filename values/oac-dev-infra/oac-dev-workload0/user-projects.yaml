@@ -5,6 +5,9 @@ projects:
     groups:
       - name: intern-aibom
         role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
 
   - name: gavin-test
     requester: memalhot@redhat.com
@@ -12,6 +15,9 @@ projects:
     groups:
       - name: intern-aibom
         role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
 
   - name: asago
     requester: memalhot@redhat.com
@@ -19,6 +25,9 @@ projects:
     groups:
       - name: project-asago
         role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
 
   - name: eldritchjs-sandbox
     requester: jschless@redhat.com
@@ -26,3 +35,6 @@ projects:
     groups:
       - name: eldritch-things
         role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
