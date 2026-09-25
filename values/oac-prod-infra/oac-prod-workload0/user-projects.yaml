@@ -8,6 +8,9 @@ projects:
         role: edit
       - name: project-whiteroom
         role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
 
   - name: noah-labs
     requester: memalhot@redhat.com
@@ -15,6 +18,10 @@ projects:
     groups:
       - name: project-noah-labs
         role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "20"
+        requests.storage: "500Gi"
 
   - name: accelidea
     requester: memalhot@redhat.com
@@ -22,3 +29,6 @@ projects:
     groups:
       - name: project-accelidea
         role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
