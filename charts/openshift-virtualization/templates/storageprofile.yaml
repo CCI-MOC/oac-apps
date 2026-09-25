@@ -1,0 +1,12 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: StorageProfile
+metadata:
+  name: {{ .Values.storageProfilePatch.storageClassName }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: ServerSideApply=true,SkipDryRunOnMissingResource=true
+spec:
+  claimPropertySets:
+  - accessModes:
+    - ReadWriteMany
+    volumeMode: Filesystem

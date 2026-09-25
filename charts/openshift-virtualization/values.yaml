@@ -15,3 +15,6 @@ subscription:
 workloadTolerations:
   - operator: Exists
     effect: NoSchedule
+
+storageProfilePatch:
+  storageClassName: pure-fb-nfsv4
