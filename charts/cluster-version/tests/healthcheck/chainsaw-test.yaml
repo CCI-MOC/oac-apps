@@ -1,0 +1,21 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-clusterversion
+spec:
+  namespace: default
+  timeouts:
+    assert: 5s
+    error: 5s
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: config.openshift.io/v1
+              kind: ClusterVersion
+              metadata:
+                name: version
+              status:
+                (conditions[?type=='Available'] | [0].status): "True"
+                (conditions[?type=='Progressing'] | [0].status): "False"
+                (conditions[?type=='Failing'] | [0].status): "False"

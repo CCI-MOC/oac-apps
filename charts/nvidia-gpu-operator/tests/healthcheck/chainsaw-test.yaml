@@ -1,0 +1,181 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-gpu-node-labels
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  description: >
+    Assert that there is at least one node labelled with `nvidia.com/gpu.present`, and that all such nodes have a non-empty
+    `nvidia.com/gpu.product` label.
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  bindings:
+    - name: gpuNodes
+      value: (x_k8s_list($client, 'v1', 'Node').items[?lookup(metadata.labels, 'nvidia.com/gpu.present') != null])
+  steps:
+    - name: gpu-nodes-have-product-label
+      try:
+        - assert:
+            resource:
+              (length($gpuNodes) > `0`): true
+              "($gpuNodes[?lookup(metadata.labels, 'nvidia.com/gpu.product') == null || lookup(metadata.labels, 'nvidia.com/gpu.product') == ''].metadata.name)":
+                []
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-gpu-operator-deployments
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: gpu-operator
+        - name: targetNamespace
+          value: nvidia-gpu-operator
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: ($targetNamespace)
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-gpu-daemonsets
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: daemonset
+          value: gpu-feature-discovery
+    - bindings:
+        - name: daemonset
+          value: nvidia-container-toolkit-daemonset
+    - bindings:
+        - name: daemonset
+          value: nvidia-dcgm
+    - bindings:
+        - name: daemonset
+          value: nvidia-dcgm-exporter
+    - bindings:
+        - name: daemonset
+          value: nvidia-device-plugin-daemonset
+    - bindings:
+        - name: daemonset
+          value: nvidia-device-plugin-mps-control-daemon
+    - bindings:
+        - name: daemonset
+          value: nvidia-mig-manager
+    - bindings:
+        - name: daemonset
+          value: nvidia-node-status-exporter
+    - bindings:
+        - name: daemonset
+          value: nvidia-operator-validator
+  steps:
+    - name: daemonset-available-on-selected-ready-nodes
+      bindings:
+        - name: daemonSetNodeSelector
+          value: (x_k8s_get($client, 'apps/v1', 'DaemonSet', 'nvidia-gpu-operator', $daemonset).spec.template.spec.nodeSelector || `{}`)
+      try:
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: DaemonSet
+              metadata:
+                name: ($daemonset)
+                namespace: nvidia-gpu-operator
+              status:
+                (to_number(numberAvailable || '0') == length(x_k8s_list($client, 'v1', 'Node').items[?label_match($daemonSetNodeSelector, metadata.labels) && (status.conditions[?type=='Ready'] | [0].status) == 'True'])): true
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-gpu-driver-daemonsets
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: DaemonSet
+              metadata:
+                namespace: nvidia-gpu-operator
+                labels:
+                  app.kubernetes.io/component: nvidia-driver
+              status:
+                (to_number(numberAvailable) == length(x_k8s_list($client, 'v1', 'Node').items[?lookup(metadata.labels, 'nvidia.com/gpu.deploy.driver') == 'true' && (status.conditions[?type=='Ready'] | [0].status) == 'True'])): true
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-clusterpolicy
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: nvidia.com/v1
+              kind: ClusterPolicy
+              status:
+                state: ready
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-nvidia-gpu-csv
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  steps:
+    - try:
+        - assert:
+            resource:
+              apiVersion: operators.coreos.com/v1alpha1
+              kind: ClusterServiceVersion
+              metadata:
+                namespace: nvidia-gpu-operator
+                labels:
+                  operators.coreos.com/gpu-operator-certified.nvidia-gpu-operator: ""
+              status:
+                phase: Succeeded

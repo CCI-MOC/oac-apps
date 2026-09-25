@@ -1,0 +1,30 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-cert-manager-deployments
+  labels:
+    healthcheck: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: cert-manager
+    - bindings:
+        - name: deployment
+          value: cert-manager-cainjector
+    - bindings:
+        - name: deployment
+          value: cert-manager-webhook
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: cert-manager

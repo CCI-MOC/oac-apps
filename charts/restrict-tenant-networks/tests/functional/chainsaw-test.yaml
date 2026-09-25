@@ -2,6 +2,9 @@ apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: restrict-tenant-networks
+  labels:
+    functional: "true"
+    workload: "true"
 spec:
   description: Verify tenant isolation, external egress, and explicit NetworkPolicy exceptions
   template: true

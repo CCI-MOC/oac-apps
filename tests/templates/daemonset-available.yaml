@@ -1,0 +1,15 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: StepTemplate
+metadata:
+  name: daemonset-available
+spec:
+  try:
+    - assert:
+        resource:
+          apiVersion: apps/v1
+          kind: DaemonSet
+          metadata:
+            name: ($daemonset)
+            namespace: ($targetNamespace)
+          status:
+            (to_number(numberAvailable) == length(x_k8s_list($client, 'v1', 'Node').items[?(status.conditions[?type=='Ready'] | [0].status) == 'True'])): true

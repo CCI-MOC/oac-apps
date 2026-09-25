@@ -6,3 +6,4 @@ password
 /charts/*/charts/
 /charts/*/Chart.lock
 /.worktrees/
+chainsaw-report.*

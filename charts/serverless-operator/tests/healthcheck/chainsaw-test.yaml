@@ -1,0 +1,31 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: test-serverless-deployments
+  labels:
+    healthcheck: "true"
+    workload: "true"
+spec:
+  namespace: default
+  timeouts:
+    error: 5s
+    assert: 5s
+  scenarios:
+    - bindings:
+        - name: deployment
+          value: knative-openshift
+    - bindings:
+        - name: deployment
+          value: knative-openshift-ingress
+    - bindings:
+        - name: deployment
+          value: knative-operator-webhook
+  steps:
+    - use:
+        template: ../../../../tests/templates/deployment-available.yaml
+        with:
+          bindings:
+            - name: deployment
+              value: ($deployment)
+            - name: targetNamespace
+              value: openshift-serverless

@@ -2,6 +2,8 @@ apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: cert-manager-issuance
+  labels:
+    functional: "true"
 spec:
   description: Verify that cert-manager can issue a certificate using the selfsigned cluster issuer
   timeouts:
