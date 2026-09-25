@@ -15,6 +15,58 @@ tests:
           path: spec.hard["requests.storage"]
           value: 100Gi
 
+  - it: should apply the default GPU and PVC quotas
+    set:
+      projects:
+        - name: myproject
+          groups:
+            - name: editors
+              role: edit
+    asserts:
+      - equal:
+          path: spec.hard["requests.nvidia.com/gpu"]
+          value: "0"
+      - equal:
+          path: spec.hard.persistentvolumeclaims
+          value: "20"
+
+  - it: should merge a project GPU and PVC quota over the defaults without leaking it
+    set:
+      projects:
+        - name: gpuproject
+          groups:
+            - name: editors
+              role: edit
+          quota:
+            hard:
+              requests.nvidia.com/gpu: "4"
+              persistentvolumeclaims: "50"
+        - name: cpuproject
+          groups:
+            - name: editors
+              role: edit
+    asserts:
+      - equal:
+          path: spec.hard["requests.nvidia.com/gpu"]
+          value: "4"
+        documentIndex: 0
+      - equal:
+          path: spec.hard.persistentvolumeclaims
+          value: "50"
+        documentIndex: 0
+      - equal:
+          path: spec.hard["requests.storage"]
+          value: 100Gi
+        documentIndex: 0
+      - equal:
+          path: spec.hard["requests.nvidia.com/gpu"]
+          value: "0"
+        documentIndex: 1
+      - equal:
+          path: spec.hard.persistentvolumeclaims
+          value: "20"
+        documentIndex: 1
+
   - it: should merge a project quota over the defaults without leaking it
     set:
       projects:
