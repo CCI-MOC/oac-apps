@@ -28,11 +28,14 @@ groups: []
 #   - bob@example.com
 #   - alice@example.com
 
-# projects is a list of projects to create. For each project, if you don't
-# explicitly set `group`, it will assume a group named
-# `project-<project_name>-edit` exists.
+# projects is a list of projects to create. Each project must list at least
+# one entry under `groups`; each entry becomes a RoleBinding of `role` (a
+# ClusterRole such as edit or view) to the named group in project-<name>.
+# A group entry without `name` defaults to project-<project_name>-<role>.
 projects: []
 # - name: aibom
 #   requester: alice@example.com
 #   description: "This is an example project."
-#   group: example-group
+#   groups:
+#     - name: example-group
+#       role: edit
