@@ -6,6 +6,8 @@ defaultQuota:
     limits.cpu: "20"
     limits.memory: "40Gi"
     requests.storage: "100Gi"
+    requests.nvidia.com/gpu: "0"
+    persistentvolumeclaims: "20"
 
 defaultLimitRange:
   limits:
