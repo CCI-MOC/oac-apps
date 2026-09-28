@@ -125,19 +125,23 @@ spec:
         service.beta.openshift.io/serving-cert-secret-name: grafana-tls
     spec:
       ports:
-        # Both entries are deliberate, and the port numbers are the reason.
-        # ServicePort merges on patchMergeKey "port", so an entry with a
-        # different number is added next to the operator's default rather than
-        # replacing it. Repeating port 3000 is what actually replaces the
-        # default, and pointing it at the proxy closes the anonymous path:
-        # without this, grafana-service:3000 reaches Grafana directly, past the
-        # proxy and past the SAR, with the project's datasource token behind it.
+        # 3000 stays on Grafana because the operator has no other way in. It
+        # builds its management address from the instance name and Grafana's own
+        # port, not from this service, so pointing 3000 at the proxy leaves the
+        # operator talking plain HTTP to a TLS listener and no dashboard or
+        # datasource is ever provisioned.
+        #
+        # That does leave Grafana reachable on 3000 from inside the cluster, so
+        # the network policy next to this file is what closes it: only the
+        # operator namespace may reach that port, and the admin policy in
+        # restrict-tenant-networks has to allow it too, since the baseline
+        # policy denies cross-namespace ingress.
         - name: grafana
           port: 3000
-          targetPort: 8443
+          targetPort: 3000
           protocol: TCP
-        # The port the route uses. Named "https" so the route above can target
-        # it by name and stays correct if the number ever changes.
+        # The port the route uses, and the only way a person reaches Grafana.
+        # Named "https" so the route above can target it by name.
         - name: https
           port: 443
           targetPort: 8443
