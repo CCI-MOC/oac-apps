@@ -30,7 +30,7 @@ spec:
         k8s.v1.cni.cncf.io/networks: storage-network
   monitoring:
     telemetry:
-      enabled: true
+      enabled: false
     prometheus:
       enabled: false # Do not deploy PX Prometheus. Use OpenShift’s Prometheus instead.
       exportMetrics: true # Export metrics to OpenShift Prometheus
