@@ -9,18 +9,16 @@ nodes:
     interface: enp7s0f1np1
   - name: moc-r4pac10u29-s3
     interface: enp7s0f1np1
-  - name: moc-r4pcc02u10
-    interface: enp163s0np0
   - name: moc-r4pcc02u30
     interface: eno7np0
   - name: moc-r4pcc04u09
     interface: enp163s0np0
   - name: moc-r4pcc04u11
     interface: enp163s0np0
-#  - name: moc-r8pac23u26
-#    interface: ens1np0
-#  - name: moc-r8pac23u31
-#    interface: ens1np0
+  - name: moc-r8pac23u26
+    interface: ens1np0
+  - name: moc-r8pac23u31
+    interface: ens1np0
   - name: moc-r4pcc04u12
     interface: enp163s0np0
   - name: moc-r4pcc04u16
