@@ -26,6 +26,27 @@ spec:
           - openshift-ingress
           - openshift-apiserver
 
+  # Port 3000 only, for the same reason the metrics rule below names its port.
+  # The Grafana operator reconciles dashboards and datasources by calling each
+  # project's Grafana directly, and it builds that address from Grafana's own
+  # port, so it cannot be pointed at the authenticating proxy instead. This
+  # tier is evaluated before the namespaced NetworkPolicy, so that policy
+  # cannot open the path on its own. Naming the port keeps the rest of the
+  # tenant namespace closed to the operator.
+  - name: "allow-grafana-operator-ingress"
+    action: Allow
+    from:
+    - namespaces:
+        matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+          - {{ .Values.grafanaOperatorNamespace }}
+    ports:
+    - portNumber:
+        protocol: TCP
+        port: {{ .Values.grafanaPort }}
+
   egress:
   - name: "allow-system-egress"
     action: Allow

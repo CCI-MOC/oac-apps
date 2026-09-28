@@ -39,3 +39,40 @@ tests:
       - equal:
           path: spec.subject.namespaces.matchExpressions[0].operator
           value: Exists
+
+  # The Grafana operator reconciles dashboards and datasources by calling each
+  # project's Grafana directly, so without this rule it cannot reach them and
+  # nothing is ever provisioned. The ANP tier is evaluated before the namespaced
+  # NetworkPolicy, so the policy shipped with user-projects cannot open this on
+  # its own.
+  - it: lets the grafana operator reach the tenant namespaces
+    asserts:
+      - contains:
+          path: spec.ingress
+          content:
+            name: "allow-grafana-operator-ingress"
+          any: true
+
+  # Same reasoning as the metrics port above. The operator needs 3000 and
+  # nothing else, and a rule without a port would let that namespace reach every
+  # port in every tenant namespace.
+  - it: opens only the grafana port to the operator, not the whole namespace
+    asserts:
+      - equal:
+          path: spec.ingress[1].ports[0].portNumber.port
+          value: 3000
+      - equal:
+          path: spec.ingress[1].ports[0].portNumber.protocol
+          value: TCP
+      - equal:
+          path: spec.ingress[1].from[0].namespaces.matchExpressions[0].values[0]
+          value: grafana-operator
+
+  # The system ingress rule must keep working untouched next to the new one.
+  - it: keeps the system ingress rule without a port restriction
+    asserts:
+      - equal:
+          path: spec.ingress[0].name
+          value: "allow-system-ingress-to-tenants"
+      - isNull:
+          path: spec.ingress[0].ports
