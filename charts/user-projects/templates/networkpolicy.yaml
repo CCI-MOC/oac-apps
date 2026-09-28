@@ -12,6 +12,18 @@ spec:
   ingress:
   - from:
     - podSelector: {}
+{{- if and .grafana .grafana.enabled }}
+  # Grafana listens on 3000 without authentication, because the operator manages
+  # it over that port and cannot authenticate to the proxy. This is what keeps
+  # that port to the operator alone.
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: grafana-operator
+    ports:
+    - protocol: TCP
+      port: 3000
+{{- end }}
   egress:
   - to:
     - podSelector: {}

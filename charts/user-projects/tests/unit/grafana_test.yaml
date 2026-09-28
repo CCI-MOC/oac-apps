@@ -174,15 +174,11 @@ tests:
           path: roleRef.name
           value: system:auth-delegator
 
-  # A reencrypt route needs a TLS backend. Grafana's own service listens on
-  # plain HTTP, so without overriding the port the route would reach Grafana
-  # directly and never pass through the proxy.
-  #
-  # Both ports go to the proxy on purpose. ServicePort merges on the port number,
-  # so an entry with a different number is added beside the operator's default
-  # instead of replacing it: without repeating 3000 the service would still
-  # expose Grafana directly, past the proxy and past the SAR.
-  - it: sends every service port to the proxy, including the operator default
+  # A reencrypt route needs a TLS backend, so 443 goes to the proxy. 3000 stays
+  # on Grafana because the operator manages it over that port and cannot
+  # authenticate to the proxy, so sending it there would break provisioning.
+  # What keeps 3000 closed is the network policy, not this service.
+  - it: keeps the route on the proxy and the operator port on grafana
     set:
       projects:
         - name: aibom
@@ -198,7 +194,7 @@ tests:
           value: 3000
       - equal:
           path: spec.service.spec.ports[0].targetPort
-          value: 8443
+          value: 3000
       - equal:
           path: spec.service.spec.ports[1].name
           value: https

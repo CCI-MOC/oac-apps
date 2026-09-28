@@ -25,3 +25,40 @@ tests:
           path: metadata.namespace
           value: project-project2
         documentIndex: 1
+
+  # A project without Grafana keeps the policy it always had.
+  - it: allows only intra-namespace ingress for a plain project
+    set:
+      projects:
+        - name: plain
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 1
+      - equal:
+          path: spec.ingress[0].from[0].podSelector
+          value: {}
+
+  # Grafana listens on 3000 without authentication, because the operator manages
+  # it over that port and cannot authenticate to the proxy. This rule is what
+  # keeps that port to the operator alone, so it is the thing that must not
+  # regress: widening it would expose Grafana to anything in the cluster.
+  - it: opens the grafana port to the operator namespace only
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 2
+      - equal:
+          path: spec.ingress[1].from[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
+          value: grafana-operator
+      - equal:
+          path: spec.ingress[1].ports[0].port
+          value: 3000
+      - equal:
+          path: spec.ingress[1].ports[0].protocol
+          value: TCP
