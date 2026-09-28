@@ -1,0 +1,7 @@
+---
+apiVersion: hive.openshift.io/v1
+kind: ClusterImageSet
+metadata:
+  name: {{ include "spoke-cluster.releaseName" . }}
+spec:
+  releaseImage: {{ include "spoke-cluster.releaseImage" . }}

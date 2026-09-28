@@ -1,0 +1,71 @@
+clusterName: jetty
+
+namespace: clusters-jetty
+
+baseDomain: oac.int.massopen.cloud
+
+release:
+  name: openshift-v4.22.14
+  image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+
+fips: true
+
+apiVIP: 10.20.17.10
+ingressVIP: 10.20.17.11
+
+networking:
+  clusterNetwork:
+    cidr: 10.132.0.0/14
+    hostPrefix: 23
+  serviceNetwork:
+    cidr: 172.31.0.0/16
+  machineNetwork:
+    cidr: 10.20.16.0/23
+
+provisionRequirements:
+  controlPlaneAgents: 3
+  workerAgents: 2
+
+sshPublicKey: 'ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzODQAAABhBHQw/O/ExnRtIK8ofbDzV24tL1CgNaF+wAjp72fefal5JphCZ29yuHbfFQ85Azv1Hn3k6cdtMuOpUQYxlV6HM96NXTvuf2AaOuHuoSyDG9RuERdsA14pcMZL/66ToCl0Qg== tzumainn@tzumainn-thinkpadt14sgen2i.rmtusma.csb'
+
+nodes:
+  - name: moc-r4pac08u35-s3d
+    interface: eth0
+    macAddress: "a8:99:69:6d:e9:55"
+    ip: 10.20.16.22
+    prefixLength: 23
+    gateway: 10.20.16.1
+    dns:
+      - 8.8.8.8
+  - name: moc-r4pac08u31-s1a
+    interface: eth0
+    macAddress: "18:db:f2:a4:8d:01"
+    ip: 10.20.16.20
+    prefixLength: 23
+    gateway: 10.20.16.1
+    dns:
+      - 8.8.8.8
+  - name: moc-r4pac08u31-s1b
+    interface: eth0
+    macAddress: "18:db:f2:a4:8d:ef"
+    ip: 10.20.16.21
+    prefixLength: 23
+    gateway: 10.20.16.1
+    dns:
+      - 8.8.8.8
+  - name: moc-r4pcc02u15
+    interface: eth5
+    macAddress: "a0:88:c2:27:c2:d0"
+    ip: 10.20.16.25
+    prefixLength: 23
+    gateway: 10.20.16.1
+    dns:
+      - 8.8.8.8
+  - name: moc-r4pcc02u16
+    interface: eth5
+    macAddress: "a0:88:c2:27:c0:d0"
+    ip: 10.20.16.24
+    prefixLength: 23
+    gateway: 10.20.16.1
+    dns:
+      - 8.8.8.8

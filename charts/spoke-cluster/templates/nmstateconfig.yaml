@@ -1,0 +1,36 @@
+{{- range .Values.nodes }}
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: {{ .name }}
+  namespace: {{ include "spoke-cluster.namespace" $ }}
+  labels:
+    cluster-name: {{ include "spoke-cluster.clusterName" $ }}
+spec:
+  config:
+    interfaces:
+      - name: {{ .interface }}
+        type: ethernet
+        state: up
+        ipv4:
+          enabled: true
+          address:
+            - ip: {{ .ip }}
+              prefix-length: {{ .prefixLength }}
+          dhcp: false
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: {{ .gateway }}
+          next-hop-interface: {{ .interface }}
+    dns-resolver:
+      config:
+        server:
+          {{- range .dns }}
+          - {{ . }}
+          {{- end }}
+  interfaces:
+    - name: {{ .interface }}
+      macAddress: {{ .macAddress | quote }}
+{{- end }}

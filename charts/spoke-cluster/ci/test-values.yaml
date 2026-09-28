@@ -1,0 +1,71 @@
+clusterName: spoke-cluster
+
+namespace: clusters-spoke-cluster
+
+baseDomain: example.com
+
+release:
+  name: openshift-v4.22.0
+  image: quay.io/openshift-release-dev/ocp-release:4.22.0-multi
+
+fips: true
+
+apiVIP: 192.168.1.10
+ingressVIP: 192.168.1.11
+
+networking:
+  clusterNetwork:
+    cidr: 10.128.0.0/14
+    hostPrefix: 23
+  serviceNetwork:
+    cidr: 172.30.0.0/16
+  machineNetwork:
+    cidr: 192.168.1.0/24
+
+provisionRequirements:
+  controlPlaneAgents: 3
+  workerAgents: 2
+
+sshPublicKey: "ecdsa-sha2-nistp384 AAAA... test-key"
+
+nodes:
+  - name: master-0
+    interface: eth0
+    macAddress: "AA:BB:CC:DD:EE:01"
+    ip: 192.168.1.20
+    prefixLength: 24
+    gateway: 192.168.1.1
+    dns:
+      - 8.8.8.8
+  - name: master-1
+    interface: eth0
+    macAddress: "AA:BB:CC:DD:EE:02"
+    ip: 192.168.1.21
+    prefixLength: 24
+    gateway: 192.168.1.1
+    dns:
+      - 8.8.8.8
+  - name: master-2
+    interface: eth0
+    macAddress: "AA:BB:CC:DD:EE:03"
+    ip: 192.168.1.22
+    prefixLength: 24
+    gateway: 192.168.1.1
+    dns:
+      - 8.8.8.8
+  - name: worker-0
+    interface: eth0
+    macAddress: "AA:BB:CC:DD:EE:04"
+    ip: 192.168.1.23
+    prefixLength: 24
+    gateway: 192.168.1.1
+    dns:
+      - 8.8.8.8
+  - name: worker-1
+    interface: eth0
+    macAddress: "AA:BB:CC:DD:EE:05"
+    ip: 192.168.1.24
+    prefixLength: 24
+    gateway: 192.168.1.1
+    dns:
+      - 8.8.8.8
