@@ -1,0 +1,25 @@
+{{- if .Values.metricsSet }}
+{{- if .Values.metricsSet.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator
+  namespace: hypershift
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+spec:
+  selector:
+    matchLabels:
+      app: operator
+  template:
+    metadata:
+      labels:
+        app: operator
+    spec:
+      containers:
+        - name: operator
+          env:
+            - name: METRICS_SET
+              value: "All"
+{{- end }}
+{{- end }}
