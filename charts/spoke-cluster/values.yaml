@@ -1,0 +1,45 @@
+clusterName: ""
+
+namespace: ""
+
+baseDomain: ""
+
+release:
+  name: ""
+  image: ""
+
+fips: false
+
+apiVIP: ""
+ingressVIP: ""
+
+networking:
+  clusterNetwork:
+    cidr: 10.128.0.0/14
+    hostPrefix: 23
+  serviceNetwork:
+    cidr: 172.30.0.0/16
+  machineNetwork:
+    cidr: ""
+
+provisionRequirements:
+  controlPlaneAgents: 3
+  workerAgents: 0
+
+sshPublicKey: ""
+
+secretStore:
+  name: kubernetes-openshift-config
+  kind: ClusterSecretStore
+
+# One entry per node:
+# nodes:
+#   - name: node0
+#     interface: eth0
+#     macAddress: "AA:BB:CC:DD:EE:01"
+#     ip: 10.20.1.10
+#     prefixLength: 23
+#     gateway: 10.20.1.1
+#     dns:
+#       - 8.8.8.8
+nodes: []

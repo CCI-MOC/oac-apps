@@ -1,0 +1,5 @@
+apiVersion: v2
+name: spoke-cluster
+description: Assisted Installer spoke cluster deployment
+version: 0.1.0
+type: application

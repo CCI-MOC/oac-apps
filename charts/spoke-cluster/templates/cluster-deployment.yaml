@@ -1,0 +1,21 @@
+---
+apiVersion: hive.openshift.io/v1
+kind: ClusterDeployment
+metadata:
+  name: {{ include "spoke-cluster.clusterName" . }}
+  namespace: {{ include "spoke-cluster.namespace" . }}
+spec:
+  clusterName: {{ include "spoke-cluster.clusterName" . }}
+  baseDomain: {{ include "spoke-cluster.baseDomain" . }}
+  platform:
+    agentBareMetal:
+      agentSelector:
+        matchLabels:
+          cluster-name: {{ include "spoke-cluster.clusterName" . }}
+  pullSecretRef:
+    name: pull-secret
+  clusterInstallRef:
+    group: extensions.hive.openshift.io
+    version: v1beta1
+    kind: AgentClusterInstall
+    name: {{ include "spoke-cluster.clusterName" . }}

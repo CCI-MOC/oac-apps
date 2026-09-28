@@ -1,0 +1,27 @@
+{{- if .Values.fips }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "spoke-cluster.clusterName" . }}-fips-manifests
+  namespace: {{ include "spoke-cluster.namespace" . }}
+data:
+  99-master-fips.yaml: |
+    apiVersion: machineconfiguration.openshift.io/v1
+    kind: MachineConfig
+    metadata:
+      name: 99-master-fips
+      labels:
+        machineconfiguration.openshift.io/role: master
+    spec:
+      fips: true
+  99-worker-fips.yaml: |
+    apiVersion: machineconfiguration.openshift.io/v1
+    kind: MachineConfig
+    metadata:
+      name: 99-worker-fips
+      labels:
+        machineconfiguration.openshift.io/role: worker
+    spec:
+      fips: true
+{{- end }}

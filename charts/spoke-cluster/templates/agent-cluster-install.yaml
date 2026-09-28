@@ -1,0 +1,33 @@
+---
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: {{ include "spoke-cluster.clusterName" . }}
+  namespace: {{ include "spoke-cluster.namespace" . }}
+spec:
+  clusterDeploymentRef:
+    name: {{ include "spoke-cluster.clusterName" . }}
+  imageSetRef:
+    name: {{ include "spoke-cluster.releaseName" . }}
+  {{- if .Values.fips }}
+  manifestsConfigMapRef:
+    name: {{ include "spoke-cluster.clusterName" . }}-fips-manifests
+  {{- end }}
+  {{- with .Values.apiVIP }}
+  apiVIP: {{ . }}
+  {{- end }}
+  {{- with .Values.ingressVIP }}
+  ingressVIP: {{ . }}
+  {{- end }}
+  networking:
+    clusterNetwork:
+      - cidr: {{ .Values.networking.clusterNetwork.cidr }}
+        hostPrefix: {{ .Values.networking.clusterNetwork.hostPrefix }}
+    serviceNetwork:
+      - {{ .Values.networking.serviceNetwork.cidr }}
+    machineNetwork:
+      - cidr: {{ required "networking.machineNetwork.cidr must be set" .Values.networking.machineNetwork.cidr }}
+  provisionRequirements:
+    controlPlaneAgents: {{ .Values.provisionRequirements.controlPlaneAgents }}
+    workerAgents: {{ .Values.provisionRequirements.workerAgents }}
+  sshPublicKey: {{ required "sshPublicKey must be set" .Values.sshPublicKey | quote }}
