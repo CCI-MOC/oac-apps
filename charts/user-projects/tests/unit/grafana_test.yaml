@@ -21,7 +21,7 @@ tests:
             enabled: true
     asserts:
       - hasDocuments:
-          count: 8
+          count: 7
 
   - it: puts the Grafana instance in the project namespace
     set:
@@ -29,7 +29,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - isKind:
           of: Grafana
@@ -47,7 +47,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 6
+    documentIndex: 5
     asserts:
       - isKind:
           of: GrafanaDatasource
@@ -68,7 +68,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - contains:
           path: spec.deployment.spec.template.spec.containers[1].args
@@ -86,7 +86,7 @@ tests:
             enabled: true
     asserts:
       - hasDocuments:
-          count: 16
+          count: 14
 
   # OpenShift mints the serving certificate from this annotation, so the secret
   # the proxy mounts exists without anyone creating it by hand.
@@ -96,7 +96,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - isKind:
           of: Grafana
@@ -113,7 +113,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - isKind:
           of: Grafana
@@ -129,7 +129,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 6
+    documentIndex: 5
     asserts:
       - isKind:
           of: GrafanaDatasource
@@ -148,7 +148,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - equal:
           path: spec.config["auth.anonymous"].org_role
@@ -166,7 +166,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 2
+    documentIndex: 1
     asserts:
       - isKind:
           of: ClusterRoleBinding
@@ -184,7 +184,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - equal:
           path: spec.service.spec.ports[0].name
@@ -211,7 +211,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - equal:
           path: spec.route.spec.port.targetPort
@@ -225,7 +225,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - contains:
           path: spec.deployment.spec.template.spec.containers[1].args
@@ -241,7 +241,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - equal:
           path: spec.deployment.spec.template.spec.containers[1].args[6]
@@ -256,7 +256,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - equal:
           path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].name
@@ -277,7 +277,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 6
+    documentIndex: 5
     asserts:
       - isKind:
           of: GrafanaDatasource
@@ -296,7 +296,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - equal:
           path: spec.deployment.spec.template.spec.containers[1].resources.requests.memory
@@ -312,7 +312,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - contains:
           path: spec.deployment.spec.template.spec.containers[1].args
@@ -327,7 +327,7 @@ tests:
         - name: a-very-long-project-name-for-testing-purposes
           grafana:
             enabled: true
-    documentIndex: 7
+    documentIndex: 6
     asserts:
       - matchRegex:
           path: spec.json
@@ -341,7 +341,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - equal:
           path: spec.deployment.spec.template.spec.containers[0].name
@@ -363,7 +363,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentIndex: 4
     asserts:
       - contains:
           path: spec.deployment.spec.template.spec.containers[1].args
@@ -384,7 +384,7 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 7
+    documentIndex: 6
     asserts:
       - matchRegex:
           path: spec.json
@@ -392,3 +392,87 @@ tests:
       - matchRegex:
           path: spec.json
           pattern: 'container_memory_working_set_bytes\{namespace=..project-aibom'
+
+  # The operator builds the service account name itself, from the instance name
+  # plus "-sa" (resources.go:76 in v5.24.0), and then makes itself its owner.
+  # If the chart creates that name first, the operator cannot take it over and
+  # stops at "stage: service account", so no deployment, route or datasource is
+  # ever created. The chart must therefore not create it.
+  - it: does not create the service account itself
+    set:
+      projects:
+        - name: aibom
+          groups:
+            - name: editors
+              role: edit
+          grafana:
+            enabled: true
+    asserts:
+      # Seven documents now, not eight. The account is gone from the chart,
+      # and the Grafana resource still sits at index 4.
+      - hasDocuments:
+          count: 7
+
+  # The only reason the chart ever created it was this annotation, which makes
+  # the service account its own OAuth client. It reaches the operator-owned
+  # account through the CR instead: spec.serviceAccount.metadata takes
+  # annotations and labels, and the operator merges them onto the account it
+  # creates.
+  - it: passes the oauth redirect annotation through the Grafana resource
+    set:
+      projects:
+        - name: aibom
+          groups:
+            - name: editors
+              role: edit
+          grafana:
+            enabled: true
+    documentIndex: 4
+    asserts:
+      - isKind:
+          of: Grafana
+      - matchRegex:
+          path: spec.serviceAccount.metadata.annotations["serviceaccounts.openshift.io/oauth-redirectreference.primary"]
+          pattern: '"name":"grafana-route"'
+
+  # The operator creates grafana-sa now, so the Grafana resource has to be
+  # applied before the token secret that names that account. OCP 4.22
+  # "Nodes" is explicit about it: "If you are creating both the ServiceAccount
+  # and the Secret objects, create the ServiceAccount object first." Argo CD
+  # applies lower waves first.
+  - it: creates the Grafana resource before the token secret
+    set:
+      projects:
+        - name: aibom
+          groups:
+            - name: editors
+              role: edit
+          grafana:
+            enabled: true
+    documentIndex: 4
+    asserts:
+      - isKind:
+          of: Grafana
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+
+  - it: applies the token secret after the Grafana resource
+    set:
+      projects:
+        - name: aibom
+          groups:
+            - name: editors
+              role: edit
+          grafana:
+            enabled: true
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Secret
+      - equal:
+          path: metadata.annotations["kubernetes.io/service-account.name"]
+          value: grafana-sa
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
