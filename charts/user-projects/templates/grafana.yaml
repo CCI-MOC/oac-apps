@@ -1,21 +1,5 @@
 {{ range .Values.projects }}
 {{- if and .grafana .grafana.enabled }}
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: grafana-sa
-  namespace: "project-{{ .name }}"
-  labels:
-    massopen.cloud/project: "{{ .name }}"
-  annotations:
-    # This makes the service account itself an OAuth client, so no client
-    # secret and no Keycloak client is needed per startup. The proxy sends
-    # users to the route named below after they log in. "primary" is a name we
-    # picked, the docs describe the annotation generically as
-    # oauth-redirectreference.<some-value>.
-    serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
-      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -65,6 +49,10 @@ metadata:
     massopen.cloud/project: "{{ .name }}"
   annotations:
     kubernetes.io/service-account.name: grafana-sa
+    # After the Grafana resource in wave 1, because the operator is what
+    # creates grafana-sa now and this secret names an account that has to
+    # exist already.
+    argocd.argoproj.io/sync-wave: "2"
 # The API server fills this in and keeps it valid. The chart never carries a
 # token, and the datasource reads it from here through valuesFrom, because the
 # operator sends the datasource to Grafana over its API where a ${__file{...}}
@@ -99,6 +87,11 @@ metadata:
     # installed, which is a different Application, so the first sync would
     # otherwise fail its dry run.
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    # Applied before the token secret below, because the operator creates the
+    # service account and the docs are explicit that the account has to exist
+    # first: "If you are creating both the ServiceAccount and the Secret
+    # objects, create the ServiceAccount object first."
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   version: {{ $.Values.defaultGrafana.version | quote }}
   route:
@@ -148,7 +141,21 @@ spec:
           protocol: TCP
   serviceAccount:
     metadata:
-      name: grafana-sa
+      annotations:
+        # The operator creates the service account and owns it, so the chart
+        # cannot create it: it names it after the instance plus "-sa" and then
+        # sets itself as controller, which fails on an account that already
+        # belongs to Argo CD. Everything still refers to grafana-sa because
+        # this instance is called grafana.
+        #
+        # This annotation is the only reason the chart used to create it. It
+        # makes the account its own OAuth client, so no client secret and no
+        # Keycloak client is needed per startup, and the proxy sends users to
+        # the route named below after they log in. "primary" is a name we
+        # picked, the docs describe the annotation generically as
+        # oauth-redirectreference.<some-value>.
+        serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
+          {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}
   config:
     auth:
       # The oauth-proxy in front is what enforces access, so Grafana itself
