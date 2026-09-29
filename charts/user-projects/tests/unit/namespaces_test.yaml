@@ -17,3 +17,19 @@ tests:
     asserts:
       - hasDocuments:
           count: 2
+
+  - it: should label each Namespace for the RHOAI dashboard
+    set:
+      projects:
+        - name: project1
+          groups:
+            - name: editors
+              role: edit
+        - name: project2
+          groups:
+            - name: editors
+              role: edit
+    asserts:
+      - equal:
+          path: metadata.labels["opendatahub.io/dashboard"]
+          value: "true"

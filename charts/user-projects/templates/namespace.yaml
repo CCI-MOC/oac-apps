@@ -5,6 +5,7 @@ metadata:
   name: "project-{{ .name }}"
   labels:
     massopen.cloud/project: "{{ .name }}"
+    opendatahub.io/dashboard: "true"
   annotations:
     {{- if .description }}
     massopen.cloud/project-description: "{{ .description }}"
