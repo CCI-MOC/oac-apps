@@ -6,6 +6,12 @@ trap 'rm -f "$tmpfile"' EXIT
 
 for chart in charts/*; do
   lint_args=()
+
+  if [[ -f "$chart/.nolint" ]]; then
+    echo "WARNING: skipping $chart because of .nolint flag" >&2
+    continue
+  fi
+
   if [[ -f "$chart/ci/test-values.yaml" ]]; then
     lint_args+=(-f "$chart/ci/test-values.yaml")
   fi
