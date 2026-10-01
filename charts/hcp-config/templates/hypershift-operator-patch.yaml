@@ -8,18 +8,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
-  selector:
-    matchLabels:
-      app: operator
   template:
-    metadata:
-      labels:
-        app: operator
     spec:
       containers:
         - name: operator
           env:
             - name: METRICS_SET
-              value: "All"
+              value: SRE
 {{- end }}
 {{- end }}
