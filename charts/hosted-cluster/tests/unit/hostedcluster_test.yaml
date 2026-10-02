@@ -255,6 +255,92 @@ tests:
           path: spec.configuration.oauth.identityProviders[1].name
           value: htpasswd
 
+  - it: should synthesize a mocsso identity provider when enabled
+    set:
+      managementCluster: oac-dev-infra
+      oauth:
+        mocsso:
+          enabled: true
+    asserts:
+      - equal:
+          path: spec.configuration.oauth.identityProviders
+          value:
+            - name: mocsso
+              mappingMethod: claim
+              type: OpenID
+              openID:
+                clientID: test-cluster
+                clientSecret:
+                  name: test-cluster-keycloak-client-secret
+                claims:
+                  preferredUsername:
+                    - preferred_username
+                    - username
+                  name:
+                    - name
+                    - full name
+                  email:
+                    - email
+                  groups:
+                    - groups
+                issuer: https://sso.massopen.cloud/realms/moc
+                extraScopes:
+                  - groups
+
+  - it: should allow overriding mocsso fields
+    set:
+      managementCluster: oac-dev-infra
+      oauth:
+        mocsso:
+          enabled: true
+          clientID: custom-client
+          secretName: custom-secret
+          name: custom-mocsso
+          mappingMethod: lookup
+          issuer: https://sso.example.com/realms/custom
+    asserts:
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].name
+          value: custom-mocsso
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].mappingMethod
+          value: lookup
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].openID.clientID
+          value: custom-client
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].openID.clientSecret.name
+          value: custom-secret
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].openID.issuer
+          value: https://sso.example.com/realms/custom
+
+  - it: should let explicit identityProviders win over mocsso
+    set:
+      managementCluster: oac-dev-infra
+      oauth:
+        mocsso:
+          enabled: true
+        identityProviders:
+          - name: github
+            type: GitHub
+            mappingMethod: claim
+            github:
+              clientID: abc123
+              clientSecret:
+                name: my-github-secret
+    asserts:
+      - equal:
+          path: spec.configuration.oauth.identityProviders
+          value:
+            - name: github
+              type: GitHub
+              mappingMethod: claim
+              github:
+                clientID: abc123
+                clientSecret:
+                  name: my-github-secret
+
   - it: should let strategy-level hostname override derived hostname
     set:
       services:

@@ -89,7 +89,11 @@ spec:
   sshKey:
     name: {{ .Values.sshKey.name }}
   configuration:
-    {{- with .Values.oauth.identityProviders }}
+    {{- $identityProviders := .Values.oauth.identityProviders }}
+    {{- if and (not $identityProviders) .Values.oauth.mocsso.enabled }}
+    {{- $identityProviders = list (include "hosted-cluster.mocssoIdentityProvider" . | fromYaml) }}
+    {{- end }}
+    {{- with $identityProviders }}
     oauth:
       identityProviders:
         {{- toYaml . | nindent 8 }}
