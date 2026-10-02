@@ -93,3 +93,4 @@ clusterLabels:
   massopen.cloud/feature-gpu: "true"
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-rossoctl: "true"
+  massopen.cloud/feature-uat-harness: "true"

@@ -1,0 +1,25 @@
+{{- /*
+uat-project is where tests run, uat-peer is the second tenant the cross-namespace
+tests need, and uat-runner holds the pod that drives a run unattended.
+
+The massopen.cloud/project label is what makes restrict-tenant-networks treat
+these as tenant namespaces. That is deliberate: the harness checks tenant
+isolation, so its namespaces have to be isolated the way a tenant's are.
+
+opendatahub.io/dashboard is the other label user-projects puts on every tenant
+namespace, so it is here for the same reason: the harness should run in a
+namespace that looks like the ones users get.
+*/}}
+{{- range list "uat-project" "uat-peer" "uat-runner" }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ . }}
+  labels:
+    massopen.cloud/project: "true"
+    opendatahub.io/dashboard: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec: {}
+---
+{{- end }}

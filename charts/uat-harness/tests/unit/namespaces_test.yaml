@@ -1,0 +1,64 @@
+suite: uat-harness Namespaces and NetworkPolicies
+templates:
+  - templates/namespace.yaml
+  - templates/networkpolicy.yaml
+
+tests:
+  - it: should create the three namespaces
+    template: templates/namespace.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+      - containsDocument:
+          kind: Namespace
+          apiVersion: v1
+          name: uat-project
+          any: true
+      - containsDocument:
+          kind: Namespace
+          apiVersion: v1
+          name: uat-peer
+          any: true
+      - containsDocument:
+          kind: Namespace
+          apiVersion: v1
+          name: uat-runner
+          any: true
+
+  # restrict-tenant-networks selects on this label existing. Without it the
+  # namespaces would sit outside tenant isolation, which the harness is there
+  # to test.
+  - it: should label every namespace as a tenant
+    template: templates/namespace.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["massopen.cloud/project"]
+          value: "true"
+
+  # The second label user-projects gives every tenant namespace. If that chart
+  # gains another, this one should follow.
+  - it: should carry the dashboard label tenant namespaces get
+    template: templates/namespace.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["opendatahub.io/dashboard"]
+          value: "true"
+
+  - it: should create the namespaces before what goes in them
+    template: templates/namespace.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-1"
+
+  - it: should allow same-namespace traffic in every namespace
+    template: templates/networkpolicy.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: spec.ingress[0].from[0].podSelector
+          value: {}
+      - equal:
+          path: spec.egress[0].to[0].podSelector
+          value: {}

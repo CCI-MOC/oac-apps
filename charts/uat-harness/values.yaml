@@ -1,0 +1,17 @@
+# The group whose members operate the harness: they launch the runner pod and
+# may run tests by hand in the test namespaces. Managed in Keycloak.
+group: project-uat
+
+storage:
+  storageClassName: pure-fb-nfsv4
+  # A size can be raised later, the storage class allows expansion, but never
+  # lowered: Kubernetes rejects a smaller request on an existing claim.
+  sizes:
+    # uat-project-storage and uat-peer-storage, the per-run test results.
+    results: 50Gi
+    # uat-models in uat-project and uat-peer, the pre-downloaded model weights.
+    models: 100Gi
+    # uat-runner-storage: repo clones, build output, run logs and timesheets.
+    runner: 100Gi
+    # uat-runner-bin: the oc binary staged for the runner pod.
+    runnerBin: 10Gi
