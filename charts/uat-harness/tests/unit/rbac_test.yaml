@@ -1,0 +1,83 @@
+suite: uat-harness RBAC
+templates:
+  - templates/rolebinding.yaml
+
+tests:
+  - it: should fail when no group is set
+    set:
+      group: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: group must be set
+
+  - it: should create six RoleBindings
+    asserts:
+      - hasDocuments:
+          count: 6
+
+  - it: should bind the harness group in all three namespaces
+    asserts:
+      - equal:
+          path: subjects[0]
+          value:
+            kind: Group
+            name: project-uat
+            apiGroup: rbac.authorization.k8s.io
+        documentSelector:
+          path: metadata.name
+          value: uat-user-binding
+          matchMany: true
+      - equal:
+          path: subjects[0].name
+          value: project-uat
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-user-binding
+
+  - it: should bind a different group when one is given
+    set:
+      group: some-other-group
+    asserts:
+      - equal:
+          path: subjects[0].name
+          value: some-other-group
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-user-binding
+
+  # The runner drives tests in uat-project and uat-peer, so its service account
+  # needs the test role in both, and it must be the account in uat-runner.
+  - it: should give the runner service account the test role in both test namespaces
+    asserts:
+      - equal:
+          path: subjects[0]
+          value:
+            kind: ServiceAccount
+            name: uat-runner-sa
+            namespace: uat-runner
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-sa-project-binding
+      - equal:
+          path: roleRef.name
+          value: uat-user-role
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-sa-project-binding
+      - equal:
+          path: metadata.namespace
+          value: uat-peer
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-sa-peer-binding
+
+  # In its own namespace the runner account only reads. Creating the runner pod
+  # is left to people.
+  - it: should keep the runner service account read-only in its own namespace
+    asserts:
+      - equal:
+          path: roleRef.name
+          value: uat-runner-role
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-sa-self-binding
