@@ -4,47 +4,8 @@ release:
   image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
 
 oauth:
-  identityProviders:
-    - name: mocsso
-      mappingMethod: claim
-      type: OpenID
-      openID:
-        clientID: oac-prod-workload0
-        clientSecret:
-          name: oac-prod-workload0-keycloak-client-secret
-        claims:
-          preferredUsername:
-            - preferred_username
-            - username
-          name:
-            - name
-            - full name
-          email:
-            - email
-          groups:
-            - groups
-        issuer: https://sso.massopen.cloud/realms/moc
-
-externalSecrets:
-  - name: oac-prod-workload0-keycloak-client-secret
-    spec:
-      data:
-        - remoteRef:
-            conversionStrategy: Default
-            decodingStrategy: None
-            key: cluster/oac-prod-infra/hostedcluster/oac-prod-workload0/keycloak-oidc
-            metadataPolicy: None
-            nullBytePolicy: Ignore
-            property: client_secret
-          secretKey: clientSecret
-      refreshInterval: 1h
-      secretStoreRef:
-        kind: ClusterSecretStore
-        name: aws-secrets-manager
-      target:
-        creationPolicy: Owner
-        deletionPolicy: Retain
-        name: oac-prod-workload0-keycloak-client-secret
+  mocsso:
+    enabled: true
 
 services:
   APIServer:
