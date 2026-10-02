@@ -43,3 +43,44 @@ projects:
     quota:
       hard:
         requests.nvidia.com/gpu: "4"
+
+  - name: uat-project
+    requester: asanaull@redhat.com
+    description: "AI UAT harness: primary test namespace"
+    groups:
+      - name: project-uat
+        role: edit
+      - name: system:serviceaccounts:project-uat-runner
+        role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "999"
+        requests.cpu: "128"
+        limits.cpu: "128"
+        requests.memory: "1Ti"
+        limits.memory: "1Ti"
+        requests.storage: "150Gi"
+
+  - name: uat-peer
+    requester: asanaull@redhat.com
+    description: "AI UAT harness: peer namespace for the cross-namespace and peer-load tests"
+    groups:
+      - name: project-uat
+        role: edit
+      - name: system:serviceaccounts:project-uat-runner
+        role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "999"
+        requests.cpu: "128"
+        limits.cpu: "128"
+        requests.memory: "1Ti"
+        limits.memory: "1Ti"
+        requests.storage: "150Gi"
+
+  - name: uat-runner
+    requester: asanaull@redhat.com
+    description: "AI UAT harness: unattended runner pod, its logs and timesheets"
+    groups:
+      - name: project-uat
+        role: edit
