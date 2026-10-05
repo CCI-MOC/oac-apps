@@ -100,6 +100,25 @@ through to the backend). Backends are plain TCP.
 > TLS handshake dies. (This session hit it as a `10.29.9.10` vs
 > `10.20.9.10` typo.)
 
+**Timeouts:** set these on the `<cluster>-api`, `<cluster>-ingress-secure`
+and `<cluster>-ingress-insecure` frontends and backends:
+
+| Where    | Field          | Value               |
+| -------- | -------------- | ------------------- |
+| Frontend | Client timeout | `3600000` (ms = 1h) |
+| Backend  | Server timeout | `3600000` (ms = 1h) |
+
+If these fields are left empty, the pfSense HAProxy package uses
+[30000 ms](https://github.com/pfsense/FreeBSD-ports/blob/a621624266b1/net/pfSense-pkg-haproxy/files/usr/local/pkg/haproxy/haproxy.inc#L1944-L1948).
+Then every connection without traffic for 30s is closed: `oc logs -f` dies
+with `error: unexpected EOF` and `oc get pods -w` just exits
+([MOC-issues#470](https://github.com/CCI-MOC/MOC-issues/issues/470)). The
+same hits quiet websockets on ingress (console terminal, notebooks). 1h
+matches the OpenShift router default for long-lived connections
+([`timeout tunnel 1h`](https://github.com/openshift/router/blob/6c5868c9670b/images/router/haproxy/conf/haproxy-config.template#L173)).
+Leave **Connection timeout** at its default, it only limits how long
+opening the TCP connection to the backend may take.
+
 ## 3. Firewall rules — _Firewall › Rules_
 
 **External inbound — WAN transit interface (`opt4`, "NEU").** Lets the
@@ -133,3 +152,13 @@ From a shell whose `KUBECONFIG` points at the guest cluster, run
 data-plane node, tests the OAuth TLS handshake, and prints the `ingress`
 and `console` operator status. Both operators should report
 `AVAILABLE=True` and `DEGRADED=False`.
+
+Check the HAProxy timeouts from outside: a watch on a quiet namespace must
+keep running longer than 31s (with the 30s default it ends after ~31s):
+
+```sh
+time oc --server https://api-external-<cluster>.hcp.oac.massopen.cloud:6443 \
+  get pods -n kube-system -w
+```
+
+Stop it with Ctrl-C after a minute or so.
