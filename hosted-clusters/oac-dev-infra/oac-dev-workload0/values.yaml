@@ -94,3 +94,4 @@ clusterLabels:
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-rossoctl: "true"
   massopen.cloud/feature-uat-harness: "true"
+  massopen.cloud/feature-user-workloads: "true"
