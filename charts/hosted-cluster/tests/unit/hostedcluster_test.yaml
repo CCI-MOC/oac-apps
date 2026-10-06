@@ -398,3 +398,66 @@ tests:
               type: Route
               route:
                 hostname: ignition-test-cluster.hcp.infra.oac.int.massopen.cloud
+
+  # Forwarding is opt-in. A hosted cluster that does not ask for it must not
+  # grow a spec.monitoring block at all.
+  - it: does not set monitoring unless asked
+    asserts:
+      - notExists:
+          path: spec.monitoring
+
+  # mode must always be rendered when metricsForwarding exists. OCP 4.22
+  # Hosted control planes 13.5.2 warns that an empty mode disables forwarding,
+  # so a template branch that omits it would silently do nothing.
+  - it: always renders mode when forwarding is configured
+    set:
+      monitoring:
+        metricsForwarding:
+          metricsSet: SRE
+    asserts:
+      - equal:
+          path: spec.monitoring.metricsForwarding.mode
+          value: Forward
+      - equal:
+          path: spec.monitoring.metricsForwarding.metricsSet
+          value: SRE
+
+  - it: forwards control plane metrics into the hosted cluster
+    set:
+      monitoring:
+        metricsForwarding:
+          mode: Forward
+          metricsSet: SRE
+    asserts:
+      - equal:
+          path: spec.monitoring.metricsForwarding.mode
+          value: Forward
+      - equal:
+          path: spec.monitoring.metricsForwarding.metricsSet
+          value: SRE
+
+  - it: can turn forwarding off explicitly
+    set:
+      monitoring:
+        metricsForwarding:
+          mode: None
+    asserts:
+      - equal:
+          path: spec.monitoring.metricsForwarding.mode
+          value: None
+      - notExists:
+          path: spec.monitoring.metricsForwarding.metricsSet
+
+  # The cluster-wide default sits one level up. 13.5.2 gives the precedence as
+  # metricsForwarding.metricsSet over metricsSet over the global METRICS_SET
+  # env var, so both places have to be reachable from values.
+  - it: sets the cluster wide metrics set without touching forwarding
+    set:
+      monitoring:
+        metricsSet: SRE
+    asserts:
+      - equal:
+          path: spec.monitoring.metricsSet
+          value: SRE
+      - notExists:
+          path: spec.monitoring.metricsForwarding
