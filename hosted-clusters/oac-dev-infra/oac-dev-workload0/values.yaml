@@ -55,3 +55,17 @@ clusterLabels:
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-rossoctl: "true"
   massopen.cloud/feature-user-workloads: "true"
+
+# Dev only, and this cluster only. The billing code needs
+# kube_pod_resource_request from the scheduler, which runs as a control plane
+# pod on the hub, so the metric sits in the hub's monitoring while
+# kube_pod_labels from kube-state-metrics sits here. Forwarding puts both in
+# one place.
+#
+# metricsSet is the cluster default rather than a forwarding-path override: we
+# want SRE everywhere on this cluster, not a different set for forwarding than
+# for the rest. Telemetry would drop the scheduler metrics again.
+monitoring:
+  metricsSet: SRE
+  metricsForwarding:
+    mode: Forward
