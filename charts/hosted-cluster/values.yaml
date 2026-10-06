@@ -26,7 +26,16 @@ release:
   image: ""
 
 platform:
-  agentNamespace: hardware-inventory
+  # "Agent" for bare-metal clusters, "KubeVirt" for virtualized clusters.
+  type: Agent
+  agent:
+    namespace: hardware-inventory
+  # kubevirt:
+  #   # Name of a pre-existing Secret containing the hypervisor cluster
+  #   # kubeconfig (created by hcp-config). When set, the HostedCluster
+  #   # is configured to run VMs on the separate hypervisor cluster.
+  #   # The infra namespace is derived as clusters-<clusterName>.
+  #   infraKubeConfigSecretName: ""
 
 fips: false
 olmCatalogPlacement: management

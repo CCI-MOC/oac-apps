@@ -1,4 +1,8 @@
 clusterName: oac-dev-workload1
+
+platform:
+  type: Agent
+
 release:
   channel: stable-4.22
   image: quay.io/openshift-release-dev/ocp-release:4.22.15-multi
@@ -46,6 +50,7 @@ nodePools:
 
 clusterLabels:
   massopen.cloud/feature-portworx: "true"
+  massopen.cloud/feature-hypervisor: "true"
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-rossoctl: "true"
   massopen.cloud/feature-metallb: "true"
