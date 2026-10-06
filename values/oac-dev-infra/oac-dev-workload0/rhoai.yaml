@@ -3,3 +3,18 @@
 # offering one that could never schedule.
 enabledHardwareProfiles:
   - nvidia-h100-gpu
+
+# Prerequisites for migrating this cluster from RHOAI 2.25 to 3.x. Scoped to
+# this cluster deliberately: oac-prod-workload0 keeps the chart defaults until
+# its own update window is scheduled.
+dataScienceCluster:
+  components:
+    modelmeshserving: Removed
+    # Unmanaged leaves the existing "default" ClusterQueue in place for the
+    # Red Hat Build of Kueue operator, enabled for this cluster in
+    # kueue-operator.yaml alongside this file; Removed would take it with it.
+    kueue: Unmanaged
+  kserve:
+    defaultDeploymentMode: RawDeployment
+    serving:
+      managementState: Removed

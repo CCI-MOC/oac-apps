@@ -12,7 +12,8 @@ subscription:
   installPlanApproval: Automatic
 
 # The DataScienceCluster that turns the installed operator into a running
-# RHOAI. Every component takes Managed or Removed.
+# RHOAI. Every component takes Managed or Removed; kueue also takes Unmanaged,
+# which hands the queues to the kueue-operator chart.
 dataScienceCluster:
   name: default-dsc
   components:
@@ -28,6 +29,8 @@ dataScienceCluster:
     trustyai: Managed
     workbenches: Managed
   kserve:
+    # Serverless or RawDeployment. RHOAI 3.x removed Serverless.
+    defaultDeploymentMode: Serverless
     serving:
       managementState: Managed
       name: knative-serving

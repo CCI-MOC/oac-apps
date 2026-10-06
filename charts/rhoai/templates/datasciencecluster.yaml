@@ -25,14 +25,18 @@ spec:
       managementState: {{ $dsc.components.datasciencepipelines }}
     kserve:
       managementState: {{ $dsc.components.kserve }}
-      # Requires the serverless and servicemesh operators, which the
-      # gpu-clusters ApplicationSet deploys alongside this chart.
+      # Serverless requires the serverless and servicemesh operators, which the
+      # gpu-clusters ApplicationSet deploys alongside this chart. RawDeployment
+      # does not, and is required by RHOAI 3.x.
+      defaultDeploymentMode: {{ $dsc.kserve.defaultDeploymentMode }}
       serving:
         managementState: {{ $dsc.kserve.serving.managementState }}
+        {{- if ne $dsc.kserve.serving.managementState "Removed" }}
         name: {{ $dsc.kserve.serving.name }}
         ingressGateway:
           certificate:
             type: {{ $dsc.kserve.serving.certificateType }}
+        {{- end }}
     kueue:
       managementState: {{ $dsc.components.kueue }}
     modelmeshserving:

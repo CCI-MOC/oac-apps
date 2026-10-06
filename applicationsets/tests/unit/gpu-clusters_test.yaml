@@ -27,3 +27,19 @@ tests:
       - equal:
           path: spec.template.spec.source.helm.valueFiles[1]
           value: "/values/oac-dev-infra/{{name}}/{{component}}.yaml"
+
+  # The kueue operator ships as its own chart but belongs everywhere RHOAI
+  # goes, so it rides the same component list rather than a placement of
+  # its own.
+  - it: should deploy the kueue operator alongside rhoai
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: kueue-operator
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: rhoai

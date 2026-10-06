@@ -1,0 +1,62 @@
+suite: Kueue operator
+templates:
+  - templates/operator.yaml
+
+tests:
+  # The gpu-clusters ApplicationSet deploys this chart to every cluster that
+  # runs RHOAI, including the ones whose DataScienceCluster still manages
+  # kueue itself. Those must not get the operator.
+  - it: renders nothing unless the cluster opts in
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders namespace, operatorgroup and subscription when enabled
+    set:
+      enabled: true
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: creates the operator namespace
+    set:
+      enabled: true
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Namespace
+      - equal:
+          path: metadata.name
+          value: openshift-kueue-operator
+
+  # The operator only advertises AllNamespaces, so the OperatorGroup must not
+  # name a target namespace. An empty spec means cluster scope.
+  - it: has a cluster-scoped operatorgroup
+    set:
+      enabled: true
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: OperatorGroup
+      - equal:
+          path: spec
+          value: {}
+
+  # Confirmed against the catalog with oc get packagemanifest: kueue-operator
+  # ships only stable-v1.3 and stable-v1.4.
+  - it: subscribes to kueue-operator from redhat-operators
+    set:
+      enabled: true
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Subscription
+      - equal:
+          path: spec.name
+          value: kueue-operator
+      - equal:
+          path: spec.channel
+          value: stable-v1.4
+      - equal:
+          path: spec.source
+          value: redhat-operators
