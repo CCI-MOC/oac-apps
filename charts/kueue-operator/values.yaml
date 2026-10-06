@@ -1,0 +1,27 @@
+# The Red Hat Build of Kueue, which RHOAI 3.x requires in place of the kueue
+# component embedded in the DataScienceCluster.
+#
+# Off by default. This operator and an embedded kueue claim the same
+# ClusterQueues and LocalQueues, so a cluster only turns this on once the
+# rhoai chart sets dataScienceCluster.components.kueue to Unmanaged for it.
+enabled: false
+
+namespace: openshift-kueue-operator
+operatorgroup:
+  targetNamespaces: false
+subscription:
+  channel: stable-v1.4
+  name: kueue-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+# The cluster-wide Kueue instance the operator reconciles.
+kueue:
+  name: cluster
+  managementState: Managed
+  frameworks:
+    - BatchJob
+    - RayJob
+    - RayCluster
+    - PyTorchJob

@@ -1,0 +1,82 @@
+suite: DataScienceCluster
+templates:
+  - templates/datasciencecluster.yaml
+
+tests:
+  - it: should render one cluster-scoped DataScienceCluster
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DataScienceCluster
+      - equal:
+          path: metadata.name
+          value: default-dsc
+
+  # Prod migrates on its own schedule, and a default flipped here would move
+  # it on the next sync with no warning.
+  - it: should default to the pre-migration Serverless configuration
+    asserts:
+      - equal:
+          path: spec.components.kserve.defaultDeploymentMode
+          value: Serverless
+      - equal:
+          path: spec.components.kserve.serving.managementState
+          value: Managed
+      - equal:
+          path: spec.components.kserve.serving.name
+          value: knative-serving
+      - equal:
+          path: spec.components.modelmeshserving.managementState
+          value: Managed
+      - equal:
+          path: spec.components.kueue.managementState
+          value: Managed
+
+  - it: should drop the knative stack when serving is Removed
+    set:
+      dataScienceCluster:
+        kserve:
+          defaultDeploymentMode: RawDeployment
+          serving:
+            managementState: Removed
+    asserts:
+      - equal:
+          path: spec.components.kserve.defaultDeploymentMode
+          value: RawDeployment
+      - equal:
+          path: spec.components.kserve.serving.managementState
+          value: Removed
+      - notExists:
+          path: spec.components.kserve.serving.name
+      - notExists:
+          path: spec.components.kserve.serving.ingressGateway
+
+  - it: should support handing kueue to the standalone operator
+    set:
+      dataScienceCluster:
+        components:
+          kueue: Unmanaged
+    asserts:
+      - equal:
+          path: spec.components.kueue.managementState
+          value: Unmanaged
+
+  - it: should support removing modelmeshserving
+    set:
+      dataScienceCluster:
+        components:
+          modelmeshserving: Removed
+    asserts:
+      - equal:
+          path: spec.components.modelmeshserving.managementState
+          value: Removed
+
+  - it: should sync after the operator and skip the dry-run
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
