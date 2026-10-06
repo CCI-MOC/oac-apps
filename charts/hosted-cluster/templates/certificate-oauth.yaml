@@ -1,3 +1,4 @@
+{{- if ne (.Values.platform.type | default "Agent") "KubeVirt" }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- $oauthHostname := include "hosted-cluster.oauthHostname" . }}
 apiVersion: cert-manager.io/v1
@@ -16,3 +17,4 @@ spec:
     name: {{ .Values.certificate.issuer }}
   renewBefore: {{ .Values.certificate.renewBefore }}
   secretName: {{ $clusterName }}-oauth-certificate
+{{- end }}

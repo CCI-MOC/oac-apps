@@ -1,4 +1,8 @@
 clusterName: oac-dev-workload0
+
+platform:
+  type: Agent
+
 release:
   channel: stable-4.22
   image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi

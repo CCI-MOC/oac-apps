@@ -1,0 +1,8 @@
+apiVersion: v2
+name: hypervisor-cluster
+description: >-
+  Resources for clusters serving as HyperShift KubeVirt hypervisor
+  clusters: per-hosted-cluster namespaces and workarounds for
+  hypervisor-side networking (e.g. patching externalTrafficPolicy on
+  mirror router services).
+version: 0.1.0
