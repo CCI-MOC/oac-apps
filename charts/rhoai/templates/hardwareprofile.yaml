@@ -1,3 +1,4 @@
+{{- if .Values.enabled }}
 {{- $enabled := .Values.enabledHardwareProfiles | default list }}
 {{- range .Values.hardwareProfiles }}
 {{- if has .name $enabled }}
@@ -21,5 +22,6 @@ spec:
     {{- toYaml .identifiers | nindent 4 }}
   scheduling:
     {{- toYaml .scheduling | nindent 4 }}
+{{- end }}
 {{- end }}
 {{- end }}

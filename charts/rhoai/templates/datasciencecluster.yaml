@@ -1,3 +1,4 @@
+{{- if .Values.enabled }}
 {{- $dsc := .Values.dataScienceCluster }}
 apiVersion: datasciencecluster.opendatahub.io/v1
 kind: DataScienceCluster
@@ -52,3 +53,4 @@ spec:
       managementState: {{ $dsc.components.trustyai }}
     workbenches:
       managementState: {{ $dsc.components.workbenches }}
+{{- end }}
