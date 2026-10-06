@@ -1,0 +1,21 @@
+namespace: openshift-kueue-operator
+operatorgroup:
+  targetNamespaces: false
+subscription:
+  channel: stable-v1.4
+  name: kueue-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+# Replaces the embedded kueue component in the DataScienceCluster. The two
+# controllers both claim the same ClusterQueue and LocalQueue resources, so a
+# cluster must run one or the other -- never both.
+kueue:
+  name: cluster
+  managementState: Managed
+  frameworks:
+    - BatchJob
+    - RayJob
+    - RayCluster
+    - PyTorchJob

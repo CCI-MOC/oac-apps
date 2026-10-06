@@ -28,6 +28,8 @@ dataScienceCluster:
     trustyai: Managed
     workbenches: Managed
   kserve:
+    # Serverless or RawDeployment. RHOAI 3.x removed Serverless.
+    defaultDeploymentMode: Serverless
     serving:
       managementState: Managed
       name: knative-serving

@@ -1,0 +1,46 @@
+suite: kueue-clusters ApplicationSet
+templates:
+  - templates/managed/kueue-clusters.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should render the ApplicationSet with hub-wide then per-cluster value files
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: ApplicationSet
+          apiVersion: argoproj.io/v1alpha1
+          name: kueue-clusters
+      - equal:
+          path: spec.template.spec.source.helm.ignoreMissingValueFiles
+          value: true
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[0]
+          value: "/values/oac-dev-infra/{{component}}.yaml"
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[1]
+          value: "/values/oac-dev-infra/{{name}}/{{component}}.yaml"
+
+  - it: should select clusters via the kueue-clusters placement
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].matrix.generators[0].clusterDecisionResource.labelSelector.matchLabels["cluster.open-cluster-management.io/placement"]
+          value: kueue-clusters
+
+  - it: should deploy only the kueue operator
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          value:
+            - component: kueue-operator

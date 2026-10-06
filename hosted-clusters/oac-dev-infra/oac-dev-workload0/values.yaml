@@ -94,3 +94,5 @@ clusterLabels:
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-rossoctl: "true"
   massopen.cloud/feature-user-workloads: "true"
+  # Must move together with kueue: Unmanaged in the cluster's rhoai.yaml.
+  massopen.cloud/feature-kueue: "true"

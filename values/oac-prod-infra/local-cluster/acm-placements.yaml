@@ -14,3 +14,9 @@ placements:
   - name: rossoctl-clusters
     matchLabels:
       massopen.cloud/feature-rossoctl: "true"
+  # Only for clusters whose rhoai.yaml sets kueue: Unmanaged. Running the
+  # operator alongside the embedded component makes two controllers fight over
+  # the same ClusterQueues. No prod cluster carries it yet.
+  - name: kueue-clusters
+    matchLabels:
+      massopen.cloud/feature-kueue: "true"
