@@ -9,6 +9,10 @@ enabledHardwareProfiles:
 # its own update window is scheduled.
 dataScienceCluster:
   components:
+    # RHOAI 3.x drops the CodeFlare operator, and the AppWrapper controller
+    # with it. Removing it here rather than during the migration keeps it from
+    # being left behind, which blocks the ray component from upgrading.
+    codeflare: Removed
     modelmeshserving: Removed
     # Unmanaged leaves the existing "default" ClusterQueue in place for the
     # Red Hat Build of Kueue operator, enabled for this cluster in
