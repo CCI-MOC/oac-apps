@@ -1,3 +1,5 @@
+enabled: true
+
 namespace: redhat-ods-operator
 # Where the dashboard and the rest of the RHOAI workloads run, as opposed to
 # `namespace` above, which holds the operator itself.

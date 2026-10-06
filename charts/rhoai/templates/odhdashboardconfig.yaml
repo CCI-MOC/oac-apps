@@ -1,3 +1,4 @@
+{{- if .Values.enabled }}
 apiVersion: opendatahub.io/v1alpha
 kind: OdhDashboardConfig
 metadata:
@@ -11,3 +12,4 @@ metadata:
 spec:
   dashboardConfig:
     disableHardwareProfiles: {{ .Values.dashboardConfig.disableHardwareProfiles }}
+{{- end }}
