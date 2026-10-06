@@ -13,6 +13,10 @@ spec:
   namespaceSelector:
     matchLabels:
       hypershift.openshift.io/hosted-control-plane: "true"
+  {{- with .Values.ingressController.wildcardPolicy }}
+  routeAdmission:
+    wildcardPolicy: {{ . }}
+  {{- end }}
   endpointPublishingStrategy:
     type: LoadBalancerService
     loadBalancer:
