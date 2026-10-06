@@ -7,6 +7,9 @@ ingressController:
   # when enabled. Accepts any MetalLB address form (CIDR or range), e.g.
   # ["10.20.3.10/32"].
   addresses: []
+  # Set to "WildcardsAllowed" to allow wildcard routes on the hosted-clusters
+  # IngressController. Omit or leave empty to use the default ("WildcardsDisallowed").
+  wildcardPolicy: ""
 
 sshKey:
   aws_secret_name: ""

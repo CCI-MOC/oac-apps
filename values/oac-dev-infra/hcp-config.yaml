@@ -1,2 +1,5 @@
 sshKey:
   aws_secret_name: cluster/oac-infra-dev/sshkey
+
+ingressController:
+  wildcardPolicy: WildcardsAllowed
