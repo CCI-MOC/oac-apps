@@ -14,6 +14,10 @@ ingressController:
 sshKey:
   aws_secret_name: ""
 
+infraClusters: []
+# - name: infra-workload0
+#   awsSecretKey: cluster/<hub>/hostedcluster/infra-workload0/kubeadmin
+
 # Instructs hypershift operator to collect metrics of all control plane
 # components of a hosted cluster
 metricsSet:

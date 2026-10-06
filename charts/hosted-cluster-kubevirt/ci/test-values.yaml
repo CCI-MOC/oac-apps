@@ -1,0 +1,22 @@
+clusterName: test-kubevirt
+
+baseDomain: example.com
+
+release:
+  channel: stable-4.22
+  image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+
+etcd:
+  storageClassName: pure-fb-nfsv4
+
+sshKey:
+  name: oac-ssh-key
+
+nodePools:
+  - name: compute
+    replicas: 2
+    cpu: 8
+    memory: 16Gi
+    disk:
+      size: 120Gi
+      storageClassName: pure-fb-nfsv4

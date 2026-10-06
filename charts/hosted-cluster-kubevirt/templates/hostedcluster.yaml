@@ -1,0 +1,79 @@
+{{- $clusterName := include "hosted-cluster-kubevirt.clusterName" . }}
+{{- $baseDomain := include "hosted-cluster-kubevirt.baseDomain" . }}
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: {{ $clusterName }}
+  namespace: {{ .Values.namespace }}
+spec:
+  controllerAvailabilityPolicy: {{ .Values.controllerAvailabilityPolicy }}
+  dns:
+    baseDomain: {{ $baseDomain }}
+  etcd:
+    managed:
+      storage:
+        persistentVolume:
+          size: {{ .Values.etcd.storageSize }}
+          {{- with .Values.etcd.storageClassName }}
+          storageClassName: {{ . }}
+          {{- end }}
+        type: PersistentVolume
+    managementType: Managed
+  fips: {{ .Values.fips }}
+  networking:
+    clusterNetwork:
+      {{- toYaml .Values.networking.clusterNetwork | nindent 6 }}
+    {{- with .Values.networking.machineNetwork }}
+    machineNetwork:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    networkType: {{ .Values.networking.networkType }}
+    serviceNetwork:
+      {{- toYaml .Values.networking.serviceNetwork | nindent 6 }}
+  platform:
+    type: KubeVirt
+    kubevirt:
+      baseDomainPassthrough: true
+      {{- with .Values.platform.kubevirt.infraKubeConfigSecretName }}
+      credentials:
+        infraKubeConfigSecret:
+          name: {{ . }}
+          key: kubeconfig
+        infraNamespace: clusters-{{ $clusterName }}
+      {{- end }}
+  pullSecret:
+    name: {{ .Values.pullSecret.name }}
+  {{- with .Values.release.channel }}
+  channel: {{ . }}
+  {{- end }}
+  release:
+    image: {{ required "release.image must be set" .Values.release.image }}
+  secretEncryption:
+    aescbc:
+      activeKey:
+        name: {{ $clusterName }}-etcd-encryption-key
+    type: aescbc
+  services:
+    - service: APIServer
+      servicePublishingStrategy:
+        type: {{ dig "APIServer" "type" "LoadBalancer" .Values.services }}
+    - service: Ignition
+      servicePublishingStrategy:
+        type: Route
+    - service: Konnectivity
+      servicePublishingStrategy:
+        type: Route
+    - service: OAuthServer
+      servicePublishingStrategy:
+        type: Route
+    - service: OIDC
+      servicePublishingStrategy:
+        type: Route
+  {{- with .Values.sshKey.name }}
+  sshKey:
+    name: {{ . }}
+  {{- end }}
+  operatorConfiguration:
+    ingressOperator:
+      endpointPublishingStrategy:
+        type: {{ .Values.ingress.type }}

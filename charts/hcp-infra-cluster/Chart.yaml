@@ -1,0 +1,7 @@
+apiVersion: v2
+name: hcp-infra-cluster
+description: >-
+  Resources for clusters serving as HyperShift KubeVirt infrastructure
+  clusters: per-hosted-cluster namespaces and workarounds for infra-side
+  networking (e.g. patching externalTrafficPolicy on mirror router services).
+version: 0.1.0

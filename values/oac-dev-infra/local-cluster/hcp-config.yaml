@@ -7,3 +7,7 @@ ingressController:
   domain: hcp.infra.oac.int.massopen.cloud
   addresses:
     - 10.20.3.10/32
+
+infraClusters:
+  - name: oac-dev-workload1
+    awsSecretKey: cluster/oac-dev-infra/hostedcluster/oac-dev-workload1/kubeadmin

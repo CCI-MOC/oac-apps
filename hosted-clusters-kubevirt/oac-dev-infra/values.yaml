@@ -1,0 +1,8 @@
+# Hub-level values shared by every KubeVirt hosted cluster on oac-dev-infra.
+# The hosted-clusters-kubevirt ApplicationSet layers each cluster's own
+# hosted-clusters-kubevirt/oac-dev-infra/<cluster>/values.yaml on top of this
+# file, so per-cluster files may override any of these values.
+baseDomain: hcp.oac.int.massopen.cloud
+
+sshKey:
+  name: oac-ssh-key
