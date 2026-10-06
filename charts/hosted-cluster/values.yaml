@@ -31,6 +31,23 @@ platform:
 fips: false
 olmCatalogPlacement: management
 
+# Control plane metrics. Off by default: the scheduler and the other control
+# plane components run on the management cluster, so their metrics land in the
+# hub's user workload monitoring, and a hosted cluster only needs them locally
+# if something queries them from inside.
+#
+# Setting metricsForwarding starts metrics-proxy and endpoint-resolver in the
+# control plane and a metrics-forwarder in the hosted cluster. It needs
+# OpenShift 4.22.8 or later and a remote write endpoint already configured at
+# the management cluster level.
+#
+# monitoring:
+#   metricsSet: SRE
+#   metricsForwarding:
+#     mode: Forward
+#     metricsSet: SRE
+monitoring: {}
+
 etcd:
   storageSize: 8Gi
   storageClassName: lvms-vg0
