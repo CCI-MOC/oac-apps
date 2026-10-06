@@ -1,0 +1,65 @@
+suite: sre-metric-set ConfigMap
+templates:
+  - templates/sre-metric-set.yaml
+tests:
+  # Tied to the same switch as the operator patch next to it, and that one
+  # defaults to enabled. Setting METRICS_SET=SRE without these rules filters
+  # nothing at all, so the two belong together rather than being separate
+  # decisions.
+  - it: follows the same switch as the operator patch
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: renders nothing when metricsSet is off
+    set:
+      metricsSet:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The operator looks for this exact name in its own namespace and syncs it
+  # from there into each control plane namespace, so both are fixed.
+  - it: lands where the operator looks for it
+    set:
+      metricsSet:
+        enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: sre-metric-set
+      - equal:
+          path: metadata.namespace
+          value: hypershift
+
+  # The whole point of the file. Without these two rules SRE keeps every
+  # apiserver histogram bucket, which measured as 94% of all samples per
+  # scrape on both hubs.
+  - it: drops the apiserver histogram buckets
+    set:
+      metricsSet:
+        enabled: true
+    asserts:
+      - matchRegex:
+          path: data.config
+          pattern: 'apiserver_request_duration_seconds_bucket;'
+      - matchRegex:
+          path: data.config
+          pattern: 'sourceLabels: \["__name__", "le"\]'
+
+  # kubeScheduler must stay unfiltered. kube_pod_resource_request comes from
+  # its /metrics/resources endpoint and is the reason MOC-issues#481 exists,
+  # so a drop rule here would undo the point of enabling SRE at all.
+  - it: leaves the scheduler alone
+    set:
+      metricsSet:
+        enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data.config
+          pattern: '^kubeScheduler:'

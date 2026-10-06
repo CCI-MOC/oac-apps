@@ -1,0 +1,106 @@
+{{- if .Values.metricsSet }}
+{{- if .Values.metricsSet.enabled }}
+# The HyperShift operator reads this ConfigMap from its own namespace and syncs
+# it into every control plane namespace. Without it METRICS_SET=SRE filters
+# nothing at all: the per-component fields default to nil, and nil means no
+# relabelings rather than dropping everything, so SRE behaves like All.
+#
+# Measured on both hubs before this existed: 675,047 samples per scrape on
+# dev workload0 and 620,243 on prod workload0, of which 94% was kube-apiserver
+# alone. The two bucket rules below are what cut that back.
+#
+# Rules are taken from support/metrics/testdata/sreconfig.yaml upstream, minus
+# the components we do not run into trouble with. kubeScheduler is deliberately
+# absent: kube_pod_resource_request comes from its /metrics/resources endpoint
+# and is the metric MOC-issues#481 is about.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sre-metric-set
+  namespace: hypershift
+data:
+  config: |
+    kubeAPIServer:
+      # Histogram buckets, the expensive part. Filters on two labels: the
+      # metric name and the bucket boundary, so only the fine-grained buckets
+      # go and the coarse ones stay.
+      - action:       "drop"
+        regex:        "apiserver_request_duration_seconds_bucket;(0.15|0.25|0.3|0.35|0.4|0.45|0.6|0.7|0.8|0.9|1.25|1.5|1.75|2.5|3|3.5|4.5|6|7|8|9|15|25|30|50)(\\.0)?"
+        sourceLabels: ["__name__", "le"]
+      # etcd client internals, reported by every component that talks to etcd.
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|server).*"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "etcd_(helper_cache_hit_count|helper_cache_miss_count|helper_cache_entry_count|request_cache_get_latencies_summary|request_cache_add_latencies_summary|request_latencies_summary)"
+        sourceLabels: ["__name__"]
+      # Admission latencies, one series per controller and step.
+      - action:       "drop"
+        regex:        "apiserver_admission_controller_admission_latencies_seconds_.*"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "apiserver_admission_step_admission_latencies_seconds_.*"
+        sourceLabels: ["__name__"]
+      # Metrics that no longer exist on 4.22, kept so the config also works on
+      # older control planes without having to branch.
+      - action:       "drop"
+        regex:        "apiserver_(request_count|request_latencies|request_latencies_summary|dropped_requests|storage_data_key_generation_latencies_microseconds|storage_transformation_failures_total|storage_transformation_latencies_microseconds|proxy_tunnel_sync_latency_secs)"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "docker_(operations|operations_latency_microseconds|operations_errors|operations_timeout)"
+        sourceLabels: ["__name__"]
+      # client-go internals.
+      - action:       "drop"
+        regex:        "reflector_(items_per_list|items_per_watch|list_duration_seconds|lists_total|short_watches_total|watch_duration_seconds|watches_total)"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "transformation_(transformation_latencies_microseconds|failures_total)"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "network_plugin_operations_latency_microseconds|sync_proxy_rules_latency_microseconds|rest_client_request_latency_seconds"
+        sourceLabels: ["__name__"]
+    openshiftAPIServer:
+      - action:       "drop"
+        regex:        "apiserver_request_duration_seconds_bucket;(0.15|0.25|0.3|0.35|0.4|0.45|0.6|0.7|0.8|0.9|1.25|1.5|1.75|2.5|3|3.5|4.5|6|7|8|9|15|25|30|50)(\\.0)?"
+        sourceLabels: ["__name__", "le"]
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|server).*"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "apiserver_admission_controller_admission_latencies_seconds_.*"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "apiserver_admission_step_admission_latencies_seconds_.*"
+        sourceLabels: ["__name__"]
+    kubeControllerManager:
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|request|server).*"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "rest_client_request_latency_seconds_(bucket|count|sum)"
+        sourceLabels: ["__name__"]
+      - action:       "drop"
+        regex:        "root_ca_cert_publisher_sync_duration_seconds_(bucket|count|sum)"
+        sourceLabels: ["__name__"]
+    openshiftControllerManager:
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|request|server).*"
+        sourceLabels: ["__name__"]
+    openshiftRouteControllerManager:
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|request|server).*"
+        sourceLabels: ["__name__"]
+    olm:
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|server).*"
+        sourceLabels: ["__name__"]
+    catalogOperator:
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|server).*"
+        sourceLabels: ["__name__"]
+    cvo:
+      - action:       "drop"
+        regex:        "etcd_(debugging|disk|server).*"
+        sourceLabels: ["__name__"]
+{{- end }}
+{{- end }}
