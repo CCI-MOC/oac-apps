@@ -110,3 +110,67 @@ Derive the external API DNS name (kubeAPIServerDNSName).
 {{- $clusterName := required "clusterName is required" .Values.clusterName -}}
 {{- .Values.kubeAPIServerDNSName | default (printf "api-external-%s.%s" $clusterName (include "hosted-cluster.hcpExternalDomain" .)) -}}
 {{- end -}}
+
+{{/*
+Resolve the mocsso OpenID clientID, defaulting to clusterName.
+*/}}
+{{- define "hosted-cluster.mocssoClientID" -}}
+{{- $clusterName := required "clusterName is required" .Values.clusterName -}}
+{{- .Values.oauth.mocsso.clientID | default $clusterName -}}
+{{- end -}}
+
+{{/*
+Resolve the mocsso client secret name, defaulting to "<clientID>-keycloak-client-secret".
+*/}}
+{{- define "hosted-cluster.mocssoSecretName" -}}
+{{- $clientID := include "hosted-cluster.mocssoClientID" . -}}
+{{- .Values.oauth.mocsso.secretName | default (printf "%s-keycloak-client-secret" $clientID) -}}
+{{- end -}}
+
+{{/*
+Synthesize the single mocsso OpenID identityProviders entry from
+.Values.oauth.mocsso.
+*/}}
+{{- define "hosted-cluster.mocssoIdentityProvider" -}}
+name: {{ .Values.oauth.mocsso.name }}
+mappingMethod: {{ .Values.oauth.mocsso.mappingMethod }}
+type: OpenID
+openID:
+  clientID: {{ include "hosted-cluster.mocssoClientID" . }}
+  clientSecret:
+    name: {{ include "hosted-cluster.mocssoSecretName" . }}
+  claims:
+    preferredUsername:
+      - preferred_username
+      - username
+    name:
+      - name
+      - full name
+    email:
+      - email
+    groups:
+      - groups
+  issuer: {{ .Values.oauth.mocsso.issuer }}
+  extraScopes:
+    - groups
+{{- end -}}
+
+{{/*
+Synthesize the matching externalSecrets entry for mocsso, fetching the OpenID
+client secret from AWS Secrets Manager.
+*/}}
+{{- define "hosted-cluster.mocssoExternalSecret" -}}
+{{- $clusterName := required "clusterName is required" .Values.clusterName -}}
+{{- $managementCluster := include "hosted-cluster.managementCluster" . -}}
+{{- $secretName := include "hosted-cluster.mocssoSecretName" . -}}
+name: {{ $secretName }}
+spec:
+  refreshInterval: 1h
+  target:
+    name: {{ $secretName }}
+  data:
+    - secretKey: clientSecret
+      remoteRef:
+        key: cluster/{{ $managementCluster }}/hostedcluster/{{ $clusterName }}/keycloak-oidc
+        property: client_secret
+{{- end -}}

@@ -39,6 +39,24 @@ spec:
     serviceNetwork:
       {{- toYaml .Values.networking.serviceNetwork | nindent 6 }}
   olmCatalogPlacement: {{ .Values.olmCatalogPlacement }}
+{{- with .Values.monitoring }}
+  monitoring:
+    {{- with .metricsSet }}
+    # The cluster-wide default. The forwarding path can override it below, and
+    # both override the operator's global METRICS_SET.
+    metricsSet: {{ . }}
+    {{- end }}
+    {{- with .metricsForwarding }}
+    metricsForwarding:
+      # mode is written unconditionally, even when values only ask for a
+      # metrics set. An empty mode disables forwarding rather than leaving it
+      # untouched, so omitting it here would silently forward nothing.
+      mode: {{ .mode | default "Forward" }}
+      {{- with .metricsSet }}
+      metricsSet: {{ . }}
+      {{- end }}
+    {{- end }}
+{{- end }}
   platform:
     agent:
       agentNamespace: {{ .Values.platform.agentNamespace }}
@@ -89,7 +107,11 @@ spec:
   sshKey:
     name: {{ .Values.sshKey.name }}
   configuration:
-    {{- with .Values.oauth.identityProviders }}
+    {{- $identityProviders := .Values.oauth.identityProviders }}
+    {{- if and (not $identityProviders) .Values.oauth.mocsso.enabled }}
+    {{- $identityProviders = list (include "hosted-cluster.mocssoIdentityProvider" . | fromYaml) }}
+    {{- end }}
+    {{- with $identityProviders }}
     oauth:
       identityProviders:
         {{- toYaml . | nindent 8 }}
