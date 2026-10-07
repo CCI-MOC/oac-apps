@@ -25,6 +25,7 @@ spec:
           - component: hcp-config
           - component: acm-gitops-integration
           - component: acm-placements
+          - component: acm-observability
           - component: cluster-observability-operator
           - component: cluster-version
           - component: object-storage-proxy
