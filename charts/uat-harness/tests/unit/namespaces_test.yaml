@@ -33,7 +33,22 @@ tests:
     asserts:
       - equal:
           path: metadata.labels["massopen.cloud/project"]
-          value: "true"
+          value: uat-project
+        documentSelector:
+          path: metadata.name
+          value: uat-project
+      - equal:
+          path: metadata.labels["massopen.cloud/project"]
+          value: uat-peer
+        documentSelector:
+          path: metadata.name
+          value: uat-peer
+      - equal:
+          path: metadata.labels["massopen.cloud/project"]
+          value: uat-runner
+        documentSelector:
+          path: metadata.name
+          value: uat-runner
 
   # The second label user-projects gives every tenant namespace. If that chart
   # gains another, this one should follow.
@@ -50,6 +65,13 @@ tests:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
           value: "-1"
+
+  - it: should keep every namespace out of pruning and cascade deletion
+    template: templates/namespace.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: Prune=false,Delete=false
 
   - it: should allow same-namespace traffic in every namespace
     template: templates/networkpolicy.yaml

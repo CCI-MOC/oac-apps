@@ -6,7 +6,7 @@ Prune=false and Delete=false keep a claim, and the data on it, when it drops out
 of this chart or the Application is removed. With automated pruning a rename or
 a bad revert would otherwise delete the volume, and uat-runner-storage holds
 run logs that cannot be regenerated. Removing a claim for real is then a manual
-step. Deleting the namespace still takes its claims with it.
+step.
 */}}
 {{- $sizes := .Values.storage.sizes }}
 {{- $claims := list

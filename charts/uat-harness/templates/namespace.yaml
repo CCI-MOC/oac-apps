@@ -16,10 +16,11 @@ kind: Namespace
 metadata:
   name: {{ . }}
   labels:
-    massopen.cloud/project: "true"
+    massopen.cloud/project: {{ . | quote }}
     opendatahub.io/dashboard: "true"
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
 spec: {}
 ---
 {{- end }}
