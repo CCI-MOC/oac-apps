@@ -24,16 +24,6 @@ projects:
     grafana:
       enabled: true
 
-  - name: asago
-    requester: memalhot@redhat.com
-    description: "Project Asago is an open-source AI safety and governance orchestration project"
-    groups:
-      - name: project-asago
-        role: edit
-    quota:
-      hard:
-        requests.nvidia.com/gpu: "4"
-
   - name: eldritchjs-sandbox
     requester: jschless@redhat.com
     description: "EldritchJS tasks"
