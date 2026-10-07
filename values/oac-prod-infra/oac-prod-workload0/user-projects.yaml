@@ -21,7 +21,12 @@ projects:
     quota:
       hard:
         requests.nvidia.com/gpu: "20"
-        requests.storage: "500Gi"
+        requests.cpu: "320"
+        limits.cpu: "320"
+        requests.memory: "2Ti"
+        limits.memory: "2Ti"
+        requests.storage: "2Ti"
+        pods: "50"
 
   - name: accelidea
     requester: memalhot@redhat.com
