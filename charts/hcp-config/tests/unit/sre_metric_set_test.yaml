@@ -60,6 +60,12 @@ tests:
       metricsSet:
         enabled: true
     asserts:
+      # (?m) is load-bearing: without it ^ anchors to the start of the whole
+      # config string, which begins with kubeAPIServer, so a kubeScheduler
+      # section added on any later line would slip through.
       - notMatchRegex:
           path: data.config
-          pattern: '^kubeScheduler:'
+          pattern: '(?m)^kubeScheduler:'
+      - notMatchRegex:
+          path: data.config
+          pattern: '(?m)^kubeSchedulerResourceMetrics:'
