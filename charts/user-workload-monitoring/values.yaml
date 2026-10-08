@@ -1,8 +1,28 @@
 # The switch that turns user workload monitoring on, in the config map the
-# cluster monitoring operator reads. Nothing else belongs here: the workload
-# prometheus never reads this object, so retention or storage set here would
-# silently do nothing.
+# cluster monitoring operator reads. Note what this object is not: the workload
+# prometheus never reads it, so workload retention set here would silently do
+# nothing. The platform block below does belong here, it configures the
+# prometheus that reads this very object.
 enable: true
+
+# Tuning for the platform prometheus, the one in openshift-monitoring. Off by
+# default: the install mounts emptyDir there, and writing a volumeClaimTemplate
+# makes the cluster monitoring operator rebuild the stateful set, which drops
+# whatever history that instance holds. That is a per cluster decision, so it is
+# made in a values file rather than here.
+#
+# Retention without a volume is decoration. The default install already carries
+# retention: 15d and loses everything when the pod is recreated, which is what
+# this block is for.
+platform:
+  enabled: false
+  retention: 15d
+  # Two independent limits, as below. The size cap is what protects the volume.
+  retentionSize: 40GiB
+  volume:
+    size: 50Gi
+    # Same reasoning as for the workload volume below.
+    storageClassName: ""
 
 # Tuning for the workload prometheus, which is a different config map in a
 # different namespace. The two are kept apart on purpose.

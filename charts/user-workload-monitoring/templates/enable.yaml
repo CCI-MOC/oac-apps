@@ -15,4 +15,22 @@ data:
   # own template.
   config.yaml: |
     enableUserWorkload: true
+    {{- with .Values.platform }}
+    {{- if .enabled }}
+    prometheusK8s:
+      retention: {{ .retention }}
+      retentionSize: {{ .retentionSize }}
+      # Without this the operator mounts emptyDir and the retention above is
+      # decoration: the history goes with the pod. Adding it makes the operator
+      # rebuild the stateful set once, which drops what is there now.
+      volumeClaimTemplate:
+        spec:
+          {{- with .volume.storageClassName }}
+          storageClassName: {{ . }}
+          {{- end }}
+          resources:
+            requests:
+              storage: {{ .volume.size }}
+    {{- end }}
+    {{- end }}
 {{- end }}

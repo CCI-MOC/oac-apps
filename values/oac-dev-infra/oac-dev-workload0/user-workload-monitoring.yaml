@@ -1,0 +1,19 @@
+# Pilot for persistent platform metrics, this cluster only.
+#
+# The platform prometheus here carries retention: 15d out of the box and keeps
+# none of it: the install mounts emptyDir, so the history goes with the pod.
+# Measured 2026-10-08, hours after a pod restart: oldest sample 0.03 hours,
+# blocks 0 MiB, against 15.2 days and 228 MiB in the UWM next to it, which has
+# a volume.
+#
+# Sizing: 489,601 active series. The UWM instance on this cluster stores about
+# 2,145 bytes per series and day, which puts 15 days at roughly 15 GiB. That
+# number comes from workload metrics though, and platform metrics have a
+# different label cardinality, so the size cap sits well above it and the volume
+# above that, leaving room for the WAL, head chunks and compaction.
+platform:
+  enabled: true
+  retention: 15d
+  retentionSize: 25GiB
+  volume:
+    size: 32Gi
