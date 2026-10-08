@@ -1,0 +1,5 @@
+apiVersion: v2
+name: acm-observability
+description: ACM Observability metrics for hosted clusters
+version: 0.1.0
+type: application
