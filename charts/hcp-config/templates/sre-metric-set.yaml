@@ -13,6 +13,11 @@
 # the components we do not run into trouble with. kubeScheduler is deliberately
 # absent: kube_pod_resource_request comes from its /metrics/resources endpoint
 # and is the metric MOC-issues#481 is about.
+#
+# Note this differs from Red Hat's own example, which does list kubeScheduler
+# with drop rules on the old scheduler_*_microseconds metrics. Those would not
+# hit kube_pod_resource_request, so the component could be added back with
+# their rules; leaving it out keeps the scheduler endpoints entirely untouched.
 apiVersion: v1
 kind: ConfigMap
 metadata:
