@@ -52,9 +52,11 @@ tests:
           path: data.config
           pattern: 'sourceLabels: \["__name__", "le"\]'
 
-  # kubeScheduler must stay unfiltered. kube_pod_resource_request comes from
-  # its /metrics/resources endpoint and is the reason MOC-issues#481 exists,
-  # so a drop rule here would undo the point of enabling SRE at all.
+  # Both scheduler fields must stay unfiltered, and kubeSchedulerResourceMetrics
+  # is the one that carries the weight: the ServiceMonitor has two endpoints and
+  # kube_pod_resource_request comes from /metrics/resources, which that field
+  # drives rather than kubeScheduler. It is the reason MOC-issues#481 exists, so
+  # a drop rule on either would undo the point of enabling SRE at all.
   - it: leaves the scheduler alone
     set:
       metricsSet:

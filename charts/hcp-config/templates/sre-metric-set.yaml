@@ -9,15 +9,23 @@
 # dev workload0 and 620,243 on prod workload0, of which 94% was kube-apiserver
 # alone. The two bucket rules below are what cut that back.
 #
+# These rules reach the ServiceMonitors the control plane operator writes on the
+# management cluster. They do not reach the forwarding path: metrics-proxy runs
+# its own filter that evaluates only `keep` rules, and its component switch has
+# no scheduler entry at all, so a drop-only config like this one changes nothing
+# for what gets forwarded into a hosted cluster.
+#
 # Rules are taken from support/metrics/testdata/sreconfig.yaml upstream, minus
-# the components we do not run into trouble with. kubeScheduler is deliberately
-# absent: kube_pod_resource_request comes from its /metrics/resources endpoint
-# and is the metric MOC-issues#481 is about.
+# the components we do not run into trouble with. Both scheduler fields are
+# deliberately absent, and kubeSchedulerResourceMetrics is the one that matters:
+# the ServiceMonitor has two endpoints, and kube_pod_resource_request comes from
+# /metrics/resources, which that field drives rather than kubeScheduler.
+# It is the metric MOC-issues#481 is about.
 #
 # Note this differs from Red Hat's own example, which does list kubeScheduler
 # with drop rules on the old scheduler_*_microseconds metrics. Those would not
 # hit kube_pod_resource_request, so the component could be added back with
-# their rules; leaving it out keeps the scheduler endpoints entirely untouched.
+# their rules; leaving it out keeps both scheduler endpoints untouched.
 apiVersion: v1
 kind: ConfigMap
 metadata:
