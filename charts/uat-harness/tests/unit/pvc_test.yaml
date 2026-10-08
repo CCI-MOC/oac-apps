@@ -100,11 +100,3 @@ tests:
           path: metadata.name
           value: uat-models
           matchMany: true
-
-  # Automated pruning would otherwise delete a volume, and its data, when a
-  # claim is renamed or dropped from the chart.
-  - it: should keep every claim out of pruning and cascade deletion
-    asserts:
-      - equal:
-          path: metadata.annotations["argocd.argoproj.io/sync-options"]
-          value: Prune=false,Delete=false

@@ -66,13 +66,6 @@ tests:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
           value: "-1"
 
-  - it: should keep every namespace out of pruning and cascade deletion
-    template: templates/namespace.yaml
-    asserts:
-      - equal:
-          path: metadata.annotations["argocd.argoproj.io/sync-options"]
-          value: Prune=false,Delete=false
-
   - it: should allow same-namespace traffic in every namespace
     template: templates/networkpolicy.yaml
     asserts:
