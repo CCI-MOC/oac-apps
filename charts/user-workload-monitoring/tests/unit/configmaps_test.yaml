@@ -57,6 +57,55 @@ tests:
           path: data["config.yaml"]
           pattern: 'retentionSize: 18GiB'
 
+  # Off by default on purpose. Turning it on makes the cluster monitoring
+  # operator rebuild the platform stateful set, which drops the history that
+  # instance holds, so it is a decision per cluster rather than a chart default.
+  - it: leaves the platform prometheus alone unless a cluster asks for it
+    template: templates/enable.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: prometheusK8s
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: volumeClaimTemplate
+
+  # The retention is the point, but the volume is what makes it real: the
+  # default install carries retention: 15d on emptyDir and loses everything
+  # when the pod is recreated.
+  - it: gives the platform prometheus retention and a volume when switched on
+    template: templates/enable.yaml
+    set:
+      platform:
+        enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: '(?m)^prometheusK8s:'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retention: 15d'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retentionSize: 40GiB'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'storage: 50Gi'
+      # The switch has to survive, it is what the other config map depends on.
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'enableUserWorkload: true'
+
+  - it: leaves the platform storage class to the cluster by default
+    template: templates/enable.yaml
+    set:
+      platform:
+        enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: storageClassName
+
   # Naming a storage class here would pin one cluster's fact into a chart that
   # runs on several. Leaving the key out uses the cluster default, which OCP
   # documents: "The default storage class can be used and storageClassName can
