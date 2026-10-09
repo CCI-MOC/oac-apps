@@ -1,0 +1,97 @@
+suite: DataScienceCluster
+templates:
+  - templates/datasciencecluster.yaml
+set:
+  enabled: true
+
+tests:
+  - it: should render one cluster-scoped DataScienceCluster
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DataScienceCluster
+      - equal:
+          path: metadata.name
+          value: default-dsc
+
+  # The 2.x chart renders v1. Rendering v1 here would be accepted by the
+  # operator's conversion webhook and silently give back the 2.x component
+  # set, which is the whole thing this chart exists to avoid.
+  - it: should use the v2 API
+    asserts:
+      - isAPIVersion:
+          of: datasciencecluster.opendatahub.io/v2
+
+  # The operator rejects Managed for kueue at runtime, so there is no value
+  # of this field that both installs Kueue and keeps the DSC valid.
+  - it: should hand kueue to the standalone operator
+    asserts:
+      - equal:
+          path: spec.components.kueue.managementState
+          value: Unmanaged
+
+  # Queues live in the kueue-operator chart; the operator creating its own
+  # would leave Argo fighting over them.
+  - it: should leave queue creation to git
+    asserts:
+      - equal:
+          path: spec.components.kueue.autoCreateQueues
+          value: false
+
+  # Serverless is gone in 3.x, and with it the knative stack the 2.x chart
+  # had to configure.
+  - it: should not carry any serving configuration
+    asserts:
+      - notExists:
+          path: spec.components.kserve.serving
+      - notExists:
+          path: spec.components.kserve.defaultDeploymentMode
+      - equal:
+          path: spec.components.kserve.rawDeploymentServiceConfig
+          value: Headless
+
+  # Both were dropped from the v2 schema, so naming either is a rejected CR
+  # rather than a component that stays off.
+  - it: should not name components 3.x removed
+    asserts:
+      - notExists:
+          path: spec.components.codeflare
+      - notExists:
+          path: spec.components.modelmeshserving
+      - notExists:
+          path: spec.components.datasciencepipelines
+
+  - it: should enable pipelines under their 3.x name
+    asserts:
+      - equal:
+          path: spec.components.aipipelines.managementState
+          value: Managed
+
+  # trainingoperator is supported only through 3.5's full-support phase, so
+  # the replacement is the one that runs.
+  - it: should run trainer rather than trainingoperator
+    asserts:
+      - equal:
+          path: spec.components.trainer.managementState
+          value: Managed
+      - equal:
+          path: spec.components.trainingoperator.managementState
+          value: Removed
+
+  # ogx needs Service Mesh 3.x back on the cluster, which migrating off 2.x
+  # is meant to get rid of.
+  - it: should leave ogx off by default
+    asserts:
+      - equal:
+          path: spec.components.ogx.managementState
+          value: Removed
+
+  - it: should sync after the operator and skip the dry-run
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true

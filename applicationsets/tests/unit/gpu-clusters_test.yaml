@@ -43,3 +43,19 @@ tests:
           path: spec.generators[0].matrix.generators[1].list.elements
           content:
             component: rhoai
+
+  # 2.x and 3.x are separate charts, and both ship everywhere. Which one a
+  # cluster runs is decided by the enabled flag in its values, not by this
+  # list, so dropping either one here would strand a cluster mid-migration.
+  - it: should deploy both RHOAI major versions
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: rhoai
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: rhoai3

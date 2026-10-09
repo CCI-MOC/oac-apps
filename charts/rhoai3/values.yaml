@@ -1,0 +1,129 @@
+# RHOAI 3.x, which is a different enough product from the 2.x the `rhoai`
+# chart installs that it gets its own chart rather than a version switch: the
+# DataScienceCluster moved to v2, components were renamed and dropped, and
+# OdhDashboardConfig is gone. Both charts ship to every GPU cluster, so a
+# cluster runs exactly one of them by enabling this and disabling `rhoai`.
+#
+# Off by default: 3.x cannot be reached by upgrading an installed 2.x, so a
+# cluster only turns this on after 2.x has been uninstalled from it.
+enabled: false
+
+namespace: redhat-ods-operator
+applicationsNamespace: redhat-ods-applications
+operatorgroup:
+  targetNamespaces: false
+subscription:
+  channel: stable-3.5
+  name: rhods-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+# The DataScienceCluster that turns the installed operator into a running
+# RHOAI. Components take Managed or Removed, except kueue; see below.
+dataScienceCluster:
+  name: default-dsc
+  components:
+    aigateway: Removed
+    aipipelines: Managed
+    dashboard: Managed
+    feastoperator: Removed
+    kserve: Managed
+    # Managed is rejected at runtime by the 3.x operator, which keeps the
+    # value only so a 2.x DataScienceCluster still converts. Unmanaged hands
+    # the queues to the kueue-operator chart, which is the only way to run
+    # Kueue under 3.x.
+    kueue: Unmanaged
+    llamastackoperator: Removed
+    mcplifecycleoperator: Removed
+    mlflowoperator: Removed
+    modelregistry: Removed
+    ogx: Removed
+    ray: Managed
+    sparkoperator: Removed
+    trainer: Managed
+    trainingoperator: Removed
+    trustyai: Managed
+    workbenches: Managed
+  aigateway:
+    batchGateway: Removed
+  kserve:
+    # 3.x dropped Serverless, so there is no deployment mode to choose and no
+    # knative stack to configure: RawDeployment is the only mode.
+    rawDeploymentServiceConfig: Headless
+    nim: Managed
+    modelsAsService: Removed
+    wva: Removed
+  kueue:
+    autoCreateQueues: false
+  modelregistry:
+    registriesNamespace: rhoai-model-registries
+
+enabledHardwareProfiles: []
+
+hardwareProfiles:
+  - name: nvidia-h100-gpu
+    displayName: NVIDIA H100 GPU
+    identifiers:
+      - identifier: cpu
+        displayName: CPU
+        resourceType: CPU
+        minCount: 1
+        maxCount: "14"
+        defaultCount: 2
+      - identifier: memory
+        displayName: Memory
+        resourceType: Memory
+        minCount: 2Gi
+        maxCount: 56Gi
+        defaultCount: 8Gi
+      - identifier: nvidia.com/gpu
+        displayName: gpu
+        resourceType: Accelerator
+        minCount: 1
+        maxCount: 4
+        defaultCount: 1
+    scheduling:
+      type: Node
+      node:
+        nodeSelector: {}
+        # Must match the taint on the GPU nodes, or workbenches are never
+        # scheduled and anything already running is evicted. nfd-operator
+        # taints every GPU node NoSchedule, keyed on the product name, so each
+        # profile tolerates only its own GPU model.
+        tolerations:
+          - key: nvidia.com/gpu.product
+            operator: Equal
+            value: NVIDIA-H100-80GB-HBM3
+            effect: NoSchedule
+
+  - name: nvidia-a100-gpu
+    displayName: NVIDIA A100 GPU
+    identifiers:
+      - identifier: cpu
+        displayName: CPU
+        resourceType: CPU
+        minCount: 1
+        maxCount: "14"
+        defaultCount: 2
+      - identifier: memory
+        displayName: Memory
+        resourceType: Memory
+        minCount: 2Gi
+        maxCount: 56Gi
+        defaultCount: 8Gi
+      - identifier: nvidia.com/gpu
+        displayName: gpu
+        resourceType: Accelerator
+        minCount: 1
+        maxCount: 4
+        defaultCount: 1
+    scheduling:
+      type: Node
+      node:
+        nodeSelector: {}
+        tolerations:
+          - key: nvidia.com/gpu.product
+            operator: Equal
+            value: NVIDIA-A100-SXM4-40GB
+            effect: NoSchedule

@@ -1,0 +1,43 @@
+suite: Enabled gate
+templates:
+  - templates/operator.yaml
+  - templates/datasciencecluster.yaml
+  - templates/hardwareprofile.yaml
+
+tests:
+  # Every cluster in the gpu-clusters placement gets this chart, and all but
+  # the migrated ones are still on 2.x. Rendering by default would install a
+  # second RHOAI alongside the one the rhoai chart put there.
+  - it: should render nothing by default
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render the operator once a cluster opts in
+    template: templates/operator.yaml
+    set:
+      enabled: true
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: should render the DataScienceCluster once a cluster opts in
+    template: templates/datasciencecluster.yaml
+    set:
+      enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should render opted-in hardware profiles once a cluster opts in
+    template: templates/hardwareprofile.yaml
+    set:
+      enabled: true
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - hasDocuments:
+          count: 1
