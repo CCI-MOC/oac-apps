@@ -1,0 +1,5 @@
+apiVersion: v2
+name: uat-harness
+description: Namespaces, RBAC and storage for the AI UAT harness
+type: application
+version: 0.1.0

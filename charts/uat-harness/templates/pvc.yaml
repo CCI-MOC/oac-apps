@@ -1,0 +1,28 @@
+{{- /*
+Every claim is ReadWriteMany because test pods on different nodes write to the
+same volume at once.
+*/}}
+{{- $sizes := .Values.storage.sizes }}
+{{- $claims := list
+  (dict "namespace" "uat-project" "name" "uat-project-storage" "size" $sizes.results)
+  (dict "namespace" "uat-project" "name" "uat-models" "size" $sizes.models)
+  (dict "namespace" "uat-peer" "name" "uat-peer-storage" "size" $sizes.results)
+  (dict "namespace" "uat-peer" "name" "uat-models" "size" $sizes.models)
+  (dict "namespace" "uat-runner" "name" "uat-runner-storage" "size" $sizes.runner)
+  (dict "namespace" "uat-runner" "name" "uat-runner-bin" "size" $sizes.runnerBin)
+}}
+{{- range $claims }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .name }}
+  namespace: {{ .namespace }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ $.Values.storage.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .size }}
+---
+{{- end }}
