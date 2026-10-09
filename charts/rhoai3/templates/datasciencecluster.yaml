@@ -1,0 +1,61 @@
+{{- if .Values.enabled }}
+{{- $dsc := .Values.dataScienceCluster }}
+apiVersion: datasciencecluster.opendatahub.io/v2
+kind: DataScienceCluster
+metadata:
+  name: {{ $dsc.name }}
+  labels:
+    app.kubernetes.io/name: datasciencecluster
+    app.kubernetes.io/instance: {{ $dsc.name }}
+    app.kubernetes.io/part-of: rhods-operator
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  components:
+    aigateway:
+      managementState: {{ $dsc.components.aigateway }}
+      batchGateway:
+        managementState: {{ $dsc.aigateway.batchGateway }}
+    aipipelines:
+      managementState: {{ $dsc.components.aipipelines }}
+    dashboard:
+      managementState: {{ $dsc.components.dashboard }}
+    feastoperator:
+      managementState: {{ $dsc.components.feastoperator }}
+    kserve:
+      managementState: {{ $dsc.components.kserve }}
+      rawDeploymentServiceConfig: {{ $dsc.kserve.rawDeploymentServiceConfig }}
+      nim:
+        managementState: {{ $dsc.kserve.nim }}
+      modelsAsService:
+        managementState: {{ $dsc.kserve.modelsAsService }}
+      wva:
+        managementState: {{ $dsc.kserve.wva }}
+    kueue:
+      managementState: {{ $dsc.components.kueue }}
+      autoCreateQueues: {{ $dsc.kueue.autoCreateQueues }}
+    llamastackoperator:
+      managementState: {{ $dsc.components.llamastackoperator }}
+    mcplifecycleoperator:
+      managementState: {{ $dsc.components.mcplifecycleoperator }}
+    mlflowoperator:
+      managementState: {{ $dsc.components.mlflowoperator }}
+    modelregistry:
+      managementState: {{ $dsc.components.modelregistry }}
+      registriesNamespace: {{ $dsc.modelregistry.registriesNamespace }}
+    ogx:
+      managementState: {{ $dsc.components.ogx }}
+    ray:
+      managementState: {{ $dsc.components.ray }}
+    sparkoperator:
+      managementState: {{ $dsc.components.sparkoperator }}
+    trainer:
+      managementState: {{ $dsc.components.trainer }}
+    trainingoperator:
+      managementState: {{ $dsc.components.trainingoperator }}
+    trustyai:
+      managementState: {{ $dsc.components.trustyai }}
+    workbenches:
+      managementState: {{ $dsc.components.workbenches }}
+{{- end }}

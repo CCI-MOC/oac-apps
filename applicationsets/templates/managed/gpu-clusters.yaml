@@ -24,7 +24,11 @@ spec:
                 - component: serverless-operator
                 - component: servicemesh-operator
                 # component: sriov-network-operator
+                # A cluster runs one of these, never both: rhoai installs
+                # 2.x, rhoai3 installs 3.x, and each is gated by its own
+                # enabled flag.
                 - component: rhoai
+                - component: rhoai3
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"
