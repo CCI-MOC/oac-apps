@@ -48,4 +48,5 @@ clusterLabels:
   massopen.cloud/feature-portworx: "true"
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-rossoctl: "true"
+  massopen.cloud/feature-metallb: "true"
   massopen.cloud/feature-user-workloads: "true"
