@@ -1,0 +1,117 @@
+suite: HostedCluster
+templates:
+  - templates/hostedcluster.yaml
+set:
+  clusterName: test-kubevirt
+  baseDomain: example.com
+  release:
+    channel: stable-4.22
+    image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+  sshKey:
+    name: oac-ssh-key
+
+tests:
+  - it: should fail when clusterName is not set
+    set:
+      clusterName: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: clusterName must be set
+
+  - it: should fail when baseDomain is not set
+    set:
+      baseDomain: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: baseDomain must be set
+
+  - it: should fail when release.image is not set
+    set:
+      release:
+        image: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: release.image must be set
+
+  - it: should render a HostedCluster with correct metadata
+    asserts:
+      - containsDocument:
+          kind: HostedCluster
+          apiVersion: hypershift.openshift.io/v1beta1
+          name: test-kubevirt
+          namespace: clusters
+
+  - it: should publish all required services
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: LoadBalancer
+      - contains:
+          path: spec.services
+          content:
+            service: Ignition
+            servicePublishingStrategy:
+              type: Route
+      - contains:
+          path: spec.services
+          content:
+            service: Konnectivity
+            servicePublishingStrategy:
+              type: Route
+      - contains:
+          path: spec.services
+          content:
+            service: OAuthServer
+            servicePublishingStrategy:
+              type: Route
+      - contains:
+          path: spec.services
+          content:
+            service: OIDC
+            servicePublishingStrategy:
+              type: Route
+
+  - it: should render machineNetwork when set
+    set:
+      networking:
+        machineNetwork:
+          - cidr: 10.132.0.0/14
+    asserts:
+      - equal:
+          path: spec.networking.machineNetwork[0].cidr
+          value: 10.132.0.0/14
+
+  - it: should omit machineNetwork when not set
+    asserts:
+      - notExists:
+          path: spec.networking.machineNetwork
+
+  - it: should omit infra credentials when infraKubeConfigSecretKey is not set
+    asserts:
+      - notExists:
+          path: spec.platform.kubevirt.credentials
+
+  - it: should render infra credentials when infraKubeConfigSecretKey is set
+    set:
+      platform:
+        kubevirt:
+          infraKubeConfigSecretKey: cluster/oac-dev-infra/hostedcluster/oac-dev-workload1/kubeadmin
+    asserts:
+      - equal:
+          path: spec.platform.kubevirt.credentials.infraKubeConfigSecret.name
+          value: test-kubevirt-infra-kubeconfig
+      - equal:
+          path: spec.platform.kubevirt.credentials.infraNamespace
+          value: clusters-test-kubevirt
+
+  - it: should omit channel when not set
+    set:
+      release:
+        channel: ""
+        image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+    asserts:
+      - notExists:
+          path: spec.channel

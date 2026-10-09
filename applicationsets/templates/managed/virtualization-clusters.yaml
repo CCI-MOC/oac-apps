@@ -17,6 +17,8 @@ spec:
           - list:
               elements:
                 - component: openshift-virtualization
+                - component: patch-operator
+                - component: hcp-infra-cluster
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"

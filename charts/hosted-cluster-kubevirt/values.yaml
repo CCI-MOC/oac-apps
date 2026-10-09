@@ -1,0 +1,63 @@
+clusterName: ""
+
+namespace: clusters
+
+baseDomain: ""
+
+release:
+  channel: ""
+  image: ""
+
+controllerAvailabilityPolicy: HighlyAvailable
+
+fips: false
+
+etcd:
+  storageSize: 8Gi
+  # this should specify a storage class on the management cluster
+  storageClassName: ""
+
+# When using an external infra cluster:
+# - clusterNetwork and serviceNetwork must not overlap with the infra
+#   cluster's clusterNetwork or serviceNetwork
+# - machineNetwork must equal the infra cluster's clusterNetwork
+networking:
+  clusterNetwork:
+    - cidr: 10.132.0.0/14
+  machineNetwork: []
+  networkType: OVNKubernetes
+  serviceNetwork:
+    - cidr: 172.31.0.0/16
+
+platform:
+  kubevirt:
+    # Name of a pre-existing Secret containing the infra cluster
+    # kubeconfig (created by hcp-config). When set, the HostedCluster
+    # is configured to run VMs on the separate infra cluster.
+    # The infra namespace is derived as clusters-<clusterName>.
+    infraKubeConfigSecretName: ""
+
+nodePools: []
+# - name: compute
+#   replicas: 2
+#   cpu: 8
+#   memory: 16Gi
+#   disk:
+#     size: 120Gi
+#     # this should specify a storage class on the infrastructure cluster
+#     storageClassName: ""
+
+sshKey:
+  name: ""
+
+pullSecret:
+  name: pull-secret
+
+services: {}
+
+ingress:
+  type: LoadBalancerService
+
+dns:
+  enabled: false
+  records: []

@@ -1,0 +1,4 @@
+namespace: patch-operator
+
+hostedClusters: []
+# - oac-dev-workload2

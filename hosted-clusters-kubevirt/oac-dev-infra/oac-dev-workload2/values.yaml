@@ -1,0 +1,29 @@
+clusterName: oac-dev-workload2
+
+release:
+  channel: stable-4.22
+  image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+
+networking:
+  clusterNetwork:
+    - cidr: 10.136.0.0/14
+  machineNetwork:
+    - cidr: 10.132.0.0/14
+  serviceNetwork:
+    - cidr: 172.32.0.0/16
+
+platform:
+  kubevirt:
+    infraKubeConfigSecretName: oac-dev-workload1-kubeconfig
+
+etcd:
+  storageClassName: pure-fb-nfsv4
+
+nodePools:
+  - name: compute
+    replicas: 2
+    cpu: 8
+    memory: 16Gi
+    disk:
+      size: 120Gi
+      storageClassName: pure-fb-nfsv4

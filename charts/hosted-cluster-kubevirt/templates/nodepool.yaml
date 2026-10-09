@@ -1,0 +1,30 @@
+{{- $clusterName := include "hosted-cluster-kubevirt.clusterName" . }}
+{{- range .Values.nodePools }}
+---
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: {{ $clusterName }}-{{ .name }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  clusterName: {{ $clusterName }}
+  management:
+    autoRepair: {{ .autoRepair | default false }}
+    upgradeType: {{ .upgradeType | default "Replace" }}
+  release:
+    image: {{ $.Values.release.image }}
+  replicas: {{ .replicas }}
+  platform:
+    type: KubeVirt
+    kubevirt:
+      compute:
+        cores: {{ .cpu }}
+        memory: {{ .memory }}
+      rootVolume:
+        persistent:
+          size: {{ .disk.size }}
+          {{- with .disk.storageClassName }}
+          storageClassName: {{ . }}
+          {{- end }}
+        type: Persistent
+{{- end }}
