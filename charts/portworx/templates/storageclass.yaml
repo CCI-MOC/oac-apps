@@ -3,6 +3,7 @@ kind: StorageClass
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: Replace=true,Force=true
 {{ if .Values.portworx.is_default_storage_class }}
     storageclass.kubernetes.io/is-default-class: 'true'
 {{ end }}
@@ -24,6 +25,7 @@ parameters:
   backend: pure_file
   pure_nfs_server: {{ .Values.portworx.nfs_server }}
   pure_nfs_policy: {{ .Values.portworx.nfs_policy }}
+  pure_fb_snapshot_directory_enabled: {{ .Values.portworx.snapshot_directory | quote }}
 provisioner: pxd.portworx.com
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
