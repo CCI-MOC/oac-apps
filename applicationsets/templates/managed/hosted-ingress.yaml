@@ -10,7 +10,7 @@ spec:
         configMapRef: acm-placement
         labelSelector:
           matchLabels:
-            cluster.open-cluster-management.io/placement: all-managed-clusters
+            cluster.open-cluster-management.io/placement: metallb-clusters
         requeueAfterSeconds: 180
   template:
     metadata:
