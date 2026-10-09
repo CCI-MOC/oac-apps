@@ -1,0 +1,24 @@
+invoiceDailyCheck:
+  schedule: "0 7 * * *"
+
+invoiceMonthlyProcessing:
+  schedule: "0 14 1 * *"
+
+image: ghcr.io/cci-moc/invoicing:main
+
+secrets:
+  githubDeployKey:
+    name: ""
+    key: ""
+  s3KeyId:
+    name: ""
+    key: ""
+  s3AppKey:
+    name: ""
+    key: ""
+  keycloakClientId:
+    name: ""
+    key: ""
+  keycloakClientSecret:
+    name: ""
+    key: ""
