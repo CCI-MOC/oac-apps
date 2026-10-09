@@ -1,9 +1,10 @@
 {{- if .Values.enabled }}
 {{- $enabled := .Values.enabledHardwareProfiles | default list }}
+{{- $apiVersion := ternary "infrastructure.opendatahub.io/v1" "infrastructure.opendatahub.io/v1alpha1" (eq (toString .Values.rhoaiVersion) "3") }}
 {{- range .Values.hardwareProfiles }}
 {{- if has .name $enabled }}
 ---
-apiVersion: infrastructure.opendatahub.io/v1alpha1
+apiVersion: {{ $apiVersion }}
 kind: HardwareProfile
 metadata:
   name: {{ .name }}
