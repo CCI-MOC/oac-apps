@@ -18,7 +18,6 @@ spec:
               elements:
                 - component: no-self-provisioners
                 - component: external-secrets
-                - component: metallb
                 - component: cert-manager
                 - component: cluster-certificates
                 - component: oac-simple-rbac
