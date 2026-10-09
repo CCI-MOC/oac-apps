@@ -2,32 +2,35 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: hosted-ingress
+  name: metallb-clusters
   namespace: openshift-gitops
 spec:
   generators:
-    - clusterDecisionResource:
-        configMapRef: acm-placement
-        labelSelector:
-          matchLabels:
-            cluster.open-cluster-management.io/placement: metallb-clusters
-        requeueAfterSeconds: 180
+    - matrix:
+        generators:
+          - clusterDecisionResource:
+              configMapRef: acm-placement
+              labelSelector:
+                matchLabels:
+                  cluster.open-cluster-management.io/placement: metallb-clusters
+              requeueAfterSeconds: 180
+          - list:
+              elements:
+                - component: metallb
   template:
     metadata:
-      name: "{{`{{name}}`}}-hosted-ingress"
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
     spec:
       project: default
       source:
         repoURL: https://github.com/CCI-MOC/oac-apps.git
         targetRevision: main
-        path: charts/hosted-ingress
+        path: "charts/{{`{{component}}`}}"
         helm:
           ignoreMissingValueFiles: true
           valueFiles:
-            # Single source of truth: the hosted cluster's own values file. The
-            # chart consumes only ingress.poolAddress; all other keys are ignored.
-            - "/hosted-clusters/{{ $hub }}/values.yaml"
-            - "/hosted-clusters/{{ $hub }}/{{`{{name}}`}}/values.yaml"
+            - "/values/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
       destination:
         server: "{{`{{server}}`}}"
       syncPolicy:

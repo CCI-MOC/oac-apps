@@ -14,3 +14,6 @@ placements:
   - name: rossoctl-clusters
     matchLabels:
       massopen.cloud/feature-rossoctl: "true"
+  - name: metallb-clusters
+    matchLabels:
+      massopen.cloud/feature-metallb: "true"
