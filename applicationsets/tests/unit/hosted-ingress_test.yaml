@@ -19,7 +19,7 @@ tests:
           apiVersion: argoproj.io/v1alpha1
           name: hosted-ingress
 
-  - it: should select guest clusters via the all-managed-clusters placement
+  - it: should select guest clusters via the metallb-clusters placement
     set:
       hubName: oac-dev-infra
     asserts:
@@ -28,7 +28,7 @@ tests:
           value: acm-placement
       - equal:
           path: spec.generators[0].clusterDecisionResource.labelSelector.matchLabels["cluster.open-cluster-management.io/placement"]
-          value: all-managed-clusters
+          value: metallb-clusters
 
   - it: should deploy the hosted-ingress chart to the guest cluster
     set:
