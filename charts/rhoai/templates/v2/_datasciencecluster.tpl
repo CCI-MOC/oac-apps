@@ -1,0 +1,57 @@
+{{- /* RHOAI 2.x. Rendered by templates/datasciencecluster.yaml. */ -}}
+{{- define "rhoai.datasciencecluster.v2" }}
+{{- $dsc := .Values.dataScienceCluster.v2 }}
+apiVersion: datasciencecluster.opendatahub.io/v1
+kind: DataScienceCluster
+metadata:
+  # DataScienceCluster is cluster-scoped and the operator only reconciles one.
+  name: {{ .Values.dataScienceCluster.name }}
+  labels:
+    app.kubernetes.io/name: datasciencecluster
+    app.kubernetes.io/instance: {{ .Values.dataScienceCluster.name }}
+    app.kubernetes.io/part-of: rhods-operator
+  annotations:
+    # The operator goes in wave 0 (set by operator-library), this CR follows in
+    # wave 1. SkipDryRun is needed because the datasciencecluster CRD is absent
+    # on a first sync, and a failed dry-run would abort the whole sync,
+    # including the Subscription that installs the CRD.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  components:
+    codeflare:
+      managementState: {{ $dsc.components.codeflare }}
+    dashboard:
+      managementState: {{ $dsc.components.dashboard }}
+    datasciencepipelines:
+      managementState: {{ $dsc.components.datasciencepipelines }}
+    kserve:
+      managementState: {{ $dsc.components.kserve }}
+      # Serverless requires the serverless and servicemesh operators, which the
+      # gpu-clusters ApplicationSet deploys alongside this chart. RawDeployment
+      # does not, and is required by RHOAI 3.x.
+      defaultDeploymentMode: {{ $dsc.kserve.defaultDeploymentMode }}
+      serving:
+        managementState: {{ $dsc.kserve.serving.managementState }}
+        {{- if ne $dsc.kserve.serving.managementState "Removed" }}
+        name: {{ $dsc.kserve.serving.name }}
+        ingressGateway:
+          certificate:
+            type: {{ $dsc.kserve.serving.certificateType }}
+        {{- end }}
+    kueue:
+      managementState: {{ $dsc.components.kueue }}
+    modelmeshserving:
+      managementState: {{ $dsc.components.modelmeshserving }}
+    modelregistry:
+      managementState: {{ $dsc.components.modelregistry }}
+      registriesNamespace: {{ $dsc.modelregistry.registriesNamespace }}
+    ray:
+      managementState: {{ $dsc.components.ray }}
+    trainingoperator:
+      managementState: {{ $dsc.components.trainingoperator }}
+    trustyai:
+      managementState: {{ $dsc.components.trustyai }}
+    workbenches:
+      managementState: {{ $dsc.components.workbenches }}
+{{- end }}
