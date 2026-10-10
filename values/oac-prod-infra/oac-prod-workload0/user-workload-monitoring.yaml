@@ -1,0 +1,17 @@
+# Same as the dev clusters, see oac-dev-workload0 for the reasoning: the
+# platform prometheus carries retention: 15d on emptyDir and keeps none of it.
+#
+# Measured here on 2026-10-10: 418,849 active series, and the instance held
+# 1.9 minutes of history with 0 MiB of blocks, because the pod had just been
+# rebuilt. So the rollout costs this cluster nothing, it loses that history
+# continuously as it is.
+#
+# Sizing from the platform measurement on dev-workload1, 2,901 bytes per series
+# and day, which puts 15 days at about 17 GiB here. The cap sits above that and
+# the volume above the cap, leaving room for WAL, head chunks and compaction.
+platform:
+  enabled: true
+  retention: 15d
+  retentionSize: 25GiB
+  volume:
+    size: 32Gi
