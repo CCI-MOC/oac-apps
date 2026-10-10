@@ -1,0 +1,19 @@
+# Same as oac-dev-workload0, see that file for the reasoning: the platform
+# prometheus carries retention: 15d on emptyDir and keeps none of it.
+#
+# Measured here on 2026-10-10: 260,495 active series, and 1,205 MiB of blocks
+# over 40 hours, which is 721 MiB a day or 2,901 bytes per series and day. That
+# is the first rate measured on platform metrics rather than extrapolated from
+# the UWM instance, and it puts 15 days at about 11 GiB on this cluster.
+#
+# The 40 hours are not retention, they are the age of the pod: it started
+# 2026-10-08T15:03:09Z and emptyDir lives as long as the pod does. The two
+# other clusters measured 0 MiB only because their pods had just been rebuilt.
+# So the rollout does drop those 1,205 MiB, but so would the next operator
+# update, node drain or reboot. What changes is that it stops happening.
+platform:
+  enabled: true
+  retention: 15d
+  retentionSize: 25GiB
+  volume:
+    size: 32Gi
