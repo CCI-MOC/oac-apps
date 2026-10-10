@@ -37,3 +37,15 @@ spec:
   network:
     dataInterface: "net1"
     mgmtInterface: "net1"
+  env:
+    # FlashBlade file systems carry a read-only .snapshot directory by default.
+    # An application that locks its data directory on start walks into it and
+    # dies: thanos-receive restarted 273 times on the prod hub with "lock DB
+    # directory: open /var/thanos/receive/.snapshot/lock: read-only file
+    # system", so ACM observability never came up at all.
+    #
+    # This only affects volumes created from here on. The .snapshot directory on
+    # a volume that already exists has to be switched off in the FlashBlade
+    # console, under Special Directories on that file system.
+    - name: PURE_DEFAULT_ENABLE_FB_NFS_SNAPSHOT
+      value: "{{ .Values.portworx.fb_nfs_snapshot | toString }}"

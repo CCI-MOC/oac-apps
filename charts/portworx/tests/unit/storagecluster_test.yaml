@@ -1,0 +1,31 @@
+suite: portworx storage cluster
+templates:
+  - templates/storagecluster.yaml
+values:
+  - ../../ci/test-values.yaml
+tests:
+  # FlashBlade adds a read-only .snapshot directory unless this is off, and any
+  # application that locks its data directory on start dies on it. thanos-receive
+  # restarted 273 times on the prod hub before this was found.
+  - it: turns the FlashBlade snapshot directory off
+    asserts:
+      - isKind:
+          of: StorageCluster
+      - contains:
+          path: spec.env
+          content:
+            name: PURE_DEFAULT_ENABLE_FB_NFS_SNAPSHOT
+            value: "false"
+
+  # A bare boolean would render as no value at all, which Kubernetes rejects on
+  # an env entry, so the template casts it.
+  - it: still renders a string when a cluster asks for the snapshot directory
+    set:
+      portworx:
+        fb_nfs_snapshot: true
+    asserts:
+      - contains:
+          path: spec.env
+          content:
+            name: PURE_DEFAULT_ENABLE_FB_NFS_SNAPSHOT
+            value: "true"
