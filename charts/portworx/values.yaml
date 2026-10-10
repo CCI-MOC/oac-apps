@@ -17,6 +17,19 @@ portworx:
   nfs_server: nfs-server
   nfs_policy: export-policy
 
+  # Off, because the read-only .snapshot directory FlashBlade adds breaks any
+  # application that locks its data directory on start. Portworx names the same
+  # symptom for restores.
+  #
+  # This is the FlashBlade directory on the NFS export, not the CSI VolumeSnapshot
+  # API: "Determines whether the .snapshot directory is enabled on FlashBlade
+  # filesystems or not". Nothing on these clusters uses VolumeSnapshots, so there
+  # is nothing to lose either way.
+  #
+  # Applies to volumes created after this is set; existing ones need the Snapshot
+  # option cleared in the FlashBlade console.
+  fb_nfs_snapshot: false
+
   # What the RHOAI dashboard shows for this storage class.
   dashboard:
     display_name: pure-fb-nfsv4
