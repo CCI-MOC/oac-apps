@@ -39,10 +39,13 @@ projects: []
 #   groups:
 #     - name: example-group
 #       role: edit
+#   grafana:
+#     enabled: true
 
-# Per project Grafana. Off unless a project opts in, so existing projects are
-# untouched. Enabling it costs the project Grafana plus the oauth-proxy sidecar
-# in the same pod, against its own quota.
+# grafana.enabled above is per project, off by default. This Grafana stores
+# nothing, it reads thanos-querier, so the project inherits the cluster's
+# retention. Its panels render even where that is the age of the pod, so check
+# platform.enabled before promising anyone fifteen days.
 defaultGrafana:
   version: "11.3.0"
   # The image the console itself uses for authenticating routes. Matches the
