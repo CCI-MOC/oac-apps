@@ -29,6 +29,8 @@ spec:
                 - component: restrict-tenant-networks
                 - component: dns-operator-config
                 - component: grafana-operator
+  syncPolicy:
+    preserveResourcesOnDeletion: true
   template:
     metadata:
       name: "{{`{{name}}`}}-{{`{{component}}`}}"
