@@ -1,0 +1,102 @@
+suite: uat-harness PersistentVolumeClaims
+templates:
+  - templates/pvc.yaml
+
+tests:
+  - it: should create the six claims the harness mounts
+    asserts:
+      - hasDocuments:
+          count: 6
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-project-storage
+          namespace: uat-project
+          any: true
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-models
+          namespace: uat-project
+          any: true
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-peer-storage
+          namespace: uat-peer
+          any: true
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-models
+          namespace: uat-peer
+          any: true
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-runner-storage
+          namespace: uat-runner
+          any: true
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-runner-bin
+          namespace: uat-runner
+          any: true
+
+  - it: should use the default sizes
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 50Gi
+        documentSelector:
+          path: metadata.name
+          value: uat-project-storage
+      - equal:
+          path: spec.resources.requests.storage
+          value: 100Gi
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-storage
+      - equal:
+          path: spec.resources.requests.storage
+          value: 10Gi
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-bin
+
+  # A per-cluster values file overrides a single size without restating the
+  # others, which is how a claim is grown after the fact.
+  - it: should let one size be overridden on its own
+    set:
+      storage:
+        sizes:
+          runner: 200Gi
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 200Gi
+        documentSelector:
+          path: metadata.name
+          value: uat-runner-storage
+      - equal:
+          path: spec.resources.requests.storage
+          value: 50Gi
+        documentSelector:
+          path: metadata.name
+          value: uat-peer-storage
+
+  # Both model claims follow the one models size.
+  - it: should size the model claim the same in both namespaces
+    set:
+      storage:
+        sizes:
+          models: 200Gi
+    asserts:
+      - equal:
+          path: spec.resources.requests.storage
+          value: 200Gi
+        documentSelector:
+          path: metadata.name
+          value: uat-models
+          matchMany: true

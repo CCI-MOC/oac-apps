@@ -1,0 +1,75 @@
+{{- $group := required "group must be set" .Values.group }}
+# People: members of the harness group, in each of the three namespaces.
+{{- range list "uat-project" "uat-peer" }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: uat-user-binding
+  namespace: {{ . }}
+subjects:
+  - kind: Group
+    name: {{ $group | quote }}
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: uat-user-role
+  apiGroup: rbac.authorization.k8s.io
+---
+{{- end }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: uat-runner-user-binding
+  namespace: uat-runner
+subjects:
+  - kind: Group
+    name: {{ $group | quote }}
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: uat-runner-user-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# The runner service account: read-only on its own namespace, and the same
+# rights a person has in the two namespaces it runs tests in.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: uat-runner-sa-self-binding
+  namespace: uat-runner
+subjects:
+  - kind: ServiceAccount
+    name: uat-runner-sa
+    namespace: uat-runner
+roleRef:
+  kind: Role
+  name: uat-runner-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: uat-runner-sa-project-binding
+  namespace: uat-project
+subjects:
+  - kind: ServiceAccount
+    name: uat-runner-sa
+    namespace: uat-runner
+roleRef:
+  kind: Role
+  name: uat-user-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: uat-runner-sa-peer-binding
+  namespace: uat-peer
+subjects:
+  - kind: ServiceAccount
+    name: uat-runner-sa
+    namespace: uat-runner
+roleRef:
+  kind: Role
+  name: uat-user-role
+  apiGroup: rbac.authorization.k8s.io

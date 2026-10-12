@@ -54,6 +54,7 @@ clusterLabels:
   massopen.cloud/feature-gpu: "true"
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-rossoctl: "true"
+  massopen.cloud/feature-uat-harness: "true"
   massopen.cloud/feature-user-workloads: "true"
 
 # Dev only, and this cluster only. The billing code needs
