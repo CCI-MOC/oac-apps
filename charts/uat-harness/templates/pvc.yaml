@@ -6,6 +6,8 @@ same volume at once.
 {{- $claims := list
   (dict "namespace" "uat-project" "name" "uat-project-storage" "size" $sizes.results)
   (dict "namespace" "uat-project" "name" "uat-models" "size" $sizes.models)
+  (dict "namespace" "uat-project" "name" "uat-project-storage-virt" "size" $sizes.results)
+  (dict "namespace" "uat-project" "name" "uat-models-virt" "size" $sizes.models)
   (dict "namespace" "uat-peer" "name" "uat-peer-storage" "size" $sizes.results)
   (dict "namespace" "uat-peer" "name" "uat-models" "size" $sizes.models)
   (dict "namespace" "uat-runner" "name" "uat-runner-storage" "size" $sizes.runner)

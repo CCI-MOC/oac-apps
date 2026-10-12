@@ -3,10 +3,10 @@ templates:
   - templates/pvc.yaml
 
 tests:
-  - it: should create the six claims the harness mounts
+  - it: should create the eight claims the harness mounts
     asserts:
       - hasDocuments:
-          count: 6
+          count: 8
       - containsDocument:
           kind: PersistentVolumeClaim
           apiVersion: v1
@@ -17,6 +17,18 @@ tests:
           kind: PersistentVolumeClaim
           apiVersion: v1
           name: uat-models
+          namespace: uat-project
+          any: true
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-project-storage-virt
+          namespace: uat-project
+          any: true
+      - containsDocument:
+          kind: PersistentVolumeClaim
+          apiVersion: v1
+          name: uat-models-virt
           namespace: uat-project
           any: true
       - containsDocument:
