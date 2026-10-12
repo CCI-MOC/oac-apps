@@ -16,7 +16,7 @@ portworx:
   is_default_storage_class: true
   nfs_server: nfs-server
   nfs_policy: export-policy
-  snapshot_directory: "false"
+  snapshot_directory: "true"  # as today. quoted, a bare bool renders empty
 
   # What the RHOAI dashboard shows for this storage class.
   dashboard:
