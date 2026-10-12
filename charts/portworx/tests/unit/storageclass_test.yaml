@@ -56,3 +56,30 @@ tests:
       - matchRegex:
           path: metadata.annotations["opendatahub.io/sc-config"]
           pattern: '"isDefault":false'
+
+  # Default must match what the clusters do today, so merging changes nothing.
+  - it: should leave the snapshot directory on by default
+    asserts:
+      - equal:
+          path: parameters.pure_fb_snapshot_directory_enabled
+          value: "true"
+
+  # The opt out, per cluster. thanos receive is what found this.
+  - it: should turn the snapshot directory off when a cluster asks
+    set:
+      portworx.snapshot_directory: false
+    asserts:
+      - equal:
+          path: parameters.pure_fb_snapshot_directory_enabled
+          value: "false"
+
+  # A bare bool renders empty and the API server rejects that, so it stays quoted.
+  - it: should render the flag as a string and not a boolean
+    set:
+      portworx.snapshot_directory: true
+    asserts:
+      - isKind:
+          of: StorageClass
+      - matchRegex:
+          path: parameters.pure_fb_snapshot_directory_enabled
+          pattern: '^(true|false)$'
