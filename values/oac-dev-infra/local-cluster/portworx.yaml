@@ -1,15 +1,6 @@
-# Opt out of the FlashBlade .snapshot directory, which is read only and kills
-# anything that locks its data dir on start. thanos-receive is the case.
-#
-# The StorageClass parameter, not the StorageCluster env var: we run PX-CSI and
-# PURE_DEFAULT_ENABLE_FB_NFS_SNAPSHOT is Enterprise only. See #123 and #130.
-#
-# This hub is enough, because MCO runs here: all of Thanos, receive included,
-# sits in open-cluster-management-observability on the hub. The clusters under
-# it have their own portworx and their own values path, and their prometheus
-# instances live happily on .snapshot volumes, so leave them on the default.
-#
-# New volumes only, so the existing receive PVC still has to be deleted.
+# Opt out of the FlashBlade .snapshot directory. Thanos erroneously attempts to
+# create a lock file in this read-only directory, which prevents Thanos from
+# starting.
 portworx:
   snapshot_directory: "false"
 
