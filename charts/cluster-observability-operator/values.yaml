@@ -30,3 +30,11 @@ uiPlugin:
     enabled: false
   clusterHealthAnalyzer:
     enabled: false
+
+# Capacity and growth of this hub's MCO. Off for a cluster without MCO, where
+# the panels stay empty.
+capacityDashboard:
+  perses:
+    enabled: true
+  console:
+    enabled: true

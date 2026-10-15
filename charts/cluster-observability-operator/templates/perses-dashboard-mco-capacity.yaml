@@ -1,0 +1,132 @@
+{{- if .Values.capacityDashboard.perses.enabled }}
+# Capacity and growth of this hub's MCO.
+#
+# Not in MCO's own grafana: that one only has the rbac-query-proxy datasource,
+# which serves fleet data and returns these tsdb metrics empty. Perses queries
+# thanos-querier in openshift-monitoring, where they are.
+#
+# ACM renames the metrics it scrapes, so the name carries acm_ while the job
+# label keeps the real name.
+apiVersion: perses.dev/v1alpha2
+kind: PersesDashboard
+metadata:
+  name: mco-capacity
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: monitoring
+spec:
+  config:
+    display:
+      name: MCO capacity and growth
+    duration: 7d
+    variables: []
+    panels:
+      series:
+        kind: Panel
+        spec:
+          display:
+            name: Series held by receive
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(acm_prometheus_tsdb_head_series{job="observability-thanos-receive-default"})
+                    seriesNameFormat: series
+      ingest:
+        kind: Panel
+        spec:
+          display:
+            name: Samples written per second
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(rate(acm_prometheus_tsdb_head_samples_appended_total{job="observability-thanos-receive-default"}[5m]))
+                    seriesNameFormat: samples/s
+      disk:
+        kind: Panel
+        spec:
+          display:
+            name: Disk used per receive replica
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: kubelet_volume_stats_used_bytes{namespace="open-cluster-management-observability",persistentvolumeclaim=~"data-observability-thanos-receive.*"}
+                    seriesNameFormat: "{{`{{persistentvolumeclaim}}`}}"
+      rejected:
+        kind: Panel
+        spec:
+          # Receive has no out-of-order window, so anything counted here is
+          # data that never lands.
+          display:
+            name: Rejected samples, out of order or out of bounds
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(rate(acm_prometheus_tsdb_out_of_order_samples_total{job="observability-thanos-receive-default"}[5m]))
+                    seriesNameFormat: out of order
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(rate(acm_prometheus_tsdb_out_of_bound_samples_total{job="observability-thanos-receive-default"}[5m]))
+                    seriesNameFormat: out of bounds
+    layouts:
+      - kind: Grid
+        spec:
+          display:
+            title: Growth
+          items:
+            - content:
+                $ref: "#/spec/panels/series"
+              height: 8
+              width: 12
+              x: 0
+              y: 0
+            - content:
+                $ref: "#/spec/panels/ingest"
+              height: 8
+              width: 12
+              x: 12
+              y: 0
+      - kind: Grid
+        spec:
+          display:
+            title: Storage
+          items:
+            - content:
+                $ref: "#/spec/panels/disk"
+              height: 8
+              width: 12
+              x: 0
+              y: 0
+            - content:
+                $ref: "#/spec/panels/rejected"
+              height: 8
+              width: 12
+              x: 12
+              y: 0
+{{- end }}
