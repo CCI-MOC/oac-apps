@@ -101,11 +101,12 @@ configured for `oac-dev-infra`, so they now live as per-hub drop-ins.
 
 ## Onboarding a new hub
 
-1. Render and apply the bootstrap Application with the new hub's name:
+1. Install GitOps: `./bootstrap/setup-gitops.sh`
+2. Render and apply the bootstrap Application with the new hub's name:
    `helm template bootstrap ./bootstrap --set hubName=<newhub> | oc apply -f -`.
-2. Create `values/<newhub>/` and per-cluster subdirectories only where a
+3. Create `values/<newhub>/` and per-cluster subdirectories only where a
    chart needs an override.
-3. Add `hosted-clusters/<newhub>/` if that hub runs HyperShift hosted clusters.
+4. Add `hosted-clusters/<newhub>/` if that hub runs HyperShift hosted clusters.
 
 No `apps/<newhub>/` directory is needed up front; create it only when you have a
 per-hub drop-in app for that hub.
