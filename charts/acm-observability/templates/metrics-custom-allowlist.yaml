@@ -1,0 +1,21 @@
+{{- if .Values.customAllowlist.enabled }}
+# MCO collects only what this names, so DCGM needs listing. The opposite of
+# sre-metric-set, which drops from what is already scraped: a drop list left
+# alone keeps everything, an allowlist left alone keeps nothing.
+#
+# metrics_list.yaml is the platform key. uwl_metrics_list.yaml is for user
+# workload metrics and would collect nothing here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: observability-metrics-custom-allowlist
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+data:
+  metrics_list.yaml: |
+    names:
+      {{- range .Values.customAllowlist.names }}
+      - {{ . }}
+      {{- end }}
+{{- end }}
