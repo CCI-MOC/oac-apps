@@ -1,1 +1,10 @@
 namespace: open-cluster-management-observability
+
+# Metrics MCO does not collect by default. The DCGM exporter already runs,
+# charts/nvidia-gpu-operator starts it on the gpu-clusters placement.
+customAllowlist:
+  enabled: true
+  names:
+    - DCGM_FI_DEV_GPU_UTIL
+    - DCGM_FI_DEV_FB_USED
+    - DCGM_FI_DEV_GPU_TEMP
