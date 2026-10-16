@@ -1,0 +1,59 @@
+{{- if and
+  .Values.secrets.githubDeployKey.name
+  .Values.secrets.githubDeployKey.key
+  .Values.secrets.s3KeyId.name
+  .Values.secrets.s3KeyId.key
+  .Values.secrets.s3AppKey.name
+  .Values.secrets.s3AppKey.key
+  .Values.secrets.keycloakClientId.name
+  .Values.secrets.keycloakClientId.key
+  .Values.secrets.keycloakClientSecret.name
+  .Values.secrets.keycloakClientSecret.key
+}}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invoice-daily-check
+spec:
+  schedule: {{ .Values.invoiceDailyCheck.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: invoice-daily-check
+            image: {{ .Values.image | quote }}
+            env:
+            - name: GH_NONBILLABLE_DEPLOYKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.githubDeployKey.name }}
+                  key: {{ .Values.secrets.githubDeployKey.key }}
+            - name: S3_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.s3KeyId.name }}
+                  key: {{ .Values.secrets.s3KeyId.key }}
+            - name: S3_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.s3AppKey.name }}
+                  key: {{ .Values.secrets.s3AppKey.key }}
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.keycloakClientId.name }}
+                  key: {{ .Values.secrets.keycloakClientId.key }}
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.keycloakClientSecret.name }}
+                  key: {{ .Values.secrets.keycloakClientSecret.key }}
+            - name: UPLOAD_TO_S3
+              value: "false"
+            - name: NEW_PI_CREDIT_AMOUNT
+              value: "0"
+            - name: BU_SUBSIDY_AMOUNT
+              value: "0"
+          restartPolicy: OnFailure
+{{- end }}
