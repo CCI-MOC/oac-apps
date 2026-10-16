@@ -1,4 +1,4 @@
-suite: DataScienceCluster
+suite: DataScienceCluster (RHOAI 2.x)
 templates:
   - templates/datasciencecluster.yaml
 
@@ -13,8 +13,13 @@ tests:
           path: metadata.name
           value: default-dsc
 
-  # Prod migrates on its own schedule, and a default flipped here would move
-  # it on the next sync with no warning.
+  # 2 is the chart default, so a cluster that says nothing stays on 2.x. A
+  # default of 3 would move every cluster on the next sync with no warning.
+  - it: should default to the 2.x API
+    asserts:
+      - isAPIVersion:
+          of: datasciencecluster.opendatahub.io/v1
+
   - it: should default to the pre-migration Serverless configuration
     asserts:
       - equal:
@@ -36,10 +41,11 @@ tests:
   - it: should drop the knative stack when serving is Removed
     set:
       dataScienceCluster:
-        kserve:
-          defaultDeploymentMode: RawDeployment
-          serving:
-            managementState: Removed
+        v2:
+          kserve:
+            defaultDeploymentMode: RawDeployment
+            serving:
+              managementState: Removed
     asserts:
       - equal:
           path: spec.components.kserve.defaultDeploymentMode
@@ -55,8 +61,9 @@ tests:
   - it: should support handing kueue to the standalone operator
     set:
       dataScienceCluster:
-        components:
-          kueue: Unmanaged
+        v2:
+          components:
+            kueue: Unmanaged
     asserts:
       - equal:
           path: spec.components.kueue.managementState
@@ -65,8 +72,9 @@ tests:
   - it: should support removing modelmeshserving
     set:
       dataScienceCluster:
-        components:
-          modelmeshserving: Removed
+        v2:
+          components:
+            modelmeshserving: Removed
     asserts:
       - equal:
           path: spec.components.modelmeshserving.managementState
