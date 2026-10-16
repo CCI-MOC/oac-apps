@@ -39,7 +39,17 @@ Public IPs are tracked in the [`documentation` repository](https://github.com/CC
 
 ## Cluster Certificates
 
-Cluster certificates are generated through AWS. In the [`moc-aws` repository](https://github.com/CCI-MOC/moc-aws/), update [`main.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/main.tf) to add an entry for your cluster in `openshift_oidc_clusters`:
+Cluster certificates are generated through AWS. First, checkout the [`oac-apps` repository](https://github.com/CCI-MOC/oac-apps) and run [`bootstrap/setup-oidc.sh`](https://github.com/CCI-MOC/oac-apps/blob/main/bootstrap/setup-oidc.sh) against the cluster:
+
+```
+CLUSTER_NAME=<cluster> bootstrap/setup-oidc.sh
+```
+
+This uploads the cluster's OIDC configuration to the `oac-clusters-oidc` S3 bucket, so it needs S3 write access. It has to happen before the `moc-aws` change below is applied: AWS reads that configuration when it creates the cluster's OIDC provider, and the apply fails if it is not there yet.
+
+The script also sets the cluster's `serviceAccountIssuer` if it does not match. On a running cluster, that invalidates existing service account tokens and restarts many pods, so it is best set at install time.
+
+Then, in the [`moc-aws` repository](https://github.com/CCI-MOC/moc-aws/), update [`main.tf`](https://github.com/CCI-MOC/moc-aws/blob/main/main.tf) to add an entry for your cluster in `openshift_oidc_clusters`:
 
 ```
   openshift_oidc_clusters = {
@@ -60,8 +70,6 @@ Cluster certificates are generated through AWS. In the [`moc-aws` repository](ht
     ...
   }
 ```
-
-Once your change is merged into `moc-aws`, you will need to checkout the [`oac-apps` repository](https://github.com/CCI-MOC/oac-apps) and run [`bootstrap/setup-oidc.sh`](https://github.com/CCI-MOC/oac-apps/blob/main/bootstrap/setup-oidc.sh).
 
 ## DNS
 
