@@ -60,9 +60,10 @@ Afterwards, update [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-ac
 
 ## Cluster Configuration
 
-Infra cluster configuration is managed through ArgoCD and the [`oac-apps` repository](https://github.com/CCI-MOC/oac-apps). After deploying an infra cluster, fork the repository and run the following command (using the kubeconfig of the infra cluster):
+Infra cluster configuration is managed through ArgoCD and the [`oac-apps` repository](https://github.com/CCI-MOC/oac-apps). After deploying an infra cluster, fork the repository and run the following commands (using the kubeconfig of the infra cluster):
 
 ```
+  $ ./bootstrap/setup-gitops.sh
   $ helm template bootstrap ./bootstrap --set hubName=<infra-cluster> | oc apply -f -
 ```
 
