@@ -1,0 +1,40 @@
+backend:
+  address: 10.9.4.10
+  verify: false
+  cacert: |
+    -----BEGIN CERTIFICATE-----
+    MIIDuzCCAqOgAwIBAgIQQNo6lZPB1OkvBJRm1W0JAzANBgkqhkiG9w0BAQsFADBO
+    MRIwEAYDVQQDDAkxMC45LjQuMTAxGzAZBgNVBAsMElB1cmUgU3RvcmFnZSwgSW5j
+    LjEbMBkGA1UECgwSUHVyZSBTdG9yYWdlLCBJbmMuMB4XDTI2MTAxOTE0NTIxNVoX
+    DTM2MTAxNjE0NTIxNVowTjESMBAGA1UEAwwJMTAuOS40LjEwMRswGQYDVQQLDBJQ
+    dXJlIFN0b3JhZ2UsIEluYy4xGzAZBgNVBAoMElB1cmUgU3RvcmFnZSwgSW5jLjCC
+    ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANYDPGt7frEa2bBEoGMqtvQp
+    s8CTcYJs3JkbkKz1MqscG19Yuk+7sL+b8cUKQiDhIEdr5pFuTRykwOLunBPp7rS3
+    181q1skTC6Mwgj//vpqcrIANk1rOcjttDwtfVpqA3/rXi5v9490+5cqpzzz2+p6A
+    qRRD0elnnINBuScaJ0U9Nds+12G3OldoOWnfvxcuL/KVStNG7xFM33AM412hK5ob
+    UZ9XD2RPYqo0RD6/j5J9bKxYRRcyGZqFTdNtb3sw+EXyN5+BnWqTL/LBLEoIoeE6
+    cvn7sMLSKoaq40xGIU7u/ZpfMpgZM5p9BMTw9oUX28q/S+Ap9HYUcOIUzgQ8EG8C
+    AwEAAaOBlDCBkTAPBgNVHREECDAGhwQKCQQKMB8GA1UdIwQYMBaAFIBufqc5Zuy1
+    0tAI9OeksgjQN6NWMB0GA1UdDgQWBBSAbn6nOWbstdLQCPTnpLII0DejVjAMBgNV
+    HRMBAf8EAjAAMA4GA1UdDwEB/wQEAwICpDAgBgNVHSUBAf8EFjAUBggrBgEFBQcD
+    AQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBAC2KlL1vW8JW8fqXZXWYAIOj
+    gtId+4TAWCXxt8ZqIWRnK5CULZn6jjy/Wb+CQEVTgBgIcxn5KxqiU2mI4mER25I7
+    8Bf4MtnTmM1JQr1cbAwYFqE2W+qX+4M9vky3pGHBEagUlT2Wzsf54dtcNjxrxhaM
+    GWjsTfJd6leDZqoZnrGp4P+bXEVSPn4qeHyLrX98A6MFwHsK3ZstxhZwNWcgnb7j
+    02miBkGRXyabJ6tEfIxTNqWlsYNm7QCv5RtOk2shQS/gdzY7jvmOuUSDhFS+7sYh
+    ydZc/tG8qUDQXaJvf0sd8hY3wZJgtJLA66JlUYRsKJbLRxGs0h3CfolDsAGFxBw=
+    -----END CERTIFICATE-----
+certificate:
+  dnsName: "s3.oac-dev-workload0.hcp.oac.int.massopen.cloud."
+
+network:
+  cidr: "10.9.4.0/24"
+  range:
+    start: "10.9.4.130"
+    end: "10.9.4.230"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.4.1
+
+service:
+  clusterIP: 172.31.0.53
