@@ -1,0 +1,41 @@
+suite: Agent-only templates are skipped for KubeVirt
+set:
+  clusterName: test-kubevirt
+  baseDomain: hcp.oac.int.massopen.cloud
+  managementCluster: oac-dev-infra
+  hcpInternalDomain: hcp-int.oac.int.massopen.cloud
+  platform:
+    type: KubeVirt
+    kubevirt: {}
+  release:
+    channel: stable-4.22
+    image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+
+tests:
+  - it: should not render API certificate for KubeVirt
+    templates:
+      - templates/certificate-api.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not render OAuth certificate for KubeVirt
+    templates:
+      - templates/certificate-oauth.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not render IPAddressPool for KubeVirt
+    templates:
+      - templates/ipaddresspool.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should not render machine quota for KubeVirt
+    templates:
+      - templates/machine-quota.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

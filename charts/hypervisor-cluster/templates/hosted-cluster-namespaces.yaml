@@ -1,0 +1,9 @@
+{{- range .Values.hostedClusters }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusters-{{ . }}
+  labels:
+    massopen.cloud/hosted-cluster: {{ . }}
+{{- end }}
