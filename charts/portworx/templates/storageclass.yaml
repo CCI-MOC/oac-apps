@@ -21,6 +21,9 @@ allowVolumeExpansion: true
 mountOptions:
   - nfsvers=4.1
   - tcp
+{{- if .Values.portworx.tls }}
+  - xprtsec=tls
+{{- end }}
 parameters:
   backend: pure_file
   pure_nfs_server: {{ .Values.portworx.nfs_server }}

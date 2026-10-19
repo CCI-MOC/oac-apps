@@ -3,11 +3,10 @@
 # starting.
 portworx:
   snapshot_directory: "false"
-  # NFS over TLS (the nfs-tls chart's nfs-over-tls class) is this hub's
-  # default instead. A node with a cleartext mount to the FlashBlade reuses
-  # that session for later TLS mounts, and they fail, so nothing on this hub
-  # should mount cleartext.
-  is_default_storage_class: false
+  # A compliant hub: NFS over TLS only, so this class is TLS and stays the
+  # default. tlshd runs on every node (the nfs-tls chart).
+  tls: true
+  nfs_policy: export-policy-tls
 
 externalSecret:
   secretStore: aws-secrets-manager

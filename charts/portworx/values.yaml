@@ -16,6 +16,13 @@ portworx:
   is_default_storage_class: true
   nfs_server: nfs-server
   nfs_policy: export-policy
+  # NFS over TLS (RFC 9289): adds xprtsec=tls to the mount options. For
+  # compliant clusters. Set nfs_policy to the realm's TLS export policy
+  # (export-policy-tls) too, and run tlshd on every node that mounts
+  # storage, or every mount fails. Do not mix TLS and cleartext volumes on
+  # one cluster: a node with a cleartext mount to the FlashBlade reuses
+  # that session for later TLS mounts, and they fail.
+  tls: false
   snapshot_directory: "true"  # as today. quoted, a bare bool renders empty
 
   # What the RHOAI dashboard shows for this storage class.
