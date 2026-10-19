@@ -3,6 +3,11 @@
 # starting.
 portworx:
   snapshot_directory: "false"
+  # NFS over TLS (the nfs-tls chart's nfs-over-tls class) is this hub's
+  # default instead. A node with a cleartext mount to the FlashBlade reuses
+  # that session for later TLS mounts, and they fail, so nothing on this hub
+  # should mount cleartext.
+  is_default_storage_class: false
 
 externalSecret:
   secretStore: aws-secrets-manager
