@@ -53,7 +53,7 @@ nodePools:
       massopen.cloud/cluster: oac-prod-workload0
       openstack/resource-class: lenovo-sd665nv3-h100
   - name: gpu-a100
-    replicas: 2
+    replicas: 1
     agentLabelSelector:
       massopen.cloud/cluster: oac-prod-workload0
       openstack/resource-class: lenovo-sd650nv2-a100
