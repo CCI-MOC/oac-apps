@@ -11,6 +11,22 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   clusterName: {{ $clusterName }}
+  {{- /* A pool's own entries may be names or HyperShift's {name: ...} form. */}}
+  {{- $config := $.Values.nodePoolConfig }}
+  {{- range .config | default list }}
+  {{- if kindIs "map" . }}
+  {{- $config = append $config .name }}
+  {{- else }}
+  {{- $config = append $config . }}
+  {{- end }}
+  {{- end }}
+  {{- $config = $config | uniq }}
+  {{- with $config }}
+  config:
+    {{- range . }}
+    - name: {{ . }}
+    {{- end }}
+  {{- end }}
   management:
     autoRepair: {{ .autoRepair | default false }}
     {{- if eq $platformType "KubeVirt" }}

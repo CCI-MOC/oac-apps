@@ -139,6 +139,14 @@ spec:
               - {{ include "hosted-cluster.oauthHostname" . }}
             servingCertificate:
               name: {{ $clusterName }}-oauth-certificate
+    {{- with .Values.apiServer.audit }}
+      audit:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.imageConfig }}
+    image:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
   {{- else }}
   platform:
     type: KubeVirt
