@@ -48,6 +48,9 @@ spec:
     agentclusterinstalls.extensions.hive.openshift.io/location: {{ .Values.cim.location }}
   cpuArchitecture: x86_64
   ipxeScriptType: DiscoveryImageAlways
+{{ if .Values.cim.kernelArguments }}
+  kernelArguments: {{ .Values.cim.kernelArguments | toJson }}
+{{ end }}
   nmStateConfigLabelSelector:
     matchLabels:
       infraenvs.agent-install.openshift.io: {{ .Values.cim.inventory_name }}
