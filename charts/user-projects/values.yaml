@@ -46,8 +46,15 @@ projects: []
 # nothing, it reads thanos-querier, so the project inherits the cluster's
 # retention. Its panels render even where that is the age of the pod, so check
 # platform.enabled before promising anyone fifteen days.
+#
+# grafana.editable on a project adds Explore and saving: the Editor role plus a
+# volume, so what is saved survives the pod. Without it Grafana is read only on
+# emptyDir.
 defaultGrafana:
   version: "11.3.0"
+  # Only used with grafana.editable. The SQLite file of one project stays in
+  # the tens of MiB.
+  storage: 512Mi
   # The image the console itself uses for authenticating routes. Matches the
   # cluster version rather than trailing it: v4.14 was in here by mistake and
   # nothing depended on it. The three files this chart relies on, oauthproxy.go,

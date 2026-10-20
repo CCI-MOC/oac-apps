@@ -94,6 +94,16 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
 spec:
   version: {{ $.Values.defaultGrafana.version | quote }}
+  {{- if .grafana.editable }}
+  # The operator names this claim after the instance, so grafana-pvc below.
+  persistentVolumeClaim:
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ $.Values.defaultGrafana.storage }}
+  {{- end }}
   route:
     metadata:
       name: grafana-route
@@ -163,19 +173,30 @@ spec:
       disable_login_form: "true"
     auth.anonymous:
       enabled: "true"
-      # Viewer, not Editor. An Editor can add datasources, and a second
-      # datasource pointed at port 9091 would see every namespace on the
-      # cluster, which is exactly what this chart exists to prevent.
-      org_role: "Viewer"
+      # Editor only together with the volume, since an Editor saving into
+      # emptyDir loses everything with the next pod. Neither role can change
+      # datasources, that is org admin, so the tenancy stays in the datasource
+      # token and namespace parameter either way.
+      org_role: {{ ternary "Editor" "Viewer" (.grafana.editable | default false) | quote }}
     users:
       # Viewers may still open dashboard settings and try things, they just
-      # cannot save. Dashboards belong in git as GrafanaDashboard resources,
-      # because Grafana OSS cannot grant "may save dashboards" without also
-      # granting "may create datasources", and a second datasource on port
-      # 9091 would see the whole cluster.
+      # cannot save. Dashboards belong in git as GrafanaDashboard resources.
       viewers_can_edit: "false"
+    {{- if .grafana.editable }}
+    unified_alerting:
+      # An Editor could add a webhook contact point, and Grafana sends it from
+      # inside the cluster with open egress. Alerting does not belong in a
+      # project Grafana anyway.
+      enabled: "false"
+    {{- end }}
   deployment:
     spec:
+      {{- if .grafana.editable }}
+      # The old pod holds the ReadWriteOnce volume, so a rolling update would
+      # leave the new one waiting for it.
+      strategy:
+        type: Recreate
+      {{- end }}
       template:
         spec:
           serviceAccountName: grafana-sa
@@ -257,6 +278,11 @@ spec:
             - name: grafana-cookie
               secret:
                 secretName: grafana-cookie-secret
+            {{- if .grafana.editable }}
+            - name: grafana-data
+              persistentVolumeClaim:
+                claimName: grafana-pvc
+            {{- end }}
 ---
 apiVersion: grafana.integreatly.org/v1beta1
 kind: GrafanaDatasource

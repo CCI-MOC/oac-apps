@@ -139,9 +139,8 @@ tests:
           path: spec.datasource.jsonData.tlsAuthWithCACert
           value: true
 
-  # An Editor can add datasources in Grafana, and a second datasource pointed
-  # at port 9091 would see every namespace on the cluster. The whole point of
-  # this chart is that it cannot, so the anonymous role stays Viewer.
+  # Without editable the anonymous role stays Viewer: an Editor could save, and
+  # nothing saved survives a restart on emptyDir.
   - it: does not let viewers add their own datasource
     set:
       projects:
@@ -476,3 +475,83 @@ tests:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
           value: "2"
+
+  # editable is the second switch: Editor and a volume come together, because
+  # an Editor saving into emptyDir loses everything with the next pod.
+  - it: gives an editable project the Editor role
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+            editable: true
+    documentIndex: 4
+    asserts:
+      - equal:
+          path: spec.config["auth.anonymous"].org_role
+          value: Editor
+
+  - it: gives an editable project a volume for the Grafana data
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+            editable: true
+    documentIndex: 4
+    asserts:
+      - equal:
+          path: spec.persistentVolumeClaim.spec.resources.requests.storage
+          value: 512Mi
+      - contains:
+          path: spec.deployment.spec.template.spec.volumes
+          content:
+            name: grafana-data
+            persistentVolumeClaim:
+              claimName: grafana-pvc
+
+  # A ReadWriteOnce volume stays with the old pod during a rolling update, so
+  # the new one would wait for it forever.
+  - it: replaces the pod instead of rolling it when there is a volume
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+            editable: true
+    documentIndex: 4
+    asserts:
+      - equal:
+          path: spec.deployment.spec.strategy.type
+          value: Recreate
+
+  - it: keeps a project without editable on Viewer and emptyDir
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 4
+    asserts:
+      - equal:
+          path: spec.config["auth.anonymous"].org_role
+          value: Viewer
+      - notExists:
+          path: spec.persistentVolumeClaim
+      - notExists:
+          path: spec.deployment.spec.strategy
+
+  # An Editor could add a webhook contact point, and Grafana would send it from
+  # inside the cluster with open egress. No alerting in an editable Grafana.
+  - it: turns alerting off in an editable Grafana
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+            editable: true
+    documentIndex: 4
+    asserts:
+      - equal:
+          path: spec.config.unified_alerting.enabled
+          value: "false"
