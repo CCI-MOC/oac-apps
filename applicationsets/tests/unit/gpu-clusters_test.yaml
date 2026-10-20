@@ -43,3 +43,14 @@ tests:
           path: spec.generators[0].matrix.generators[1].list.elements
           content:
             component: rhoai
+
+  # The JobSet operator rides the same list for the same reason, but only
+  # clusters on rhoaiVersion 3 opt in: its chart defaults to disabled.
+  - it: should deploy the jobset operator alongside rhoai
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: jobset-operator
