@@ -1,3 +1,6 @@
+multiClusterHub:
+  availabilityConfig: High
+
 cim:
   enabled: true
   # The hub's own install key. ECDSA, not ed25519: sshd on a FIPS node
