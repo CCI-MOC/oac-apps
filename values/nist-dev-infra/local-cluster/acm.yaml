@@ -1,0 +1,9 @@
+cim:
+  enabled: true
+  # The hub's own install key. ECDSA, not ed25519: sshd on a FIPS node
+  # refuses ed25519 keys.
+  sshAuthorizedKey: ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFqeQFTBPx8xVAld1kE2Euak8qAC+CikBtuQ32ByNzGj2uzl9PDBl3C7CaNMWASLMJcwasTLtBkRv2xP2IRIAJo=
+  location: MGHPCC
+  # The AgentServiceConfig's volumes have no class of their own, so they
+  # land on the default StorageClass: pure-fb-nfsv4, NFS over TLS on this
+  # hub. Needs that default in place first (portworx.tls).
