@@ -43,8 +43,15 @@ projects: []
 # Per project Grafana. Off unless a project opts in, so existing projects are
 # untouched. Enabling it costs the project Grafana plus the oauth-proxy sidecar
 # in the same pod, against its own quota.
+#
+# grafana.editable on a project adds Explore and saving: the Editor role plus a
+# volume, so what is saved survives the pod. Without it Grafana is read only on
+# emptyDir.
 defaultGrafana:
   version: "11.3.0"
+  # Only used with grafana.editable. The SQLite file of one project stays in
+  # the tens of MiB.
+  storage: 512Mi
   # The image the console itself uses for authenticating routes. Matches the
   # cluster version rather than trailing it: v4.14 was in here by mistake and
   # nothing depended on it. The three files this chart relies on, oauthproxy.go,
