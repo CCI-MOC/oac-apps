@@ -1,3 +1,8 @@
+# Service Mesh 2.x is required for RHOAI 2.x KServe Serverless.
+# Do not install on RHOAI 3.x: incompatible Istio CRDs prevent
+# Gateway API configuration and dashboard route creation.
+enabled: true
+
 namespace: openshift-operators
 
 subscription:
