@@ -83,3 +83,28 @@ tests:
       - matchRegex:
           path: parameters.pure_fb_snapshot_directory_enabled
           pattern: '^(true|false)$'
+
+  # Default must match what the clusters do today, so merging changes nothing.
+  - it: should mount without TLS by default
+    asserts:
+      - equal:
+          path: mountOptions
+          value:
+            - nfsvers=4.1
+            - tcp
+
+  # Compliant clusters: NFS over TLS, against the realm's TLS export policy.
+  - it: should add xprtsec=tls when a cluster asks for TLS
+    set:
+      portworx.tls: true
+      portworx.nfs_policy: export-policy-tls
+    asserts:
+      - equal:
+          path: mountOptions
+          value:
+            - nfsvers=4.1
+            - tcp
+            - xprtsec=tls
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: export-policy-tls
