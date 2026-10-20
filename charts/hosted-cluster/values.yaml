@@ -103,6 +103,25 @@ pushSecrets:
 
 nodePools: []
 
+# ConfigMaps (by name, in this namespace) for NodePool.spec.config on every
+# NodePool, ahead of each pool's own `config` list. Each holds one of
+# MachineConfig, KubeletConfig, ContainerRuntimeConfig, ImageContentSourcePolicy
+# or ClusterImagePolicy under the key `config`. Changing the list, or a
+# referenced ConfigMap, rolls the pool's nodes.
+# Example: [compliance-node-hardening] from the compliance-node-hardening chart.
+nodePoolConfig: []
+
+# Hosted control plane settings that a standalone cluster keeps in its
+# APIServer and Image config objects. Inside a hosted cluster those objects
+# are reconciled from here and cannot be changed in place.
+apiServer:
+  # spec.configuration.apiServer.audit, e.g.
+  #   {profile: WriteRequestBodies, customRules: [{group: ..., profile: Default}]}
+  audit: {}
+# spec.configuration.image, e.g.
+#   {registrySources: {allowedRegistries: [...]}, allowedRegistriesForImport: [...]}
+imageConfig: {}
+
 # Map of cluster labels to values that will be applied
 # to the ManagedCluster resource for this cluster.
 clusterLabels: {}
