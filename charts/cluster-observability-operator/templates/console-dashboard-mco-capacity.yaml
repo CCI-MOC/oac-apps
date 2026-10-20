@@ -2,6 +2,8 @@
 # The same dashboard for the console's Observe > Dashboards list, which reads
 # ConfigMaps rather than Perses resources. See the comment in
 # perses-dashboard-mco-capacity.yaml.
+#
+# Fixed 30m windows here because this list does not resolve $__rate_interval.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,7 +28,7 @@ data:
           "type": "graph",
           "title": "Samples written per second",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-          "targets": [{"expr": "sum(rate(acm_prometheus_tsdb_head_samples_appended_total{job=\"observability-thanos-receive-default\"}[5m]))", "legendFormat": "samples/s"}]
+          "targets": [{"expr": "sum(rate(acm_prometheus_tsdb_head_samples_appended_total{job=\"observability-thanos-receive-default\"}[30m]))", "legendFormat": "samples/s"}]
         },
         {
           "type": "graph",
@@ -39,8 +41,8 @@ data:
           "title": "Rejected samples, out of order or out of bounds",
           "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
           "targets": [
-            {"expr": "sum(rate(acm_prometheus_tsdb_out_of_order_samples_total{job=\"observability-thanos-receive-default\"}[5m]))", "legendFormat": "out of order"},
-            {"expr": "sum(rate(acm_prometheus_tsdb_out_of_bound_samples_total{job=\"observability-thanos-receive-default\"}[5m]))", "legendFormat": "out of bounds"}
+            {"expr": "sum(rate(acm_prometheus_tsdb_out_of_order_samples_total{job=\"observability-thanos-receive-default\"}[30m]))", "legendFormat": "out of order"},
+            {"expr": "sum(rate(acm_prometheus_tsdb_out_of_bound_samples_total{job=\"observability-thanos-receive-default\"}[30m]))", "legendFormat": "out of bounds"}
           ]
         }
       ]
