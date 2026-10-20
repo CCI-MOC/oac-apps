@@ -1,0 +1,35 @@
+# Hub-level values shared by every hosted cluster on the nist-dev-infra hub,
+# a compliant hub (FIPS, NIST 800-171). The hosted-clusters ApplicationSet
+# layers each cluster's own hosted-clusters/nist-dev-infra/<cluster>/values.yaml
+# on top of this file. A cluster that overrides fips, nodePoolConfig,
+# apiServer.audit or imageConfig is refused by the hub's
+# compliant-hosted-clusters admission policy.
+baseDomain: hcp.nist.int.massopen.cloud
+managementCluster: nist-dev-infra
+
+# Internal only: no firewall NAT, so no external domain. The hosted clusters'
+# OAuth, Konnectivity and Ignition routes resolve to the hcp-config router.
+hcpInternalDomain: hcp-int.nist.int.massopen.cloud
+
+# Fixed when the HostedCluster is created.
+fips: true
+
+# Rendered in the clusters namespace by compliance-node-hardening
+# (nodePool.enabled). Added to every NodePool, ahead of its own config.
+nodePoolConfig:
+  - compliance-node-hardening
+
+apiServer:
+  audit:
+    profile: WriteRequestBodies
+
+imageConfig:
+  registrySources:
+    allowedRegistries: [quay.io, registry.redhat.io, registry.connect.redhat.com, registry.access.redhat.com, nvcr.io]
+
+etcd:
+  # Test only. The hub has no LVM storage: each node's second disk holds the
+  # hub's own etcd. So hosted etcd goes on the FlashBlade over NFS with TLS,
+  # which Red Hat does not support for etcd. Real hubs get a dedicated local
+  # disk on each node that runs hosted control planes (a later iteration).
+  storageClassName: pure-fb-nfsv4
