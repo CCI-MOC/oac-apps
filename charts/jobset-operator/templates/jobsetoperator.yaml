@@ -1,0 +1,18 @@
+{{- if .Values.enabled }}
+{{- $jobset := .Values.jobSetOperator }}
+apiVersion: operator.openshift.io/v1
+kind: JobSetOperator
+metadata:
+  name: {{ $jobset.name }}
+  labels:
+    app.kubernetes.io/name: jobset
+    app.kubernetes.io/instance: {{ $jobset.name }}
+    app.kubernetes.io/part-of: jobset-operator
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  managementState: {{ $jobset.managementState }}
+  logLevel: {{ $jobset.logLevel }}
+  operatorLogLevel: {{ $jobset.operatorLogLevel }}
+{{- end }}

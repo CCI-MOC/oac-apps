@@ -1,0 +1,9 @@
+apiVersion: v2
+name: jobset-operator
+description: Install the Red Hat build of the JobSet operator
+type: application
+version: 0.1.0
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"
