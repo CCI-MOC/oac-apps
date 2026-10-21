@@ -17,6 +17,5 @@ externaldns:
     labelFilter:
       matchLabels:
         massopen.cloud/external-dns: "true"
-    zones:
-      - "<hcp.nist.int.massopen.cloud zone id, from moc-aws>"
-      - "<hcp-int.nist.int.massopen.cloud zone id, from moc-aws>"
+    # No zone IDs: the IAM user may list zones, and the Exact domains above
+    # pick the two hcp zones (moc-aws #55) and leave out their parent.
