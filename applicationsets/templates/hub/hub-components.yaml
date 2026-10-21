@@ -31,6 +31,10 @@ spec:
           - component: object-storage-proxy
           - component: dns-operator-config
           - component: moc-metrics-collector
+          # The all-managed-clusters placement selects local-cluster
+          # DoesNotExist, so the hubs never got this and their own platform
+          # prometheus still mounts emptyDir.
+          - component: user-workload-monitoring
   template:
     metadata:
       name: "hub-{{`{{component}}`}}"

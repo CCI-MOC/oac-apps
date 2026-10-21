@@ -11,9 +11,9 @@
 # workload monitoring. A project on such a cluster gets a working dashboard
 # showing the age of the pod.
 #
-# This file cannot reach the hub itself, twice over: the placement selects
-# local-cluster DoesNotExist, and user-workload-monitoring is not in
-# hub-components.yaml at all.
+# The placement selects local-cluster DoesNotExist, so it never reaches the hub
+# itself. The hub gets the component through hub-components.yaml instead, which
+# reads this same file.
 #
 # Sizing is hub wide here, and a cluster that needs more sets only what differs
 # in its own values file, because the two paths are layered and helm merges maps

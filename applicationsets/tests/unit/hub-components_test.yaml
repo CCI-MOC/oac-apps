@@ -30,6 +30,18 @@ tests:
           path: spec.template.spec.source.path
           value: "charts/{{component}}"
 
+  # The hubs are not covered by the all-managed-clusters placement, which
+  # selects local-cluster DoesNotExist, so this is the only path by which they
+  # get a platform prometheus that persists.
+  - it: should enable user workload monitoring on the hub itself
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].list.elements
+          content:
+            component: user-workload-monitoring
+
   - it: should not include per-hub drop-in components in the common set
     set:
       hubName: oac-dev-infra
