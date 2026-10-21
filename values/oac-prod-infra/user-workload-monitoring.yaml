@@ -1,20 +1,3 @@
-# Hub wide, so every managed cluster of this hub gets it, the ones that exist
-# today and the ones added later. That is the point of this file: the component
-# arrives automatically through the all-managed-clusters ApplicationSet, which
-# generates from an ACM placement, but a per cluster values file does not, and
-# ignoreMissingValueFiles turns the missing file into a silent fallback to
-# platform.enabled false. Argo stays green while the platform prometheus mounts
-# emptyDir, and nobody is told.
-#
-# That matters beyond the platform metrics themselves, because the per project
-# Grafana reads cadvisor, which lives in this instance rather than in user
-# workload monitoring. A project on such a cluster gets a working dashboard
-# showing the age of the pod.
-#
-# The placement selects local-cluster DoesNotExist, so it never reaches the hub
-# itself. The hub gets the component through hub-components.yaml instead, which
-# reads this same file.
-#
 # Sizing is hub wide here, and a cluster that needs more sets only what differs
 # in its own values file, because the two paths are layered and helm merges maps
 # rather than replacing them. Measured basis: 2,901 bytes per series and day,
