@@ -3,9 +3,8 @@ templates:
   - templates/operator.yaml
 
 tests:
-  # Every cluster still on RHOAI 2.x needs the mesh for KServe Serverless, so
-  # the chart stays on unless a cluster opts out.
-  - it: subscribes by default
+  # Clusters on RHOAI 2.x need the 2.x mesh for KServe Serverless.
+  - it: subscribes to the 2.x operator by default
     asserts:
       - hasDocuments:
           count: 1
@@ -17,6 +16,38 @@ tests:
       - equal:
           path: spec.channel
           value: stable
+
+  # Confirmed with oc get packagemanifest: stable resolves to v3.4.3, whose
+  # bundle owns destinationrules.networking.istio.io at v1.
+  - it: subscribes to the 3.x operator when the cluster asks for it
+    set:
+      meshVersion: 3
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: spec.name
+          value: servicemeshoperator3
+      - equal:
+          path: spec.channel
+          value: stable
+
+  # One Subscription either way, so a cluster can never run both majors.
+  - it: never renders both majors
+    set:
+      meshVersion: 3
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: lets a cluster pin the package name explicitly
+    set:
+      meshVersion: 3
+      subscription.name: servicemeshoperator
+    asserts:
+      - equal:
+          path: spec.name
+          value: servicemeshoperator
 
   # The shared openshift-operators namespace and its global OperatorGroup are
   # not ours to create, and must not be pruned when a cluster opts out.
