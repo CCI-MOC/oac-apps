@@ -3,4 +3,4 @@
 addressPools:
   - name: default
     addresses:
-      - "<a range on the hub's network, from ops>"
+      - 10.20.19.200-10.20.19.250

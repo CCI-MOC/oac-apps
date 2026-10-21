@@ -4,7 +4,7 @@ ingressController:
   # overlap the hub's own apps domain (apps.nist-dev-infra.nist.int...).
   domain: hcp.nist-dev-infra.nist.int.massopen.cloud
   addresses:
-    - "<one address on the hub's network, from ops>/32"
+    - 10.20.19.10/32
   wildcardPolicy: WildcardsAllowed
 
 sshKey:

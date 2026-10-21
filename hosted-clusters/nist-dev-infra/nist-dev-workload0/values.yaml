@@ -7,7 +7,7 @@ services:
   APIServer:
     # Pinned internal LoadBalancer IP from the hub's MetalLB pool. Becomes
     # api-internal-nist-dev-workload0.hcp-int.nist.int.massopen.cloud.
-    ipAddress: "<from the hub's MetalLB pool>"
+    ipAddress: 10.20.19.13
 
 ingress:
   # Internal only: the guest ingress wildcard
