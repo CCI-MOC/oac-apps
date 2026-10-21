@@ -1,0 +1,35 @@
+clusterName: nist-dev-workload0
+release:
+  channel: stable-4.22
+  image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+
+services:
+  APIServer:
+    # Pinned internal LoadBalancer IP from the hub's MetalLB pool. Becomes
+    # api-internal-nist-dev-workload0.hcp-int.nist.int.massopen.cloud.
+    ipAddress: "<from the hub's MetalLB pool>"
+
+ingress:
+  # Internal only: the guest ingress wildcard
+  # (*.apps.nist-dev-workload0.hcp.nist.int.massopen.cloud) points here.
+  ipAddress: 10.20.20.10
+  # The guest router's LoadBalancer IP, pinned by MetalLB on the hosted
+  # cluster (hosted-ingress app). On the workers' network (10.20.20.0/23),
+  # outside its DHCP range.
+  poolAddress: 10.20.20.10/32
+
+dns:
+  enabled: true
+  autoGenerate: true
+
+nodePools:
+  - name: compute
+    replicas: 2
+    agentLabelSelector:
+      openstack/resource-class: fc430
+      massopen.cloud/cluster: nist-dev-workload0
+
+# Portworx comes in a follow-up: its values need the nodes' names, and its
+# TLS class needs tlshd on the nodes. GPUs come with a gpu NodePool.
+clusterLabels:
+  massopen.cloud/feature-metallb: "true"

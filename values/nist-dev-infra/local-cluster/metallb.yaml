@@ -1,0 +1,6 @@
+# LoadBalancer addresses for the hosted clusters' API servers, one per
+# cluster, pinned in each cluster's services.APIServer.ipAddress.
+addressPools:
+  - name: default
+    addresses:
+      - "<a range on the hub's network, from ops>"
