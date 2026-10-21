@@ -1,0 +1,21 @@
+externaldns:
+  - name: aws-route53
+    credentials: aws-route53-credentials
+    externalSecret:
+      # Written there by moc-aws (iam-user module); the hub may read it.
+      remoteKey: iam-user/nist-dev-external-dns/nist-dev-infra-external-dns
+      secretStore: aws-secrets-manager
+      secretStoreType: ClusterSecretStore
+    domains:
+      - filterType: Include
+        matchType: Exact
+        name: hcp.nist.int.massopen.cloud
+      - filterType: Include
+        matchType: Exact
+        name: hcp-int.nist.int.massopen.cloud
+    hostnameAnnotation: Allow
+    labelFilter:
+      matchLabels:
+        massopen.cloud/external-dns: "true"
+    # No zone IDs: the IAM user may list zones, and the Exact domains above
+    # pick the two hcp zones (moc-aws #55) and leave out their parent.

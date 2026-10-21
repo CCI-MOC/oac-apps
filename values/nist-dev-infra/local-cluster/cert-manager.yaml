@@ -1,0 +1,8 @@
+aws:
+  region: us-east-1
+  # Created by moc-aws (openshift-oidc module, cluster nist-dev-infra).
+  roleArn: "arn:aws:iam::574733721584:role/cert-manager-nist-dev-infra"
+letsencrypt:
+  email: contact@massopen.cloud
+  cluster_issuers:
+    enabled: true

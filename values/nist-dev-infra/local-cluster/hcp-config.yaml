@@ -1,0 +1,12 @@
+ingressController:
+  enabled: true
+  # The hosted clusters' OAuth, Konnectivity and Ignition routes. Must not
+  # overlap the hub's own apps domain (apps.nist-dev-infra.nist.int...).
+  domain: hcp.nist-dev-infra.nist.int.massopen.cloud
+  addresses:
+    - 10.20.19.10/32
+  wildcardPolicy: WildcardsAllowed
+
+sshKey:
+  # publicKey: the same ECDSA key as acm.yaml's cim.sshAuthorizedKey.
+  aws_secret_name: cluster/nist-dev-infra/sshkey
