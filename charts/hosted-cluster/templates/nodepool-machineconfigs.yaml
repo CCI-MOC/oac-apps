@@ -1,0 +1,31 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- range $pool := .Values.nodePools }}
+{{- range .machineConfigs | default list }}
+{{- $files := list }}
+{{- range .files }}
+{{- $files = append $files (dict
+      "path" .path
+      "mode" (.mode | default 420 | int)
+      "overwrite" true
+      "contents" (dict "source" (printf "data:text/plain;charset=utf-8;base64,%s" (b64enc .contents)))) }}
+{{- end }}
+{{- $mc := dict
+      "apiVersion" "machineconfiguration.openshift.io/v1"
+      "kind" "MachineConfig"
+      "metadata" (dict "name" .name "labels" (dict "machineconfiguration.openshift.io/role" "worker"))
+      "spec" (dict "config" (dict
+        "ignition" (dict "version" "3.2.0")
+        "storage" (dict "files" $files))) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-%s-%s" $clusterName $pool.name .name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+data:
+  config: |
+    {{- toYaml $mc | nindent 4 }}
+{{- end }}
+{{- end }}

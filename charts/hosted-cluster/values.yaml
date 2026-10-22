@@ -101,6 +101,17 @@ pushSecrets:
   etcd:
     enabled: true
 
+# A pool's `machineConfigs` are files for that pool's nodes only, for what
+# depends on its hardware (NIC names, for example). Each entry becomes a
+# MachineConfig in a ConfigMap named <cluster>-<pool>-<name>, added to the
+# pool's config. Changing one rolls the pool's nodes.
+#   machineConfigs:
+#     - name: 80-eno2-never-default
+#       files:
+#         - path: /etc/NetworkManager/system-connections/eno2.nmconnection
+#           mode: 0600
+#           contents: |
+#             ...
 nodePools: []
 
 # ConfigMaps (by name, in this namespace) for NodePool.spec.config on every
