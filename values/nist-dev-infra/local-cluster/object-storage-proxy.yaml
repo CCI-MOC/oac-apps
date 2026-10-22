@@ -1,0 +1,40 @@
+backend:
+  address: 10.9.7.10
+  verify: false
+  cacert: |
+    -----BEGIN CERTIFICATE-----
+    MIIDuzCCAqOgAwIBAgIQTc3XSB6jBYy1YJAaoryXMzANBgkqhkiG9w0BAQsFADBO
+    MRIwEAYDVQQDDAkxMC45LjcuMTAxGzAZBgNVBAsMElB1cmUgU3RvcmFnZSwgSW5j
+    LjEbMBkGA1UECgwSUHVyZSBTdG9yYWdlLCBJbmMuMB4XDTI2MTAxNTIzMTIyNVoX
+    DTM2MTAxMjIzMTIyNVowTjESMBAGA1UEAwwJMTAuOS43LjEwMRswGQYDVQQLDBJQ
+    dXJlIFN0b3JhZ2UsIEluYy4xGzAZBgNVBAoMElB1cmUgU3RvcmFnZSwgSW5jLjCC
+    ASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANCdL/Jd73cVw/C2o1AbxS2N
+    I9pNQuQnyjH/9qdekenRO0v9OrmzS9xYPA9fFHhfOt6CgFl9AiMD+n6kADO4QtYT
+    uyQWbzHvFJcBETarD3x6A+vARDcu1NyrprJc92zMH/uX36mAj1ufYan1fwx7BvJU
+    A5gDCxJ5+zBCZP3F1Z/GHWF29L1GM4XVHLXQLVmQ2/QYFNeuHH1KmxC1u3h1bY6P
+    rzPOkn+4dNi6HDYmH8JaaQ8SUS4CQQihcVZ8priNT015Lf3NGXve9wEiJspGxX+v
+    6ksYlQlH1OQMcx5fCYWRz9fHkkvx3MiyxtF3K959okB8l5ipZM9Dc0rqRT6lHzMC
+    AwEAAaOBlDCBkTAPBgNVHREECDAGhwQKCQcKMB8GA1UdIwQYMBaAFJhOaS/AiaKY
+    fxslifPRGvP4FMySMB0GA1UdDgQWBBSYTmkvwImimH8bJYnz0Rrz+BTMkjAMBgNV
+    HRMBAf8EAjAAMA4GA1UdDwEB/wQEAwICpDAgBgNVHSUBAf8EFjAUBggrBgEFBQcD
+    AQYIKwYBBQUHAwIwDQYJKoZIhvcNAQELBQADggEBADwRci75EMGDnPESARyGHGpK
+    pGUnWnayrcxn5YBfPcDcsWVzhyu/Jud46gz13DfuR1Ja85Xwld+iXWSJWYkUMb09
+    QjNsCQ++pkHzZXyPZtkz9ynISjf+zjzViyKPaUpwhYeOxRMysXjx2+dM/gMQJa3i
+    pHSbcl3Xzp2edR4yMKYjgC8/Gu0hhsz0QMYD8SeICPBxIzwiw/r1PTlHh2OhVIcD
+    VuH5qOacCGIa/Os4kpXM4NYwRdc5abJ93KE91uA7VGMJ903LRcLyRbhEjnfyTy1J
+    2KnVMI7oT8QxatDAnkHzzmZ2f411JEz5np0k8TdpuxcePLeUIBD2IeA5/xnnzXA=
+    -----END CERTIFICATE-----
+certificate:
+  dnsName: "s3.nist-dev-infra.nist.int.massopen.cloud"
+
+network:
+  cidr: "10.9.7.0/24"
+  range:
+    start: "10.9.7.130"
+    end: "10.9.7.229"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.7.1
+
+service:
+  clusterIP: 172.30.0.53
