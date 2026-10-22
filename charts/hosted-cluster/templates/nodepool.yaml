@@ -13,6 +13,10 @@ spec:
   clusterName: {{ $clusterName }}
   {{- /* A pool's own entries may be names or HyperShift's {name: ...} form. */}}
   {{- $config := $.Values.nodePoolConfig }}
+  {{- $pool := . }}
+  {{- range .machineConfigs | default list }}
+  {{- $config = append $config (printf "%s-%s-%s" $clusterName $pool.name .name) }}
+  {{- end }}
   {{- range .config | default list }}
   {{- if kindIs "map" . }}
   {{- $config = append $config .name }}

@@ -33,6 +33,32 @@ nodePools:
     agentLabelSelector:
       openstack/resource-class: fc430
       massopen.cloud/cluster: nist-dev-workload0
+    machineConfigs:
+      # Both NICs get a default route from DHCP, and configure-ovs builds
+      # br-ex on whichever has it first at boot. When that was eno2 (the
+      # storage network), the node came up unreachable (2026-10-22). eno2
+      # keeps its address and subnet route, but takes no default route or
+      # DNS from DHCP.
+      - name: 80-eno2-never-default
+        files:
+          - path: /etc/NetworkManager/system-connections/eno2.nmconnection
+            mode: 0600
+            contents: |
+              [connection]
+              id=eno2
+              type=ethernet
+              interface-name=eno2
+              autoconnect-priority=10
+
+              [ipv4]
+              method=auto
+              never-default=true
+              ignore-auto-dns=true
+
+              [ipv6]
+              method=auto
+              never-default=true
+              ignore-auto-dns=true
 
 # Portworx comes in a follow-up: its values need the nodes' names, and its
 # TLS class needs tlshd on the nodes. GPUs come with a gpu NodePool.

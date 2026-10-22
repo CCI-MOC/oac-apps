@@ -123,6 +123,25 @@ tests:
             - name: compliance-node-hardening
             - name: gpu-kernel-args
 
+  - it: should add a pool's machineConfigs after the hub-wide config
+    set:
+      nodePoolConfig: [compliance-node-hardening]
+      nodePools:
+        - name: compute
+          replicas: 1
+          agentLabelSelector: {role: worker}
+          machineConfigs:
+            - name: 80-eno2-never-default
+              files:
+                - path: /etc/example
+                  contents: x
+    asserts:
+      - equal:
+          path: spec.config
+          value:
+            - name: compliance-node-hardening
+            - name: test-cluster-compute-80-eno2-never-default
+
   - it: should accept a pool's config in HyperShift's {name} form too
     set:
       nodePoolConfig: [compliance-node-hardening]
