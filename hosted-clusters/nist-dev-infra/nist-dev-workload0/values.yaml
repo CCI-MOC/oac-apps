@@ -3,6 +3,11 @@ release:
   channel: stable-4.22
   image: quay.io/openshift-release-dev/ocp-release:4.22.18-multi
 
+# One copy of each control-plane component. The hub's three masters also run
+# the hub's own control plane, and under FIPS they are short of headroom.
+# Immutable: changing it means recreating the HostedCluster.
+controllerAvailabilityPolicy: SingleReplica
+
 services:
   APIServer:
     # Pinned internal LoadBalancer IP from the hub's MetalLB pool. Becomes
