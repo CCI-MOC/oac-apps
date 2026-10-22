@@ -26,6 +26,16 @@ ingress:
 dns:
   enabled: true
   autoGenerate: true
+  # The agents' install checks look up api and api-int under the cluster's
+  # base domain. HyperShift does not use these names, and on oac-dev-infra
+  # a zone-wide wildcard answers them. Here they point at the API server.
+  records:
+    - name: api
+      hostname: api.nist-dev-workload0.hcp.nist.int.massopen.cloud
+      target: 10.20.19.13
+    - name: api-int
+      hostname: api-int.nist-dev-workload0.hcp.nist.int.massopen.cloud
+      target: 10.20.19.13
 
 nodePools:
   - name: compute
