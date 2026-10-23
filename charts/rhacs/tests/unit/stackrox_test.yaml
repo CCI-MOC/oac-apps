@@ -1,0 +1,91 @@
+suite: ACS Central, SecuredCluster and policies
+templates:
+  - templates/stackrox.yaml
+
+tests:
+  # Off by default: a cluster turns on what it runs.
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # Central and SecuredCluster need their namespace before the operator's
+  # CRDs are used.
+  - it: should create the stackrox namespace with Central
+    set:
+      central.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: Namespace
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: stackrox
+        documentIndex: 0
+
+  # The operator installs the Central CRD, so on a first sync Argo has to
+  # wait for it and skip the dry run, or the whole sync fails.
+  - it: should wait for the operator before Central
+    set:
+      central.enabled: true
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: Central
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  - it: should require a name for the secured cluster
+    set:
+      securedCluster.enabled: true
+      securedCluster.centralEndpoint: central.stackrox.svc:443
+    asserts:
+      - failedTemplate:
+          errorPattern: securedCluster.clusterName is required
+
+  - it: should require Central's endpoint for the secured cluster
+    set:
+      securedCluster.enabled: true
+      securedCluster.clusterName: example
+    asserts:
+      - failedTemplate:
+          errorPattern: securedCluster.centralEndpoint is required
+
+  # The SecuredCluster comes after Central, so a hub running both has
+  # Central up first.
+  - it: should render the secured cluster after Central
+    set:
+      securedCluster.enabled: true
+      securedCluster.clusterName: example
+      securedCluster.centralEndpoint: central.stackrox.svc:443
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: SecuredCluster
+      - equal:
+          path: spec.clusterName
+          value: example
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
+
+  - it: should render each security policy
+    set:
+      securityPolicies:
+        - name: example
+          spec:
+            policyName: example
+            severity: HIGH_SEVERITY
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: SecurityPolicy
+      - equal:
+          path: spec.policyName
+          value: example

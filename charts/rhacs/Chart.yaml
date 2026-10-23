@@ -1,0 +1,9 @@
+apiVersion: v2
+name: rhacs
+description: Red Hat Advanced Cluster Security operator, Central and/or SecuredCluster, and policies as code
+version: 0.1.0
+type: application
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"
