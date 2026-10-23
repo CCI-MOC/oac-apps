@@ -8,6 +8,13 @@ release:
 # Immutable: changing it means recreating the HostedCluster.
 controllerAvailabilityPolicy: SingleReplica
 
+# Log in through MOC SSO. The Keycloak client comes from moc-keycloak, which
+# writes its secret to cluster/nist-dev-infra/hostedcluster/nist-dev-workload0/
+# keycloak-oidc. HyperShift removes kubeadmin once an identity provider is set.
+oauth:
+  mocsso:
+    enabled: true
+
 services:
   APIServer:
     # Pinned internal LoadBalancer IP from the hub's MetalLB pool. Becomes
