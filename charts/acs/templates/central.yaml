@@ -1,0 +1,30 @@
+apiVersion: platform.stackrox.io/v1alpha1
+kind: Central
+metadata:
+  name: central
+  namespace: stackrox
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  central:
+    exposure:
+      route:
+        enabled: true
+  scanner:
+    analyzer:
+      scaling:
+        autoScaling: Enabled
+        minReplicas: 1
+        maxReplicas: 3
+  scannerV4:
+    indexer:
+      scaling:
+        autoScaling: Enabled
+        minReplicas: 1
+        maxReplicas: 3
+    matcher:
+      scaling:
+        autoScaling: Disabled
+        replicas: 2
+    scannerComponent: Enabled

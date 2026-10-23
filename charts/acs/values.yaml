@@ -1,0 +1,11 @@
+namespace: rhacs-operator
+
+operatorgroup:
+  targetNamespaces: true
+
+subscription:
+  channel: stable
+  name: rhacs-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

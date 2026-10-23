@@ -1,0 +1,10 @@
+apiVersion: v2
+name: acs
+description: Advanced Cluster Security
+version: 0.1.0
+type: application
+
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"
