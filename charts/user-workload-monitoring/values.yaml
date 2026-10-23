@@ -5,22 +5,23 @@
 # prometheus that reads this very object.
 enable: true
 
-# Tuning for the platform prometheus, the one in openshift-monitoring. Off by
-# default: the install mounts emptyDir there, and writing a volumeClaimTemplate
-# makes the cluster monitoring operator rebuild the stateful set, which drops
-# whatever history that instance holds. That is a per cluster decision, so it is
-# made in a values file rather than here.
+# Tuning for the platform prometheus, the one in openshift-monitoring. On by
+# default: the install mounts emptyDir there, so without this a cluster that
+# has no values file keeps its history only as long as the pod lives, and Argo
+# still shows it healthy. Switching it on rebuilds the stateful set once, which
+# drops what emptyDir holds; that history goes with the next restart anyway. A
+# cluster that must not have a volume sets enabled: false.
 #
-# Retention without a volume is decoration. The default install already carries
-# retention: 15d and loses everything when the pod is recreated, which is what
-# this block is for.
+# Sizing is measured on platform metrics: 2,901 bytes per series and day on
+# oac-dev-workload1, so the largest cluster so far, oac-dev-workload0 with
+# 489,601 series, needs 19.8 GiB for 15 days.
 platform:
-  enabled: false
+  enabled: true
   retention: 15d
   # Two independent limits, as below. The size cap is what protects the volume.
-  retentionSize: 40GiB
+  retentionSize: 25GiB
   volume:
-    size: 50Gi
+    size: 32Gi
     # Same reasoning as for the workload volume below.
     storageClassName: ""
 
