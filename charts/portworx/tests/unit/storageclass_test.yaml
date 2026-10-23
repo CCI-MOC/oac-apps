@@ -92,12 +92,14 @@ tests:
           value:
             - nfsvers=4.1
             - tcp
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: export-policy
 
   # Compliant clusters: NFS over TLS, against the realm's TLS export policy.
   - it: should add xprtsec=tls when a cluster asks for TLS
     set:
       portworx.tls: true
-      portworx.nfs_policy: export-policy-tls
     asserts:
       - equal:
           path: mountOptions
@@ -108,3 +110,24 @@ tests:
       - equal:
           path: parameters.pure_nfs_policy
           value: export-policy-tls
+
+  # The policy follows the TLS flag, so a cluster that sets TLS cannot also
+  # leave the class on the cleartext policy by mistake.
+  - it: should use the TLS export policy whatever nfs_policy says
+    set:
+      portworx.tls: true
+      portworx.nfs_policy: export-policy
+    asserts:
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: export-policy-tls
+
+  # A realm whose TLS policy has another name.
+  - it: should use the TLS export policy a cluster names
+    set:
+      portworx.tls: true
+      portworx.nfs_tls_policy: tls-policy
+    asserts:
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: tls-policy
