@@ -1,0 +1,8 @@
+# Replaces the router's self-signed default certificate, which the
+# compliance scan reports (default-ingress-ca-replaced). The API serves
+# the hub's certificate, so only the ingress certificate is managed here.
+clusterDomain: nist-dev-workload0.hcp.nist.int.massopen.cloud
+certificates:
+  issuer_name: letsencrypt-prod-dns01
+  api:
+    enabled: false

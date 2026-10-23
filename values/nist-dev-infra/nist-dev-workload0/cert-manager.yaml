@@ -1,0 +1,9 @@
+# DNS-01 in hcp.nist.int.massopen.cloud, for this cluster's names only
+# (moc-aws cert_manager_policy_nist_dev_workload0).
+aws:
+  region: us-east-1
+  roleArn: "arn:aws:iam::574733721584:role/cert-manager-nist-dev-workload0"
+letsencrypt:
+  email: contact@massopen.cloud
+  cluster_issuers:
+    enabled: true
