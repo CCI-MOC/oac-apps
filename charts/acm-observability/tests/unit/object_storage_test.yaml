@@ -1,0 +1,136 @@
+suite: Object storage for MCO
+templates:
+  - templates/bucketclaim.yaml
+  - templates/bucketaccess.yaml
+  - templates/externalsecret.yaml
+  - templates/secretstore.yaml
+  - templates/rbac.yaml
+  - templates/multiclusterobservability.yaml
+
+# The chain from Pure bucket to MCO is held together by names only. A wrong one
+# still syncs green in Argo, and MCO then has no object storage.
+tests:
+  - it: should let the BucketAccess point at the BucketClaim
+    asserts:
+      - equal:
+          path: metadata.name
+          value: acm-observability
+        template: templates/bucketclaim.yaml
+      - equal:
+          path: spec.bucketClaimName
+          value: acm-observability
+        template: templates/bucketaccess.yaml
+
+  - it: should read the credentials the BucketAccess writes
+    asserts:
+      - equal:
+          path: spec.credentialsSecretName
+          value: bucketclaim-acm-observability
+        template: templates/bucketaccess.yaml
+      - equal:
+          path: spec.data[0].remoteRef.key
+          value: bucketclaim-acm-observability
+        template: templates/externalsecret.yaml
+      - equal:
+          path: spec.data[0].remoteRef.property
+          value: BucketInfo
+        template: templates/externalsecret.yaml
+
+  - it: should write the secret and key MCO reads
+    asserts:
+      - equal:
+          path: spec.target.name
+          value: acm-observability
+        template: templates/externalsecret.yaml
+      - exists:
+          path: spec.target.template.data["thanos.yaml"]
+        template: templates/externalsecret.yaml
+      - equal:
+          path: spec.storageConfig.metricObjectStorage
+          value:
+            key: thanos.yaml
+            name: acm-observability
+        template: templates/multiclusterobservability.yaml
+
+  # The braces are for external-secrets, not for helm. Rendered without the
+  # escaping, helm would fail or leave the bucket name empty.
+  - it: should hand the template braces through to external-secrets
+    template: templates/externalsecret.yaml
+    asserts:
+      - matchRegex:
+          path: spec.target.template.data["thanos.yaml"]
+          pattern: 'bucket: \{\{ \$info\.spec\.bucketName \}\}'
+      - matchRegex:
+          path: spec.target.template.data["thanos.yaml"]
+          pattern: 'endpoint: \{\{ \$info\.spec\.secretS3\.endpoint \}\}'
+      - matchRegex:
+          path: spec.target.template.data["thanos.yaml"]
+          pattern: 'type: s3'
+
+  - it: should use the SecretStore and service account defined here
+    asserts:
+      - equal:
+          path: spec.secretStoreRef
+          value:
+            name: bucketconverter
+            kind: SecretStore
+        template: templates/externalsecret.yaml
+      - equal:
+          path: metadata.name
+          value: bucketconverter
+        template: templates/secretstore.yaml
+      - equal:
+          path: spec.provider.kubernetes.auth.serviceAccount.name
+          value: external-secrets-secret-reader
+        template: templates/secretstore.yaml
+      - equal:
+          path: spec.provider.kubernetes.remoteNamespace
+          value: open-cluster-management-observability
+        template: templates/secretstore.yaml
+
+  # Read only. The store converts a secret, it never needs to write one.
+  - it: should only let the reader read secrets
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: rules
+          value:
+            - apiGroups: [""]
+              resources: ["secrets"]
+              verbs: ["get", "list", "watch"]
+
+  - it: should bind the role to the service account the store uses
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: RoleBinding
+    asserts:
+      - equal:
+          path: roleRef.name
+          value: external-secrets-secret-reader
+      - contains:
+          path: subjects
+          content:
+            kind: ServiceAccount
+            name: external-secrets-secret-reader
+            namespace: open-cluster-management-observability
+
+  - it: should put everything in the observability namespace
+    set:
+      namespace: somewhere-else
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: somewhere-else
+        template: templates/bucketclaim.yaml
+      - equal:
+          path: metadata.namespace
+          value: somewhere-else
+        template: templates/externalsecret.yaml
+      - equal:
+          path: spec.provider.kubernetes.remoteNamespace
+          value: somewhere-else
+        template: templates/secretstore.yaml
