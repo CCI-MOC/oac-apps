@@ -255,6 +255,20 @@ tests:
           path: spec.configuration.oauth.identityProviders[1].name
           value: htpasswd
 
+  - it: should render token config without identity providers
+    set:
+      oauth:
+        tokenConfig:
+          accessTokenMaxAgeSeconds: 86400
+          accessTokenInactivityTimeout: 10m0s
+    asserts:
+      - equal:
+          path: spec.configuration.oauth
+          value:
+            tokenConfig:
+              accessTokenMaxAgeSeconds: 86400
+              accessTokenInactivityTimeout: 10m0s
+
   - it: should synthesize a mocsso identity provider when enabled
     set:
       managementCluster: oac-dev-infra
