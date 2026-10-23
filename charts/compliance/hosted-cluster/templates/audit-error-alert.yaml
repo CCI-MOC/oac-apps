@@ -1,0 +1,32 @@
+{{- if .Values.auditErrorAlert.enabled }}
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- /* OpenShift's audit-errors rule, for the hosted API servers. Their
+metrics are scraped on the hub (user workload monitoring) with job and pod
+labels, not the apiserver label the stock rule groups by. */}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: audit-errors
+  namespace: clusters-{{ $clusterName }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  groups:
+    - name: apiserver-audit
+      rules:
+        - alert: AuditLogError
+          annotations:
+            summary: |-
+              An API server of hosted cluster {{ $clusterName }} was unable to
+              write audit logs. This could be triggered by running out of
+              space, or a malicious actor tampering with the audit logs.
+            description: {{ printf "API server {{ $labels.job }} ({{ $labels.pod }}) of hosted cluster %s had an error writing to an audit log." $clusterName | quote }}
+          # The error counter has no series until the first error, so
+          # rate() would see one sample and miss it. The raw counter catches
+          # it and keeps firing until the API server pod restarts.
+          expr: |
+            sum by (job, pod) (apiserver_audit_error_total{job=~".+-apiserver"}) > 0
+          for: 1m
+          labels:
+            severity: warning
+{{- end }}

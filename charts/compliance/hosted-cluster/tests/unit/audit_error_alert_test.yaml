@@ -1,0 +1,49 @@
+suite: Audit error alert template
+templates:
+  - templates/audit-error-alert.yaml
+set:
+  clusterName: test-cluster
+
+tests:
+  - it: should fail closed when clusterName is not set
+    set:
+      clusterName: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: clusterName is required
+
+  - it: should render nothing when disabled
+    set:
+      auditErrorAlert:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render the rule in the cluster's control-plane namespace
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: PrometheusRule
+      - equal:
+          path: metadata.namespace
+          value: clusters-test-cluster
+      - equal:
+          path: spec.groups[0].rules[0].alert
+          value: AuditLogError
+      - matchRegex:
+          path: spec.groups[0].rules[0].expr
+          pattern: 'apiserver_audit_error_total\{job=~"\.\+-apiserver"\}'
+      - matchRegex:
+          path: spec.groups[0].rules[0].annotations.description
+          pattern: '\{\{ \$labels\.job \}\}'
+
+  # A rate() over the counter misses the first error: the series only
+  # appears then, with a single sample.
+  - it: should alert on the counter itself, not its rate
+    asserts:
+      - equal:
+          path: spec.groups[0].rules[0].expr
+          value: |
+            sum by (job, pod) (apiserver_audit_error_total{job=~".+-apiserver"}) > 0

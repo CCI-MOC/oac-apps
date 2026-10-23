@@ -4,8 +4,11 @@ failed_charts=()
 tmpfile=$(mktemp errXXXXXX)
 trap 'rm -f "$tmpfile"' EXIT
 
-for chart in charts/*; do
+for chart in charts/* charts/compliance/*; do
   lint_args=()
+
+  # charts/compliance groups charts; it is not one itself
+  [[ -f "$chart/Chart.yaml" ]] || continue
 
   if [[ -f "$chart/.nolint" ]]; then
     echo "WARNING: skipping $chart because of .nolint flag" >&2
