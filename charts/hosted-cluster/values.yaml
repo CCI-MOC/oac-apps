@@ -84,6 +84,9 @@ oauth:
     mappingMethod: claim
     secretName: "" # defaults to "<clientID>-keycloak-client-secret"
     issuer: https://sso.massopen.cloud/realms/moc
+  # Rendered verbatim into spec.configuration.oauth.tokenConfig, e.g.
+  # {accessTokenMaxAgeSeconds: 86400, accessTokenInactivityTimeout: 10m0s}.
+  tokenConfig: {}
 
 # A list of ExternalSecret resources to create for this cluster. Each entry has
 # a `name` (used for metadata.name) and a `spec` block passed through verbatim.

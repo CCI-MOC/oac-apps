@@ -23,9 +23,24 @@ apiServer:
   audit:
     profile: WriteRequestBodies
 
+# NIST 800-53 AC-12: tokens expire after a day, and after 10 minutes unused
+# (ocp4-moderate oauth-or-oauthclient-token-maxage and -inactivity-timeout).
+oauth:
+  tokenConfig:
+    accessTokenMaxAgeSeconds: 86400
+    accessTokenInactivityTimeout: 10m0s
+
 imageConfig:
   registrySources:
-    allowedRegistries: [quay.io, registry.redhat.io, registry.connect.redhat.com, registry.access.redhat.com, nvcr.io]
+    # ghcr.io/grafana: the community grafana-operator's image (oac-apps
+    # grafana-operator chart), and only that repository on ghcr.io.
+    allowedRegistries: [quay.io, registry.redhat.io, registry.connect.redhat.com, registry.access.redhat.com, nvcr.io, ghcr.io/grafana]
+  # Where ImageStreams may import from (ocp4-moderate
+  # ocp-allowed-registries-for-import); as on jetty.
+  allowedRegistriesForImport:
+    - {domainName: quay.io, insecure: false}
+    - {domainName: registry.access.redhat.com, insecure: false}
+    - {domainName: registry.redhat.io, insecure: false}
 
 etcd:
   # Test only. The hub has no LVM storage: each node's second disk holds the
