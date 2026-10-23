@@ -18,7 +18,10 @@ backend:
   verify: false
   # Custom CA certificate (PEM) to validate the backend certificate
   # against. Only used when backend.verify is true; when empty, HAProxy
-  # verifies against its default trust store.
+  # verifies against its default trust store. With verify on and no
+  # backend.host, HAProxy is told to check the certificate against
+  # backend.address: otherwise it takes the name from each request's Host
+  # header, which the backend's certificate does not carry.
   cacert: ""
 
 certificate:
