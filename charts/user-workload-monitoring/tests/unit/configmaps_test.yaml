@@ -57,11 +57,31 @@ tests:
           path: data["config.yaml"]
           pattern: 'retentionSize: 18GiB'
 
-  # Off by default on purpose. Turning it on makes the cluster monitoring
-  # operator rebuild the platform stateful set, which drops the history that
-  # instance holds, so it is a decision per cluster rather than a chart default.
-  - it: leaves the platform prometheus alone unless a cluster asks for it
+  # On by default, so a new cluster or hub gets the volume without a values
+  # file. A missing file used to mean emptyDir with Argo still green.
+  - it: gives the platform prometheus a volume by default
     template: templates/enable.yaml
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: '(?m)^prometheusK8s:'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: volumeClaimTemplate
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retentionSize: 25GiB'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'storage: 32Gi'
+
+  # Turning the volume on rebuilds the stateful set once, so a cluster can
+  # still say no.
+  - it: leaves the platform prometheus alone when a cluster opts out
+    template: templates/enable.yaml
+    set:
+      platform:
+        enabled: false
     asserts:
       - notMatchRegex:
           path: data["config.yaml"]
@@ -87,10 +107,10 @@ tests:
           pattern: 'retention: 15d'
       - matchRegex:
           path: data["config.yaml"]
-          pattern: 'retentionSize: 40GiB'
+          pattern: 'retentionSize: 25GiB'
       - matchRegex:
           path: data["config.yaml"]
-          pattern: 'storage: 50Gi'
+          pattern: 'storage: 32Gi'
       # The switch has to survive, it is what the other config map depends on.
       - matchRegex:
           path: data["config.yaml"]
