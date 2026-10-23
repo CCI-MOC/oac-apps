@@ -1,0 +1,43 @@
+suite: backend TLS
+templates:
+  - templates/configmap.yaml
+values:
+  - ../../ci/test-values.yaml
+
+tests:
+  # HAProxy otherwise takes the server name from the request's Host header
+  # and checks the backend certificate against it: every request fails.
+  - it: should check the backend certificate against its address when verifying
+    set:
+      backend:
+        address: 10.0.0.10
+        verify: true
+        cacert: dummy
+    asserts:
+      - matchRegex:
+          path: data["haproxy.cfg"]
+          pattern: 'server storage "10\.0\.0\.10:443" ssl verify required ca-file \S+ sni str\(10\.0\.0\.10\)'
+
+  - it: should leave the server name alone when not verifying
+    set:
+      backend:
+        address: 10.0.0.10
+        verify: false
+    asserts:
+      - notMatchRegex:
+          path: data["haproxy.cfg"]
+          pattern: 'sni str'
+
+  - it: should prefer backend.host as the server name
+    set:
+      backend:
+        address: 10.0.0.10
+        host: s3.example
+        verify: true
+    asserts:
+      - matchRegex:
+          path: data["haproxy.cfg"]
+          pattern: 'sni str\(s3\.example\)'
+      - notMatchRegex:
+          path: data["haproxy.cfg"]
+          pattern: 'sni str\(10\.0\.0\.10\)'
