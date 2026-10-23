@@ -4,9 +4,9 @@
 portworx:
   snapshot_directory: "false"
   # A compliant hub: NFS over TLS only, so this class is TLS and stays the
-  # default. tlshd runs on every node (the nfs-tls chart).
+  # default. tlshd runs on every node (the nfs-tls chart). TLS also picks the
+  # realm's TLS export policy.
   tls: true
-  nfs_policy: export-policy-tls
 
 externalSecret:
   secretStore: aws-secrets-manager

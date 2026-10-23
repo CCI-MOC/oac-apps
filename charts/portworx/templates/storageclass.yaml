@@ -27,7 +27,7 @@ mountOptions:
 parameters:
   backend: pure_file
   pure_nfs_server: {{ .Values.portworx.nfs_server }}
-  pure_nfs_policy: {{ .Values.portworx.nfs_policy }}
+  pure_nfs_policy: {{ ternary .Values.portworx.nfs_tls_policy .Values.portworx.nfs_policy (.Values.portworx.tls | default false) }}
   pure_fb_snapshot_directory_enabled: {{ .Values.portworx.snapshot_directory | quote }}
 provisioner: pxd.portworx.com
 reclaimPolicy: Delete
