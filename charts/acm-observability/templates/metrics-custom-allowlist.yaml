@@ -18,4 +18,12 @@ data:
       {{- range .Values.customAllowlist.names }}
       - {{ . }}
       {{- end }}
+    {{- with .Values.customAllowlist.matches }}
+    # For names we cannot list ahead of time. Undocumented for this key, so
+    # what an alert or a dashboard needs goes into names above.
+    matches:
+      {{- range . }}
+      - {{ . }}
+      {{- end }}
+    {{- end }}
 {{- end }}

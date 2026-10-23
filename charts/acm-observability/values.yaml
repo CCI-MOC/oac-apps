@@ -8,3 +8,12 @@ customAllowlist:
     - DCGM_FI_DEV_GPU_UTIL
     - DCGM_FI_DEV_FB_USED
     - DCGM_FI_DEV_GPU_TEMP
+    - kube_pod_container_status_restarts_total
+    - kube_pod_init_container_status_restarts_total
+    - kube_namespace_status_phase
+    - kube_pod_deletion_timestamp
+    - kubelet_volume_stats_used_bytes
+  # vllm names its metrics per model, so a list would go stale with the next
+  # deployment.
+  matches:
+    - __name__=~"^vllm:.*"

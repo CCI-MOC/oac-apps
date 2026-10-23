@@ -29,6 +29,42 @@ tests:
       - notExists:
           path: data["uwl_metrics_list.yaml"]
 
+  - it: should list the workload metrics the platform list leaves out
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_pod_container_status_restarts_total'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_pod_init_container_status_restarts_total'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_namespace_status_phase'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_pod_deletion_timestamp'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kubelet_volume_stats_used_bytes'
+
+  # A selector rather than a name, because vllm names its metrics per model.
+  - it: should carry the vllm selector in matches, not in names
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: 'matches:'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: 'vllm'
+
+  - it: should leave matches out when nothing sets it
+    set:
+      customAllowlist.matches: null
+    asserts:
+      - notMatchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: 'matches:'
+
   - it: should list the three metrics the GPU panels need
     asserts:
       - matchRegex:
