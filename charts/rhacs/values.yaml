@@ -1,0 +1,44 @@
+# ACS is where HIPAA is assessed (the Compliance Operator has no HIPAA
+# profile): its compliance standards, runtime detection and network graph.
+#
+# The intended shape: Central on the hub, and a SecuredCluster in every
+# cluster, the hub included, each reporting to the hub's Central.
+#
+# Joining a SecuredCluster to Central needs an init bundle or cluster
+# registration secret. It is a credential: generate it on Central and
+# deliver it through the secret store, never through git.
+namespace: rhacs-operator
+operatorgroup:
+  # The operator supports AllNamespaces only: an OperatorGroup with no
+  # target namespaces.
+  targetNamespaces: false
+subscription:
+  channel: stable
+  name: rhacs-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+# Namespace for Central and SecuredCluster.
+stackroxNamespace: stackrox
+
+central:
+  enabled: false
+  # Central CR spec, verbatim.
+  spec: {}
+
+securedCluster:
+  enabled: false
+  # Name shown in ACS; also what policy scopes match on.
+  clusterName: ""
+  # Central's route host:443, or central.<ns>.svc:443 when Central is local.
+  centralEndpoint: ""
+  # Anything else in the SecuredCluster spec, verbatim.
+  spec: {}
+
+# SecurityPolicy CRs (config.stackrox.io), synced into Central by its
+# config-controller and locked against UI edits. Each is {name, spec}.
+# Write every scope entry with clusterLabel: {}, label: {} and
+# namespaceLabel: {}: the controller fills them in, and without them ArgoCD
+# sees a difference forever.
+securityPolicies: []

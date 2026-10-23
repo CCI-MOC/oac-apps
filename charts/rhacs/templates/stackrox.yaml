@@ -1,0 +1,53 @@
+{{- if or .Values.central.enabled .Values.securedCluster.enabled .Values.securityPolicies }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.stackroxNamespace }}
+  labels:
+    openshift.io/cluster-monitoring: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+{{- end }}
+{{- if .Values.central.enabled }}
+---
+apiVersion: platform.stackrox.io/v1alpha1
+kind: Central
+metadata:
+  name: stackrox-central-services
+  namespace: {{ .Values.stackroxNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  {{- toYaml .Values.central.spec | nindent 2 }}
+{{- end }}
+{{- if .Values.securedCluster.enabled }}
+---
+apiVersion: platform.stackrox.io/v1alpha1
+kind: SecuredCluster
+metadata:
+  name: stackrox-secured-cluster-services
+  namespace: {{ .Values.stackroxNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  clusterName: {{ required "securedCluster.clusterName is required" .Values.securedCluster.clusterName }}
+  centralEndpoint: {{ required "securedCluster.centralEndpoint is required" .Values.securedCluster.centralEndpoint | quote }}
+  {{- with .Values.securedCluster.spec }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}
+{{- range .Values.securityPolicies }}
+---
+apiVersion: config.stackrox.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.stackroxNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  {{- toYaml .spec | nindent 2 }}
+{{- end }}

@@ -1,0 +1,14 @@
+central:
+  enabled: true
+  spec:
+    egress:
+      connectivityPolicy: Online
+securedCluster:
+  enabled: true
+  clusterName: example
+  centralEndpoint: central.stackrox.svc:443
+securityPolicies:
+  - name: example
+    spec:
+      policyName: example
+      severity: HIGH_SEVERITY
