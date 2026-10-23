@@ -14,6 +14,12 @@ metadata:
   namespace: {{ .Values.namespace }}
   labels:
     app.kubernetes.io/part-of: monitoring
+  annotations:
+    # As the UIPlugin: the operator installs the PersesDashboard CRD, so on a
+    # first sync it is absent and Argo's dry run fails the whole sync,
+    # operator included, unless this waits and skips it.
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   config:
     display:

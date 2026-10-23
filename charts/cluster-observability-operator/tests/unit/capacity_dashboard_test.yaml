@@ -50,3 +50,15 @@ tests:
       - equal:
           path: metadata.namespace
           value: openshift-cluster-observability-operator
+
+  # A cluster without COO has no PersesDashboard CRD yet; without these the
+  # first sync fails before the operator is installed.
+  - it: should wait for the operator and skip the dry run until its CRD exists
+    template: templates/perses-dashboard-mco-capacity.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
