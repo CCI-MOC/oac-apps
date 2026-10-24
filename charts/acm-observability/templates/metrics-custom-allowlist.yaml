@@ -15,15 +15,11 @@ metadata:
 data:
   metrics_list.yaml: |
     names:
-      {{- range .Values.customAllowlist.names }}
-      - {{ . }}
-      {{- end }}
+    {{- .Values.customAllowlist.names | toYaml | nindent 6 }}
     {{- with .Values.customAllowlist.matches }}
     # For names we cannot list ahead of time. Undocumented for this key, so
     # what an alert or a dashboard needs goes into names above.
     matches:
-      {{- range . }}
-      - {{ . }}
-      {{- end }}
+    {{- . | toYaml | nindent 6 }}
     {{- end }}
 {{- end }}
