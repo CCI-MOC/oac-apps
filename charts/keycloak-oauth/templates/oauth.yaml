@@ -30,3 +30,7 @@ spec:
         extraScopes:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+  {{- with .Values.tokenConfig }}
+  tokenConfig:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}

@@ -30,6 +30,32 @@ tests:
           path: spec.identityProviders[0].openID.clientID
           value: my-client
 
+  - it: should not render tokenConfig by default
+    set:
+      keycloak:
+        clientID: my-client
+    templates:
+      - templates/oauth.yaml
+    asserts:
+      - notExists:
+          path: spec.tokenConfig
+
+  - it: should render tokenConfig when provided
+    set:
+      keycloak:
+        clientID: my-client
+      tokenConfig:
+        accessTokenMaxAgeSeconds: 86400
+        accessTokenInactivityTimeout: 10m0s
+    templates:
+      - templates/oauth.yaml
+    asserts:
+      - equal:
+          path: spec.tokenConfig
+          value:
+            accessTokenMaxAgeSeconds: 86400
+            accessTokenInactivityTimeout: 10m0s
+
   - it: should not render an ExternalSecret when externalSecret.remoteKey is not provided
     # remoteKey defaults to "" in values.yaml, so the template is guarded off
     set:
