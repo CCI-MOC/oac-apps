@@ -1,0 +1,75 @@
+suite: retention alerts
+templates:
+  - templates/retention-alerts.yaml
+
+tests:
+  # The stock KubePersistentVolumeFillingUp fires below 3 percent free, long
+  # after a cluster has lost part of its window.
+  - it: alerts when the cap drops blocks inside the window
+    asserts:
+      - containsDocument:
+          kind: PrometheusRule
+          apiVersion: monitoring.coreos.com/v1
+          name: prometheus-retention
+      - matchRegex:
+          path: spec.groups[0].rules[0].expr
+          pattern: 'prometheus_tsdb_size_retentions_total'
+      - matchRegex:
+          path: spec.groups[0].rules[0].expr
+          pattern: '86400 < 14'
+
+  # Without the day condition a volume full of the window we asked for would
+  # alert.
+  - it: warns on the volume only while the window is short
+    asserts:
+      - matchRegex:
+          path: spec.groups[0].rules[1].expr
+          pattern: 'kubelet_volume_stats_used_bytes'
+      - matchRegex:
+          path: spec.groups[0].rules[1].expr
+          pattern: '> 0.85'
+      - matchRegex:
+          path: spec.groups[0].rules[1].expr
+          pattern: '86400 < 14'
+
+  # Both instances get their own pair, because they can run different windows.
+  - it: covers the platform and the user workload prometheus
+    asserts:
+      - lengthEqual:
+          path: spec.groups[0].rules
+          count: 4
+      - matchRegex:
+          path: spec.groups[0].rules[0].expr
+          pattern: 'namespace="openshift-monitoring"'
+      - matchRegex:
+          path: spec.groups[0].rules[2].expr
+          pattern: 'namespace="openshift-user-workload-monitoring"'
+
+  # The threshold is derived, so a cluster that sets another retention keeps a
+  # useful alert instead of a stale number.
+  - it: follows a retention other than 15d
+    set:
+      platform.retention: 30d
+    asserts:
+      - matchRegex:
+          path: spec.groups[0].rules[0].expr
+          pattern: '86400 < 29'
+      - matchRegex:
+          path: spec.groups[0].rules[2].expr
+          pattern: '86400 < 14'
+
+  # Without the guard a retention in hours renders a negative threshold and the
+  # alert never fires, which is worse than no alert at all.
+  - it: fails closed on a retention that is not whole days
+    set:
+      platform.retention: 360h
+    asserts:
+      - failedTemplate:
+          errorPattern: 'retention in whole days'
+
+  - it: renders nothing when a cluster opts out
+    set:
+      retentionAlerts.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
