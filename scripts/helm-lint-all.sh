@@ -4,11 +4,10 @@ failed_charts=()
 tmpfile=$(mktemp errXXXXXX)
 trap 'rm -f "$tmpfile"' EXIT
 
-for chart in charts/* charts/compliance/*; do
-  lint_args=()
+mapfile -d '' -t charts < <(find charts -name Chart.yaml -not -path 'charts/*/charts/*' -printf '%h\0' | sort -z)
 
-  # charts/compliance groups charts; it is not one itself
-  [[ -f "$chart/Chart.yaml" ]] || continue
+for chart in "${charts[@]}"; do
+  lint_args=()
 
   if [[ -f "$chart/.nolint" ]]; then
     echo "WARNING: skipping $chart because of .nolint flag" >&2
