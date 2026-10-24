@@ -1,0 +1,59 @@
+{{- if .Values.retentionAlerts.enabled }}
+{{- /* KubePersistentVolumeFillingUp fires below 3 percent free, by which time
+a cluster has already dropped part of its window. One day under the retention,
+since prometheus deletes in two hour blocks and keeps some overhang. */}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: prometheus-retention
+  namespace: openshift-monitoring
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  groups:
+    - name: prometheus-retention
+      rules:
+        {{- range $i, $p := list
+            (dict "ns" "openshift-monitoring" "what" "platform" "retention" $.Values.platform.retention)
+            (dict "ns" "openshift-user-workload-monitoring" "what" "user workload" "retention" $.Values.prometheus.retention) }}
+        {{- if not (regexMatch "^[0-9]+d$" $p.retention) }}
+        {{- fail (printf "retentionAlerts needs %s retention in whole days, got %s" $p.what $p.retention) }}
+        {{- end }}
+        {{- $days := sub (int (trimSuffix "d" $p.retention)) 1 }}
+        - alert: PrometheusRetentionShorterThanConfigured
+          annotations:
+            summary: The {{ $p.what }} prometheus drops blocks inside its retention window.
+            description: >-
+              The size cap in {{ $p.ns }} dropped blocks while the oldest sample
+              is younger than {{ $days }} days, against a configured
+              {{ $p.retention }}. Raise retentionSize and the volume.
+          # The counter alone is normal. With a short window it means the size
+          # decides what is kept.
+          expr: |
+            increase(prometheus_tsdb_size_retentions_total{namespace="{{ $p.ns }}"}[24h]) > 0
+              and (time() - prometheus_tsdb_lowest_timestamp_seconds{namespace="{{ $p.ns }}"}) / 86400 < {{ $days }}
+          for: 1h
+          labels:
+            severity: warning
+
+        - alert: PrometheusVolumeFillingUp
+          annotations:
+            summary: A {{ $p.what }} prometheus volume fills up before its retention window.
+            description: >-
+              {{ `{{ $labels.persistentvolumeclaim }}` }} is
+              {{ `{{ $value | humanizePercentage }}` }} full and holds less than
+              {{ $days }} days. Warning ahead of the size cap, so the volume can
+              grow before blocks are dropped.
+          # The day condition keeps a volume quiet that is full of the window
+          # we asked for. Joined on namespace, the only label both carry.
+          expr: |
+            max by (namespace, persistentvolumeclaim) (
+              kubelet_volume_stats_used_bytes{namespace="{{ $p.ns }}",persistentvolumeclaim=~"prometheus.*"}
+              / kubelet_volume_stats_capacity_bytes{namespace="{{ $p.ns }}",persistentvolumeclaim=~"prometheus.*"}
+            ) > {{ $.Values.retentionAlerts.volumeFullRatio }}
+              and on (namespace) (time() - prometheus_tsdb_lowest_timestamp_seconds{namespace="{{ $p.ns }}"}) / 86400 < {{ $days }}
+          for: 1h
+          labels:
+            severity: warning
+        {{- end }}
+{{- end }}

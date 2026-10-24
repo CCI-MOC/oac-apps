@@ -70,10 +70,30 @@ tests:
           pattern: volumeClaimTemplate
       - matchRegex:
           path: data["config.yaml"]
-          pattern: 'retentionSize: 25GiB'
+          pattern: 'retentionSize: 40GiB'
       - matchRegex:
           path: data["config.yaml"]
-          pattern: 'storage: 32Gi'
+          pattern: 'storage: 50Gi'
+
+  # A hub outgrows the default and raises the two sizes in
+  # values/<hub>/local-cluster/, keeping the rest from here.
+  - it: lets a cluster raise the sizes without repeating the rest
+    template: templates/enable.yaml
+    set:
+      platform:
+        retentionSize: 80GiB
+        volume:
+          size: 100Gi
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retentionSize: 80GiB'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'storage: 100Gi'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retention: 15d'
 
   # Turning the volume on rebuilds the stateful set once, so a cluster can
   # still say no.
@@ -107,10 +127,10 @@ tests:
           pattern: 'retention: 15d'
       - matchRegex:
           path: data["config.yaml"]
-          pattern: 'retentionSize: 25GiB'
+          pattern: 'retentionSize: 40GiB'
       - matchRegex:
           path: data["config.yaml"]
-          pattern: 'storage: 32Gi'
+          pattern: 'storage: 50Gi'
       # The switch has to survive, it is what the other config map depends on.
       - matchRegex:
           path: data["config.yaml"]
