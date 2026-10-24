@@ -12,16 +12,16 @@ enable: true
 # drops what emptyDir holds; that history goes with the next restart anyway. A
 # cluster that must not have a volume sets enabled: false.
 #
-# Sizing is measured on platform metrics: 2,901 bytes per series and day on
-# oac-dev-workload1, so the largest cluster so far, oac-dev-workload0 with
-# 489,601 series, needs 19.8 GiB for 15 days.
+# At about 4,700 bytes per series and day this holds 15 days up to roughly
+# 600,000 series. A hub carries more and raises both in
+# values/<hub>/local-cluster/, once it has run long enough to be measured.
 platform:
   enabled: true
   retention: 15d
   # Two independent limits, as below. The size cap is what protects the volume.
-  retentionSize: 25GiB
+  retentionSize: 40GiB
   volume:
-    size: 32Gi
+    size: 50Gi
     # Same reasoning as for the workload volume below.
     storageClassName: ""
 
@@ -42,3 +42,10 @@ prometheus:
     # several. Set it in the values for a cluster whose default is wrong, which
     # is where facts about a cluster belong.
     storageClassName: ""
+
+# The stock volume alert fires below 3 percent free, too late to save a retention
+# window. The day threshold is derived from each retention above, so it follows
+# a cluster that sets something other than 15d.
+retentionAlerts:
+  enabled: true
+  volumeFullRatio: 0.85
