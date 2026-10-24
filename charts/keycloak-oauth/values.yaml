@@ -7,6 +7,10 @@ keycloak:
   extraScopes:
     - groups
 
+# Rendered verbatim into spec.tokenConfig of the OAuth resource, e.g.
+# {accessTokenMaxAgeSeconds: 86400, accessTokenInactivityTimeout: 10m0s}.
+tokenConfig: {}
+
 externalSecret:
   secretStore: aws-secrets-manager
   secretStoreType: ClusterSecretStore
