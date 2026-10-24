@@ -19,3 +19,45 @@ patches:
       - op: replace
         path: /spec/dataFrom/0/extract/key
         value: cluster/nist-dev-infra/pure-cosi
+
+  # Requests and limits, which the upstream manifests leave out (a compliant
+  # hub's scans require both). Measured 2026-10-24: the controller about
+  # 12Mi, the driver about 120Mi and its sidecar about 13Mi, each at a few
+  # millicores. Limits leave headroom several times that.
+  - target:
+      kind: Deployment
+      name: container-object-storage-controller
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: container-object-storage-controller
+      spec:
+        template:
+          spec:
+            containers:
+              - name: objectstorage-controller
+                resources:
+                  requests: {cpu: 10m, memory: 32Mi}
+                  limits: {cpu: 200m, memory: 128Mi}
+
+  - target:
+      kind: Deployment
+      name: pure-cosi-driver
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: pure-cosi-driver
+      spec:
+        template:
+          spec:
+            containers:
+              - name: objectstorage-sidecar
+                resources:
+                  requests: {cpu: 10m, memory: 32Mi}
+                  limits: {cpu: 200m, memory: 128Mi}
+              - name: pure-cosi-driver
+                resources:
+                  requests: {cpu: 10m, memory: 192Mi}
+                  limits: {cpu: 500m, memory: 512Mi}
