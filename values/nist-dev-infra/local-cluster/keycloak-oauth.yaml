@@ -1,0 +1,11 @@
+keycloak:
+  clientID: nist-dev-infra
+
+externalSecret:
+  remoteKey: cluster/nist-dev-infra/keycloak-oidc
+
+# Token lifetimes required by ocp4-moderate
+# (oauth-or-oauthclient-token-maxage and -inactivity-timeout).
+tokenConfig:
+  accessTokenMaxAgeSeconds: 86400
+  accessTokenInactivityTimeout: 10m0s
