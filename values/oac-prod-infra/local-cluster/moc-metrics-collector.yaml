@@ -1,0 +1,9 @@
+# Hosted cluster metrics live in this hub's Thanos, so the collectors for
+# them run here.
+prometheusUrl: https://thanos-querier-openshift-monitoring.apps.infra.oac.ocp.massopen.cloud
+collectors:
+  - clusterName: oac-prod-workload0
+    clusterId: cac066c0-9e64-4421-928b-93b75c4c4d41
+    clusterType: hypershift
+    bucket: oac-prod-workload0-metrics
+    s3RemoteKey: b2-key/oac-prod-workload0-rw
