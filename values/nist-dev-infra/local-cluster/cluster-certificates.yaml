@@ -1,0 +1,8 @@
+clusterDomain: nist-dev-infra.nist.int.massopen.cloud
+certificates:
+  issuer_name: letsencrypt-prod-dns01
+  # Ingress only for now. A new API server certificate also changes what
+  # managed clusters' agents and existing kubeconfigs must trust, so it
+  # comes separately.
+  api:
+    enabled: false
