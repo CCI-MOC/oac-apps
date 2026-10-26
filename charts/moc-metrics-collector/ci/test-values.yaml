@@ -1,0 +1,6 @@
+prometheusUrl: https://thanos-querier.example.com
+collectors:
+  - clusterName: test-workload0
+    clusterId: 00000000-0000-0000-0000-000000000000
+    bucket: test-workload0-metrics
+    s3RemoteKey: test-workload0-metrics-bucket

@@ -1,1 +1,26 @@
 name: moc-metrics-collector
+
+# Daily jobs that pull usage metrics from Prometheus and upload them to S3.
+# Empty by default, so on most clusters this chart only creates the reader
+# service account and its token. Set it per cluster where collection runs:
+#
+# collectors:
+#   - clusterName: oac-prod-workload0
+#     clusterId: cac066c0-9e64-4421-928b-93b75c4c4d41
+#     clusterType: standalone          # optional, defaults to hypershift
+#     prometheusUrl: https://...       # optional, defaults to .prometheusUrl
+#     bucket: oac-prod-workload0-metrics
+#     s3RemoteKey: b2-key/oac-prod-workload0-rw
+#     tokenSecret:                     # optional, defaults to this cluster's
+#       name: some-other-reader-token  # own reader token
+#       key: token
+collectors: []
+
+# Prometheus (or Thanos querier) URL for collectors that don't set their
+# own. Deliberately unset: rendering fails if a collector has no URL.
+# prometheusUrl: https://thanos-querier-openshift-monitoring.apps...
+
+image: ghcr.io/cci-moc/openshift-usage-scripts:v0.5.0
+schedule: "5 6 * * *"
+timeZone: Etc/UTC
+queryIntervalMinutes: 1
