@@ -42,9 +42,32 @@ tests:
       - notExists:
           path: spec.monitoring
       - notExists:
+          path: spec.configuration.apiServer
+
+  - it: should render issuerURL
+    asserts:
+      - equal:
           path: spec.issuerURL
-      - notExists:
-          path: spec.configuration
+          value: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/test-kubevirt"
+
+  - it: should render OAuth identity providers when mocsso is enabled
+    set:
+      oauth:
+        mocsso:
+          enabled: true
+    asserts:
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].name
+          value: mocsso
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].type
+          value: OpenID
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].openID.clientID
+          value: test-kubevirt
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].openID.issuer
+          value: https://sso.massopen.cloud/realms/moc
 
   - it: should publish all required services with simple types
     asserts:

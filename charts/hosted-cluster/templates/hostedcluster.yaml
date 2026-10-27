@@ -113,46 +113,6 @@ spec:
       servicePublishingStrategy:
         {{- toYaml $finalStrategy | nindent 8 }}
     {{- end }}
-  {{- if .Values.issuerURL }}
-  issuerURL: {{ .Values.issuerURL | quote }}
-  {{- else }}
-  issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/{{ $clusterName }}"
-  {{- end }}
-  configuration:
-    {{- $identityProviders := .Values.oauth.identityProviders }}
-    {{- if and (not $identityProviders) .Values.oauth.mocsso.enabled }}
-    {{- $identityProviders = list (include "hosted-cluster.mocssoIdentityProvider" . | fromYaml) }}
-    {{- end }}
-    {{- if or $identityProviders .Values.oauth.tokenConfig }}
-    oauth:
-      {{- with $identityProviders }}
-      identityProviders:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.oauth.tokenConfig }}
-      tokenConfig:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-    {{- end }}
-    apiServer:
-      servingCerts:
-        namedCertificates:
-          - names:
-              - {{ include "hosted-cluster.kubeAPIServerDNSName" . }}
-            servingCertificate:
-              name: {{ $clusterName }}-api-certificate
-          - names:
-              - {{ include "hosted-cluster.oauthHostname" . }}
-            servingCertificate:
-              name: {{ $clusterName }}-oauth-certificate
-    {{- with .Values.apiServer.audit }}
-      audit:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.imageConfig }}
-    image:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
   {{- else }}
   platform:
     type: KubeVirt
@@ -182,3 +142,45 @@ spec:
       servicePublishingStrategy:
         type: Route
   {{- end }}
+  {{- if .Values.issuerURL }}
+  issuerURL: {{ .Values.issuerURL | quote }}
+  {{- else }}
+  issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/{{ $clusterName }}"
+  {{- end }}
+  configuration:
+    {{- $identityProviders := .Values.oauth.identityProviders }}
+    {{- if and (not $identityProviders) .Values.oauth.mocsso.enabled }}
+    {{- $identityProviders = list (include "hosted-cluster.mocssoIdentityProvider" . | fromYaml) }}
+    {{- end }}
+    {{- if or $identityProviders .Values.oauth.tokenConfig }}
+    oauth:
+      {{- with $identityProviders }}
+      identityProviders:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.oauth.tokenConfig }}
+      tokenConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    {{- if eq $platformType "Agent" }}
+    apiServer:
+      servingCerts:
+        namedCertificates:
+          - names:
+              - {{ include "hosted-cluster.kubeAPIServerDNSName" . }}
+            servingCertificate:
+              name: {{ $clusterName }}-api-certificate
+          - names:
+              - {{ include "hosted-cluster.oauthHostname" . }}
+            servingCertificate:
+              name: {{ $clusterName }}-oauth-certificate
+    {{- with .Values.apiServer.audit }}
+      audit:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- end }}
+    {{- with .Values.imageConfig }}
+    image:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
