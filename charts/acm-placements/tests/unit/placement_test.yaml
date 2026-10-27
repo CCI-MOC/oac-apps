@@ -1,0 +1,62 @@
+suite: Placement
+templates:
+  - templates/placement.yaml
+
+tests:
+  - it: renders nothing without placements
+    set:
+      namespace: openshift-gitops
+      placements: []
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders one Placement per entry with its own matchLabels
+    set:
+      namespace: openshift-gitops
+      placements:
+        - name: metallb-clusters
+          matchLabels:
+            massopen.cloud/feature-metallb: "true"
+        - name: gpu-clusters
+          matchLabels:
+            massopen.cloud/feature-gpu: "true"
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: metallb-clusters
+        documentIndex: 0
+      - equal:
+          path: spec.predicates[0].requiredClusterSelector.labelSelector.matchLabels["massopen.cloud/feature-metallb"]
+          value: "true"
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: gpu-clusters
+        documentIndex: 1
+
+  # A placement with no toleration for a flapping/unreachable cluster drops
+  # it from the PlacementDecision the instant it blips, which cascades into
+  # ArgoCD ApplicationSets deleting (and pruning) the generated Applications.
+  # No tolerationSeconds is set, so these tolerations never expire: a cluster
+  # is only dropped by removing/unlabeling it, never by an availability blip.
+  - it: tolerates unreachable/unavailable clusters indefinitely
+    set:
+      namespace: openshift-gitops
+      placements:
+        - name: metallb-clusters
+          matchLabels:
+            massopen.cloud/feature-metallb: "true"
+    asserts:
+      - equal:
+          path: spec.tolerations[0].key
+          value: cluster.open-cluster-management.io/unreachable
+      - notExists:
+          path: spec.tolerations[0].tolerationSeconds
+      - equal:
+          path: spec.tolerations[1].key
+          value: cluster.open-cluster-management.io/unavailable
+      - notExists:
+          path: spec.tolerations[1].tolerationSeconds
