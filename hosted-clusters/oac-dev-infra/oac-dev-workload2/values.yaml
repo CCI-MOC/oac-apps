@@ -5,6 +5,10 @@ platform:
   kubevirt:
     infraKubeConfigSecretName: oac-dev-workload1-kubeconfig
 
+oauth:
+  mocsso:
+    enabled: true
+
 release:
   channel: stable-4.22
   image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
