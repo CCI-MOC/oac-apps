@@ -1,0 +1,31 @@
+suite: File Integrity Operator install
+templates:
+  - templates/operator.yaml
+
+tests:
+  # The AIDE DaemonSet is privileged and mounts the host root, and platform
+  # Prometheus loads the operator's alert only from a labeled namespace.
+  - it: should label the namespace for AIDE and platform monitoring
+    asserts:
+      - isKind:
+          of: Namespace
+        documentIndex: 0
+      - equal:
+          path: metadata.labels["pod-security.kubernetes.io/enforce"]
+          value: privileged
+        documentIndex: 0
+      - equal:
+          path: metadata.labels["openshift.io/cluster-monitoring"]
+          value: "true"
+        documentIndex: 0
+
+  - it: should install the operator into its own namespace
+    asserts:
+      - equal:
+          path: spec.targetNamespaces
+          value: [openshift-file-integrity]
+        documentIndex: 1
+      - equal:
+          path: spec.name
+          value: file-integrity-operator
+        documentIndex: 2
