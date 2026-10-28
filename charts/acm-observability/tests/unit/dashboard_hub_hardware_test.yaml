@@ -1,0 +1,106 @@
+suite: Hub hardware dashboard
+templates:
+  - templates/dashboard-hub-hardware.yaml
+
+tests:
+  - it: should render the dashboard ConfigMap on the hub by default
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: grafana-dashboard-hub-hardware
+      - equal:
+          path: metadata.namespace
+          value: open-cluster-management-observability
+      # The MCO dashboard loader picks up ConfigMaps by this label.
+      - equal:
+          path: metadata.labels["grafana-custom-dashboard"]
+          value: "true"
+
+  - it: should render nothing when disabled
+    set:
+      hardwareDashboard.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should carry the dashboard under its file name
+    asserts:
+      - exists:
+          path: data["hub-hardware.json"]
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: '"uid": *"hub-hardware"'
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: '"title": *"Hub hardware"'
+
+  - it: should use the node state, liveness and boot time
+    asserts:
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'kube_node_status_condition'
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'node-exporter'
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'node_boot_time_seconds'
+
+  # MCO can deliver a name on two paths, a sum counts it twice.
+  - it: should never sum node series
+    asserts:
+      - notMatchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'sum *(by|\()'
+
+  # kube-state-metrics keeps exporting the node object of a dead machine.
+  - it: should take last seen from node-exporter, not from the node object
+    asserts:
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'timestamp\(label_replace\(up\{job='
+      - notMatchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'timestamp\(kube_node_status_condition'
+
+  # A gone node has no current sample.
+  - it: should keep last boot and unschedulable for gone nodes
+    asserts:
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'last_over_time\(node_boot_time_seconds'
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'last_over_time\(kube_node_spec_unschedulable'
+
+  # A range-long window per step is slow over 7 days.
+  - it: should bound the gone window to one day
+    asserts:
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'max_over_time\(kube_node_status_condition[^\]]*\[1d\]\)'
+      - notMatchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'max_over_time\(kube_node_status_condition[^\]]*\[\$__range\]\)'
+
+  # An MCO gap silences a whole cluster and says nothing about its nodes.
+  - it: should only call a node gone while its cluster still sends data
+    asserts:
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: 'and on \(cluster\) group by \(cluster\) \(last_over_time\(kube_node_status_condition'
+
+  - it: should show a silent cluster as no data
+    asserts:
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: '"-1": \{\s*"text": "no data"'
+
+  # Its row stays through last seen, the state cell must not be blank.
+  - it: should label a node gone for more than a day
+    asserts:
+      - matchRegex:
+          path: data["hub-hardware.json"]
+          pattern: '"match": "null",\s*"result": \{\s*"text": "gone > 1d"'

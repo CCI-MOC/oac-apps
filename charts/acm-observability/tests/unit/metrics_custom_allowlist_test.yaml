@@ -76,3 +76,10 @@ tests:
       - matchRegex:
           path: data["metrics_list.yaml"]
           pattern: '- DCGM_FI_DEV_GPU_TEMP'
+
+  # A reboot is only visible through the boot time while there are no logs.
+  - it: should list the boot time the hardware dashboard needs
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- node_boot_time_seconds'
