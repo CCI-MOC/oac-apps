@@ -7,3 +7,17 @@ collectors:
     clusterType: hypershift
     bucket: oac-prod-workload0-metrics
     s3RemoteKey: b2-key/oac-prod-workload0-rw
+reports:
+  - clusterName: oac-prod-workload0
+    metricsBucket: oac-prod-workload0-metrics
+    metricsS3RemoteKey: b2-key/oac-prod-workload0-ro
+    invoiceBucket: oac-invoicing
+    invoiceS3RemoteKey: b2-key/oac-invoicing-rw
+    gpuNodeMap:
+      moc-r4pcc02u30: NVIDIA-H100-80GB-HBM3
+      moc-r4pcc04u09: NVIDIA-H100-80GB-HBM3
+      moc-r4pcc04u11: NVIDIA-H100-80GB-HBM3
+      moc-r4pcc04u12: NVIDIA-H100-80GB-HBM3
+      moc-r4pcc04u16: NVIDIA-H100-80GB-HBM3
+      moc-r8pac23u31: NVIDIA-A100-SXM4-40GB
+      moc-r8pac23u26: NVIDIA-A100-SXM4-40GB

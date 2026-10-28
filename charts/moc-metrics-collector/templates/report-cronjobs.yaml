@@ -1,0 +1,78 @@
+{{- range .Values.reports }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ required "reports[].clusterName is required" .clusterName }}-report
+  namespace: {{ $.Values.name }}
+spec:
+  timeZone: {{ $.Values.timeZone | quote }}
+  schedule: {{ $.Values.reportSchedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          initContainers:
+          - name: download-metrics
+            image: {{ $.Values.downloaderImage }}
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # On the 1st, fetch all of last month to finish its report;
+              # otherwise fetch this month so far.
+              if [ "$(date +%d)" -eq 1 ]; then
+                DIRECTORY_NAME=$(date --date="$(date +%Y-%m-15) -1 month" +'data_%Y-%m')
+              else
+                DIRECTORY_NAME=$(date +'data_%Y-%m')
+              fi
+              aws s3 cp "s3://$METRICS_BUCKET/$DIRECTORY_NAME/" /data --recursive \
+                --endpoint-url=https://s3.us-east-005.backblazeb2.com
+            env:
+            - name: METRICS_BUCKET
+              value: {{ required "reports[].metricsBucket is required" .metricsBucket | quote }}
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .clusterName }}-metrics-bucket-ro
+                  key: access-key-id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .clusterName }}-metrics-bucket-ro
+                  key: secret-access-key
+            volumeMounts:
+            - name: data
+              mountPath: /data
+          containers:
+          - name: produce-report
+            image: {{ $.Values.image }}
+            command: ["./produce_report.sh"]
+            env:
+            - name: S3_INVOICE_BUCKET
+              value: {{ required "reports[].invoiceBucket is required" .invoiceBucket | quote }}
+            - name: S3_OUTPUT_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .clusterName }}-invoice-bucket
+                  key: access-key-id
+            - name: S3_OUTPUT_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .clusterName }}-invoice-bucket
+                  key: secret-access-key
+            volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: gpu-node-map
+              mountPath: /app/gpu_node_map.json
+              subPath: gpu_node_map.json
+          volumes:
+          - name: data
+            emptyDir: {}
+          - name: gpu-node-map
+            configMap:
+              name: {{ .clusterName }}-gpu-node-map
+          restartPolicy: OnFailure
+{{- end }}

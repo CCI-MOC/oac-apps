@@ -1,0 +1,11 @@
+{{- range .Values.reports }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ required "reports[].clusterName is required" .clusterName }}-gpu-node-map
+  namespace: {{ $.Values.name }}
+data:
+  gpu_node_map.json: |
+    {{- .gpuNodeMap | default (dict) | toPrettyJson | nindent 4 }}
+{{- end }}

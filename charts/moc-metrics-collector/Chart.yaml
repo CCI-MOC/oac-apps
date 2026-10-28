@@ -1,5 +1,5 @@
 apiVersion: v2
 name: moc-metrics-collector
-description: Metrics reader token and usage collection jobs for billing
+description: Metrics reader token, usage collection and invoice report jobs for billing
 type: application
-version: 0.2.0
+version: 0.3.0
