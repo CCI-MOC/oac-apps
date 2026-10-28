@@ -13,7 +13,13 @@ customAllowlist:
     - kube_namespace_status_phase
     - kube_pod_deletion_timestamp
     - kubelet_volume_stats_used_bytes
+    # Boot time, the only sign of a reboot for the hub hardware dashboard.
+    - node_boot_time_seconds
   # vllm names its metrics per model, so a list would go stale with the next
   # deployment.
   matches:
     - __name__=~"^vllm:.*"
+
+# Node state and reboots of the hub's fleet, in the MCO Grafana.
+hardwareDashboard:
+  enabled: true

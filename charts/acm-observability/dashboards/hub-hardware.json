@@ -1,0 +1,394 @@
+{
+  "uid": "hub-hardware",
+  "title": "Hub hardware",
+  "tags": [
+    "hardware",
+    "nodes"
+  ],
+  "schemaVersion": 36,
+  "version": 1,
+  "editable": false,
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "refresh": "5m",
+  "timezone": "utc",
+  "panels": [
+    {
+      "id": 1,
+      "type": "state-timeline",
+      "title": "Node state",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Ready, NotReady, gone (no data for 10 minutes, or node-exporter down, while its cluster still sends data; only nodes seen in the last day), or no data (the whole cluster is silent, usually a gap in MCO itself). Outages under about 10 minutes do not show here, see the reboot table. MCO collects every 300 s.",
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "2": {
+                  "text": "Ready",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "NotReady",
+                  "color": "orange",
+                  "index": 1
+                },
+                "0": {
+                  "text": "gone",
+                  "color": "red",
+                  "index": 2
+                },
+                "-1": {
+                  "text": "no data",
+                  "color": "#808080",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#808080",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "mergeValues": true,
+        "showValue": "never",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace((max by (cluster, node) (label_replace(last_over_time(up{job=\"node-exporter\",cluster=~\"$cluster\"}[10m]), \"node\", \"$1\", \"instance\", \"(.*)\")) == 0) * 0 or (max by (cluster, node) (last_over_time(kube_node_status_condition{condition=\"Ready\",status=\"true\",cluster=~\"$cluster\"}[10m])) == 1) * 2 or (max by (cluster, node) (last_over_time(kube_node_status_condition{condition=\"Ready\",status=~\"false|unknown\",cluster=~\"$cluster\"}[10m])) == 1) * 1 or (max by (cluster, node) (max_over_time(kube_node_status_condition{condition=\"Ready\",cluster=~\"$cluster\"}[1d])) * 0 and on (cluster) group by (cluster) (last_over_time(kube_node_status_condition{cluster=~\"$cluster\"}[10m]))) or (max by (cluster, node) (max_over_time(kube_node_status_condition{condition=\"Ready\",cluster=~\"$cluster\"}[1d])) * 0 - 1), \"cluster\", \"hub (local-cluster)\", \"cluster\", \"local-cluster\")",
+          "legendFormat": "{{cluster}} / {{node}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Nodes now",
+      "gridPos": {
+        "h": 22,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Last boot comes from node_boot_time_seconds. Last seen is the newest sample from the machine's node-exporter in the selected range, so it stays old for a dead machine.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace((max by (cluster, node) (label_replace(last_over_time(up{job=\"node-exporter\",cluster=~\"$cluster\"}[10m]), \"node\", \"$1\", \"instance\", \"(.*)\")) == 0) * 0 or (max by (cluster, node) (last_over_time(kube_node_status_condition{condition=\"Ready\",status=\"true\",cluster=~\"$cluster\"}[10m])) == 1) * 2 or (max by (cluster, node) (last_over_time(kube_node_status_condition{condition=\"Ready\",status=~\"false|unknown\",cluster=~\"$cluster\"}[10m])) == 1) * 1 or (max by (cluster, node) (max_over_time(kube_node_status_condition{condition=\"Ready\",cluster=~\"$cluster\"}[1d])) * 0 and on (cluster) group by (cluster) (last_over_time(kube_node_status_condition{cluster=~\"$cluster\"}[10m]))) or (max by (cluster, node) (max_over_time(kube_node_status_condition{condition=\"Ready\",cluster=~\"$cluster\"}[1d])) * 0 - 1), \"cluster\", \"hub (local-cluster)\", \"cluster\", \"local-cluster\")",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(max by (cluster, node) (label_replace(last_over_time(node_boot_time_seconds{cluster=~\"$cluster\"}[$__range]), \"node\", \"$1\", \"instance\", \"(.*)\")) * 1000, \"cluster\", \"hub (local-cluster)\", \"cluster\", \"local-cluster\")",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(max by (cluster, node) (max_over_time(timestamp(label_replace(up{job=\"node-exporter\",cluster=~\"$cluster\"} == 1, \"node\", \"$1\", \"instance\", \"(.*)\"))[$__range:5m])) * 1000, \"cluster\", \"hub (local-cluster)\", \"cluster\", \"local-cluster\")",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(max by (cluster, node) (last_over_time(kube_node_spec_unschedulable{cluster=~\"$cluster\"}[$__range])), \"cluster\", \"hub (local-cluster)\", \"cluster\", \"local-cluster\")",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "cluster": "Cluster",
+              "node": "Node",
+              "Value #A": "State",
+              "Value #B": "Last boot",
+              "Value #C": "Last seen",
+              "Value #D": "Unschedulable"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "2": {
+                        "text": "Ready",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "NotReady",
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "0": {
+                        "text": "gone",
+                        "color": "red",
+                        "index": 2
+                      },
+                      "-1": {
+                        "text": "no data",
+                        "color": "#808080",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null",
+                      "result": {
+                        "text": "gone > 1d",
+                        "color": "#808080",
+                        "index": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#808080",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 0
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    },
+                    {
+                      "color": "green",
+                      "value": 2
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last boot"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last seen"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Reboots in range",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Counts only reboots after node_boot_time_seconds started to be collected.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(changes(max by (cluster, node) (label_replace(node_boot_time_seconds{cluster=~\"$cluster\"}, \"node\", \"$1\", \"instance\", \"(.*)\"))[$__range:5m]) > 0, \"cluster\", \"hub (local-cluster)\", \"cluster\", \"local-cluster\")",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "cluster": "Cluster",
+              "node": "Node",
+              "Value": "Reboots"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "text",
+      "title": "Free machines and gaps",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Free machines** are not in this dashboard yet. Open the hub console, *Search* for the resource `Agent`, or run `oc get agents -A`.\n\nAn Agent with `Bound=False` and `approved=true` is free, `approved=false` waits for approval.\n\n**Not visible here:** a machine that is in no cluster and has no Agent, and the real power state. Both need the BMC (phase 2)."
+      }
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "label": "Datasource",
+        "hide": 0
+      },
+      {
+        "name": "cluster",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "label": "Cluster",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "query": {
+          "query": "label_values(kube_node_status_condition, cluster)",
+          "refId": "cluster"
+        },
+        "definition": "label_values(kube_node_status_condition, cluster)",
+        "refresh": 2,
+        "hide": 0
+      }
+    ]
+  }
+}
