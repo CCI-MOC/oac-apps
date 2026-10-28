@@ -1,0 +1,35 @@
+suite: flashblade-nfs-tls policy
+templates:
+  - templates/storage-tls.yaml
+tests:
+  - it: should check FlashBlade StorageClasses and volumes by default
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ValidatingAdmissionPolicy
+      - lengthEqual:
+          path: spec.validations
+          count: 2
+      - matchRegex:
+          path: spec.validations[0].expression
+          pattern: "o == 'xprtsec=tls'"
+      - equal:
+          path: spec.matchConstraints.resourceRules[1].operations
+          value: [CREATE]
+
+  - it: should share the chart's validation actions
+    documentIndex: 1
+    set:
+      validationActions: [Warn, Audit]
+    asserts:
+      - equal:
+          path: spec.validationActions
+          value: [Warn, Audit]
+
+  - it: should render nothing when switched off
+    set:
+      storage:
+        requireNfsTls: false
+    asserts:
+      - hasDocuments:
+          count: 0
