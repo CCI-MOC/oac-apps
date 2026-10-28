@@ -13,7 +13,13 @@ customAllowlist:
     - kube_namespace_status_phase
     - kube_pod_deletion_timestamp
     - kubelet_volume_stats_used_bytes
+    # Memory errors, until the BMC is readable.
+    - node_edac_correctable_errors_total
+    - node_edac_uncorrectable_errors_total
   # vllm names its metrics per model, so a list would go stale with the next
   # deployment.
   matches:
     - __name__=~"^vllm:.*"
+    # Package temperature and real disks, not every core and every tmpfs.
+    - __name__=~"^node_hwmon_temp_(crit_)?celsius$",sensor="temp1"
+    - __name__=~"^node_filesystem_(readonly|device_error)$",fstype=~"ext4|xfs"

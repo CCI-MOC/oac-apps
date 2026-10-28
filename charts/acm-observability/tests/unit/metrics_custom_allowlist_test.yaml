@@ -76,3 +76,25 @@ tests:
       - matchRegex:
           path: data["metrics_list.yaml"]
           pattern: '- DCGM_FI_DEV_GPU_TEMP'
+
+  - it: should list the memory error counters
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- node_edac_correctable_errors_total'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- node_edac_uncorrectable_errors_total'
+
+  # Unfiltered these are 93 temperature and 218 filesystem series per node.
+  - it: should collect temperatures and disk state only for packages and disks
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '__name__=~"\^node_hwmon_temp_\(crit_\)\?celsius\$",sensor="temp1"'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '__name__=~"\^node_filesystem_\(readonly\|device_error\)\$",fstype=~"ext4\|xfs"'
+      - notMatchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- node_(hwmon|filesystem)_'
