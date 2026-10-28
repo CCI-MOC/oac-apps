@@ -1,0 +1,51 @@
+suite: uat-harness Roles
+templates:
+  - templates/role.yaml
+
+tests:
+  # The metrics isolation test publishes a metric from each test namespace.
+  - it: should let tests create PodMonitors in both test namespaces
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["monitoring.coreos.com"]
+            resources: ["podmonitors"]
+            verbs: ["create", "get", "list", "watch", "delete"]
+        documentSelector:
+          path: metadata.name
+          value: uat-user-role
+          matchMany: true
+
+  # The test reads metrics from uat-project.
+  - it: should let tests read pod metrics in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["metrics.k8s.io"]
+            resources: ["pods"]
+            verbs: ["get"]
+        documentSelector:
+          path: metadata.namespace
+          value: uat-project
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["metrics.k8s.io"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  - it: should keep PodMonitors out of the runner's namespace
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["monitoring.coreos.com"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-runner
+          matchMany: true

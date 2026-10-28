@@ -42,9 +42,15 @@ rules:
   - apiGroups: ["kubevirt.io"]
     resources: ["virtualmachines", "virtualmachineinstances"]
     verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["podmonitors"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods"]
+    verbs: ["get"]
 ---
-# uat-peer only ever hosts plain pods and services, so it gets none of the
-# workload APIs.
+# uat-peer hosts plain pods and services, plus a PodMonitor for the metrics
+# isolation test, so it gets none of the workload APIs.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -66,6 +72,9 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["podmonitors"]
+    verbs: ["create", "get", "list", "watch", "delete"]
 ---
 # The runner service account in its own namespace: enough to inspect the runner
 # pod and its configuration, and no more.
