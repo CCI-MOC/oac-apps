@@ -1,0 +1,3 @@
+# Marks nist-dev-infra as a compliant hub: every hosted cluster on it gets
+# the hub-side compliance resources (charts/hosted-cluster-compliance).
+# Values here apply to all of them. The chart defaults are enough.

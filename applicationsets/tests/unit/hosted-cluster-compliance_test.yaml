@@ -8,7 +8,7 @@ tests:
       - failedTemplate:
           errorPattern: hubName must be set
 
-  - it: should select hosted clusters that have a compliance.yaml
+  - it: should cover every hosted cluster of a hub that has compliance.yaml
     set:
       hubName: nist-dev-infra
     asserts:
@@ -22,24 +22,33 @@ tests:
           path: spec.goTemplate
           value: true
       - equal:
-          path: spec.generators[0].git.files[0].path
-          value: "hosted-clusters/nist-dev-infra/*/compliance.yaml"
+          path: spec.generators[0].matrix.generators[0].git.files[0].path
+          value: "hosted-clusters/nist-dev-infra/compliance.yaml"
+      - equal:
+          path: spec.generators[0].matrix.generators[1].git.directories[0].path
+          value: "hosted-clusters/nist-dev-infra/*"
+      - equal:
+          path: spec.generators[0].matrix.generators[1].git.pathParamPrefix
+          value: cluster
 
   - it: should layer hub defaults under the cluster's file and pass its name
     set:
       hubName: nist-dev-infra
     asserts:
       - equal:
+          path: spec.template.metadata.name
+          value: "cluster-{{.cluster.path.basename}}-compliance"
+      - equal:
           path: spec.template.spec.source.path
-          value: charts/compliance/hosted-cluster
+          value: charts/hosted-cluster-compliance
       - equal:
           path: spec.template.spec.source.helm.valueFiles[0]
           value: "/hosted-clusters/nist-dev-infra/compliance.yaml"
       - equal:
           path: spec.template.spec.source.helm.valueFiles[1]
-          value: "/{{.path.path}}/compliance.yaml"
+          value: "/{{.cluster.path.path}}/compliance.yaml"
       - equal:
           path: spec.template.spec.source.helm.parameters[0]
           value:
             name: clusterName
-            value: "{{.path.basename}}"
+            value: "{{.cluster.path.basename}}"
