@@ -476,3 +476,37 @@ tests:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
           value: "2"
+
+  - it: applies the datasource after the Grafana resource
+    set:
+      projects:
+        - name: aibom
+          groups:
+            - name: editors
+              role: edit
+          grafana:
+            enabled: true
+    documentIndex: 5
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
+
+  - it: applies the dashboard after the Grafana resource
+    set:
+      projects:
+        - name: aibom
+          groups:
+            - name: editors
+              role: edit
+          grafana:
+            enabled: true
+    documentIndex: 6
+    asserts:
+      - isKind:
+          of: GrafanaDashboard
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"

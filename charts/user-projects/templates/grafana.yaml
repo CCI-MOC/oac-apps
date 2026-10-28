@@ -267,6 +267,8 @@ metadata:
     massopen.cloud/project: "{{ .name }}"
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    # After the Grafana in wave 1, or the operator finds no instance.
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   instanceSelector:
     matchLabels:
@@ -326,6 +328,8 @@ metadata:
     massopen.cloud/project: "{{ .name }}"
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    # After the Grafana in wave 1, or the operator finds no instance.
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   instanceSelector:
     matchLabels:
