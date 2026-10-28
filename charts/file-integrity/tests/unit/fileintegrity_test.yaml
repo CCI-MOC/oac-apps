@@ -1,0 +1,47 @@
+suite: FileIntegrity
+templates:
+  - templates/fileintegrity.yaml
+
+tests:
+  # The operator's default selects workers only, but the masters hold etcd,
+  # the API servers and the audit logs.
+  - it: should watch every node, masters included
+    asserts:
+      - isKind:
+          of: FileIntegrity
+      - equal:
+          path: spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+      - contains:
+          path: spec.tolerations
+          content:
+            key: node-role.kubernetes.io/master
+            operator: Exists
+            effect: NoSchedule
+      - contains:
+          path: spec.tolerations
+          content:
+            key: node-role.kubernetes.io/control-plane
+            operator: Exists
+            effect: NoSchedule
+
+  - it: should wait for the operator's CRD
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true
+
+  - it: should pass the check interval and backups through
+    set:
+      fileIntegrity.gracePeriod: 300
+      fileIntegrity.maxBackups: 2
+    asserts:
+      - equal:
+          path: spec.config
+          value:
+            gracePeriod: 300
+            maxBackups: 2
