@@ -98,3 +98,9 @@ tests:
       - notMatchRegex:
           path: data["metrics_list.yaml"]
           pattern: '- node_(hwmon|filesystem)_'
+
+  - it: should collect every DCGM metric through a selector
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '__name__=~"\^DCGM_\.\*"'

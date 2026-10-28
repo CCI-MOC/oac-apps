@@ -23,3 +23,5 @@ customAllowlist:
     # Package temperature and real disks, not every core and every tmpfs.
     - __name__=~"^node_hwmon_temp_(crit_)?celsius$",sensor="temp1"
     - __name__=~"^node_filesystem_(readonly|device_error)$",fstype=~"ext4|xfs"
+    # All of DCGM; the three billing ones stay in names in case this fails.
+    - __name__=~"^DCGM_.*"
