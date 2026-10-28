@@ -1,8 +1,20 @@
+enabled: true
+
+# Which Service Mesh major to install. RHOAI 2.x needs 2 for KServe
+# Serverless; RHOAI 3.x needs the networking.istio.io/v1 CRDs that only 3
+# ships, for its data-science-gateway. Never both: they own the same CRDs.
+meshVersion: 2
+
 namespace: openshift-operators
 
 subscription:
+  # Both majors ship on stable.
   channel: stable
-  name: servicemeshoperator
+  # Picked from `names` by meshVersion unless a cluster sets this.
+  name: ""
+  names:
+    "2": servicemeshoperator
+    "3": servicemeshoperator3
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic

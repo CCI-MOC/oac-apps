@@ -1,0 +1,49 @@
+suite: Enabled gate
+templates:
+  - templates/operator.yaml
+  - templates/datasciencecluster.yaml
+  - templates/odhdashboardconfig.yaml
+  - templates/hardwareprofile.yaml
+
+tests:
+  # The ApplicationSet has no per-cluster component list, so this flag is the
+  # only way one cluster leaves 2.x without pruning RHOAI off the others.
+  # Asserted across every template: one left rendering would have Argo
+  # recreate it on the next sync.
+  - it: should render nothing when a cluster opts out
+    set:
+      enabled: false
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # Every cluster in the gpu-clusters placement runs RHOAI 2.25 today, so the
+  # chart has to keep rendering unless a cluster opts out.
+  - it: should render the operator by default
+    template: templates/operator.yaml
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  - it: should render the DataScienceCluster by default
+    template: templates/datasciencecluster.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should render the dashboard config by default
+    template: templates/odhdashboardconfig.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: should render opted-in hardware profiles by default
+    template: templates/hardwareprofile.yaml
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - hasDocuments:
+          count: 1

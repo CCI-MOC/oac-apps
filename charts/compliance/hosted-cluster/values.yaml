@@ -1,0 +1,9 @@
+# Set by the hosted-cluster-compliance ApplicationSet from the cluster's
+# directory under hosted-clusters/<hub>/.
+clusterName: ""
+
+# An AuditLogError alert for the hosted API servers, evaluated on the hub
+# where their metrics are scraped (user workload monitoring), in the
+# cluster's clusters-<name> namespace (NIST 800-53 AU-5).
+auditErrorAlert:
+  enabled: true

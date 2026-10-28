@@ -1,0 +1,29 @@
+# The JobSet operator, which the RHOAI 3.x trainer component requires. The
+# 3.5 trainer will not reconcile without it: it reports "JobSet operator not
+# installed, please install it first" and holds the DataScienceCluster back
+# from Ready.
+#
+# Off by default. Only a cluster on rhoaiVersion 3 with trainer Managed needs
+# it, and the 2.x trainingoperator it replaces has no such dependency.
+enabled: false
+
+namespace: openshift-jobset-operator
+operatorgroup:
+  # The operator advertises OwnNamespace and SingleNamespace but not
+  # AllNamespaces, so the OperatorGroup has to name a target namespace. An
+  # empty spec would leave the install plan unresolved.
+  targetNamespaces: true
+subscription:
+  channel: stable-v1.0
+  # The package is "job-set"; the CSV it installs is jobset-operator.
+  name: job-set
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+# The singleton the operator reconciles. It only accepts the name "cluster".
+jobSetOperator:
+  name: cluster
+  managementState: Managed
+  logLevel: Normal
+  operatorLogLevel: Normal

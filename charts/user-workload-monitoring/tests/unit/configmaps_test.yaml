@@ -57,6 +57,95 @@ tests:
           path: data["config.yaml"]
           pattern: 'retentionSize: 18GiB'
 
+  # On by default, so a new cluster or hub gets the volume without a values
+  # file. A missing file used to mean emptyDir with Argo still green.
+  - it: gives the platform prometheus a volume by default
+    template: templates/enable.yaml
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: '(?m)^prometheusK8s:'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: volumeClaimTemplate
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retentionSize: 40GiB'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'storage: 50Gi'
+
+  # A hub outgrows the default and raises the two sizes in
+  # values/<hub>/local-cluster/, keeping the rest from here.
+  - it: lets a cluster raise the sizes without repeating the rest
+    template: templates/enable.yaml
+    set:
+      platform:
+        retentionSize: 80GiB
+        volume:
+          size: 100Gi
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retentionSize: 80GiB'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'storage: 100Gi'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retention: 15d'
+
+  # Turning the volume on rebuilds the stateful set once, so a cluster can
+  # still say no.
+  - it: leaves the platform prometheus alone when a cluster opts out
+    template: templates/enable.yaml
+    set:
+      platform:
+        enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: prometheusK8s
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: volumeClaimTemplate
+
+  # The retention is the point, but the volume is what makes it real: the
+  # default install carries retention: 15d on emptyDir and loses everything
+  # when the pod is recreated.
+  - it: gives the platform prometheus retention and a volume when switched on
+    template: templates/enable.yaml
+    set:
+      platform:
+        enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: '(?m)^prometheusK8s:'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retention: 15d'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'retentionSize: 40GiB'
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'storage: 50Gi'
+      # The switch has to survive, it is what the other config map depends on.
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: 'enableUserWorkload: true'
+
+  - it: leaves the platform storage class to the cluster by default
+    template: templates/enable.yaml
+    set:
+      platform:
+        enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: storageClassName
+
   # Naming a storage class here would pin one cluster's fact into a chart that
   # runs on several. Leaving the key out uses the cluster default, which OCP
   # documents: "The default storage class can be used and storageClassName can

@@ -16,6 +16,8 @@ spec:
               requeueAfterSeconds: 180
           - list:
               elements:
+                - component: jobset-operator
+                - component: kueue-operator
                 - component: nfd-operator
                 - component: nvidia-gpu-operator
                 - component: nvidia-maintenance-operator

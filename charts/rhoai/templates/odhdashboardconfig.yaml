@@ -1,3 +1,5 @@
+{{- /* 3.x has no OdhDashboardConfig; hardware profiles are first-class there. */ -}}
+{{- if and .Values.enabled (ne (toString .Values.rhoaiVersion) "3") }}
 apiVersion: opendatahub.io/v1alpha
 kind: OdhDashboardConfig
 metadata:
@@ -11,3 +13,4 @@ metadata:
 spec:
   dashboardConfig:
     disableHardwareProfiles: {{ .Values.dashboardConfig.disableHardwareProfiles }}
+{{- end }}

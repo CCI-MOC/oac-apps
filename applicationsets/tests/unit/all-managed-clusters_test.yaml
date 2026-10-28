@@ -28,6 +28,17 @@ tests:
           path: spec.template.spec.source.helm.valueFiles[1]
           value: "/values/oac-dev-infra/{{name}}/{{component}}.yaml"
 
+  # MetalLB is managed by its own placement-gated ApplicationSet so that
+  # KubeVirt hosted clusters do not receive it.
+  - it: should not include metallb in the component list
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - notContains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: metallb
+
   # Metrics have to sit local to the workloads, so this goes to the managed
   # clusters rather than to the hub. It is the deliberate exception to the
   # otherwise hub-central plan.
@@ -50,3 +61,29 @@ tests:
           path: spec.generators[0].matrix.generators[1].list.elements
           content:
             component: grafana-operator
+
+  # The ACM observability addon also writes cluster-monitoring-config and
+  # takes over the whole data["config.yaml"] key when it does. Without this,
+  # Argo and the addon fight over that key and restart prometheus-k8s every
+  # few minutes (MOC-issues#630).
+  - it: ignores cluster-monitoring-config fields owned by the observability addon
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.template.spec.ignoreDifferences
+          content:
+            group: ""
+            kind: ConfigMap
+            name: cluster-monitoring-config
+            namespace: openshift-monitoring
+            managedFieldsManagers:
+              - endpoint-monitoring-operator
+
+  - it: respects ignoreDifferences during sync so it does not clobber the addon's fields
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.template.spec.syncPolicy.syncOptions
+          content: RespectIgnoreDifferences=true

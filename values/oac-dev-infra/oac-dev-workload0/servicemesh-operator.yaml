@@ -1,0 +1,4 @@
+# This cluster runs RHOAI 3.5, whose data-science-gateway needs the
+# networking.istio.io/v1 CRDs that only Service Mesh 3 ships. The 2.6 CRDs
+# served v1beta1 and had to go; see rhoai.yaml alongside this file.
+meshVersion: 3

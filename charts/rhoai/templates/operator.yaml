@@ -1,5 +1,14 @@
+{{- if .Values.enabled }}
+{{- /*
+  operator-library reads subscription.channel, so resolve the per-major
+  default into it first. An explicit channel in a cluster's values still
+  wins, which is how a cluster takes eus-3.5 instead of stable-3.5.
+*/ -}}
+{{- $channel := .Values.subscription.channel | default (index .Values.subscription.channels (toString .Values.rhoaiVersion)) }}
+{{- $_ := set .Values.subscription "channel" $channel }}
 {{ include "operator-library.namespace" . }}
 ---
 {{ include "operator-library.operatorgroup" . }}
 ---
 {{ include "operator-library.subscription" . }}
+{{- end }}

@@ -1,0 +1,50 @@
+# Hub-level values shared by every hosted cluster on the nist-dev-infra hub,
+# a compliant hub (FIPS, NIST 800-171). The hosted-clusters ApplicationSet
+# layers each cluster's own hosted-clusters/nist-dev-infra/<cluster>/values.yaml
+# on top of this file. A cluster that overrides fips, nodePoolConfig,
+# apiServer.audit or imageConfig is refused by the hub's
+# compliant-hosted-clusters admission policy.
+baseDomain: hcp.nist.int.massopen.cloud
+managementCluster: nist-dev-infra
+
+# Internal only: no firewall NAT, so no external domain. The hosted clusters'
+# OAuth, Konnectivity and Ignition routes resolve to the hcp-config router.
+hcpInternalDomain: hcp-int.nist.int.massopen.cloud
+
+# Fixed when the HostedCluster is created.
+fips: true
+
+# Rendered in the clusters namespace by compliance-node-hardening
+# (nodePool.enabled). Added to every NodePool, ahead of its own config.
+nodePoolConfig:
+  - compliance-node-hardening
+
+apiServer:
+  audit:
+    profile: WriteRequestBodies
+
+# NIST 800-53 AC-12: tokens expire after a day, and after 10 minutes unused
+# (ocp4-moderate oauth-or-oauthclient-token-maxage and -inactivity-timeout).
+oauth:
+  tokenConfig:
+    accessTokenMaxAgeSeconds: 86400
+    accessTokenInactivityTimeout: 10m0s
+
+imageConfig:
+  registrySources:
+    # ghcr.io/grafana: the community grafana-operator's image (oac-apps
+    # grafana-operator chart), and only that repository on ghcr.io.
+    allowedRegistries: [quay.io, registry.redhat.io, registry.connect.redhat.com, registry.access.redhat.com, nvcr.io, ghcr.io/grafana]
+  # Where ImageStreams may import from (ocp4-moderate
+  # ocp-allowed-registries-for-import); as on jetty.
+  allowedRegistriesForImport:
+    - {domainName: quay.io, insecure: false}
+    - {domainName: registry.access.redhat.com, insecure: false}
+    - {domainName: registry.redhat.io, insecure: false}
+
+etcd:
+  # Test only. The hub has no LVM storage: each node's second disk holds the
+  # hub's own etcd. So hosted etcd goes on the FlashBlade over NFS with TLS,
+  # which Red Hat does not support for etcd. Real hubs get a dedicated local
+  # disk on each node that runs hosted control planes (a later iteration).
+  storageClassName: pure-fb-nfsv4

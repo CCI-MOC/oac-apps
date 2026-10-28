@@ -1,4 +1,8 @@
 clusterName: oac-prod-workload0
+
+platform:
+  type: Agent
+
 release:
   channel: stable-4.22
   image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
@@ -49,7 +53,7 @@ nodePools:
       massopen.cloud/cluster: oac-prod-workload0
       openstack/resource-class: lenovo-sd665nv3-h100
   - name: gpu-a100
-    replicas: 2
+    replicas: 1
     agentLabelSelector:
       massopen.cloud/cluster: oac-prod-workload0
       openstack/resource-class: lenovo-sd650nv2-a100
@@ -58,4 +62,5 @@ clusterLabels:
   massopen.cloud/feature-portworx: "true"
   massopen.cloud/feature-gpu: "true"
   massopen.cloud/feature-virtualization: "true"
+  massopen.cloud/feature-metallb: "true"
   massopen.cloud/feature-user-workloads: "true"

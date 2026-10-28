@@ -1,47 +1,111 @@
+enabled: true
+
+# Which RHOAI major to install. 3 cannot be reached by upgrading an installed
+# 2, so a cluster only moves this after 2 has been uninstalled from it; see
+# uninstall-rhoai-2x.sh. The two majors differ enough -- DataScienceCluster
+# moved to v2, components were renamed and dropped, OdhDashboardConfig is gone
+# -- that each has its own templates under templates/v2 and templates/v3, and
+# its own block under dataScienceCluster below.
+rhoaiVersion: 2
+
 namespace: redhat-ods-operator
-# Where the dashboard and the rest of the RHOAI workloads run, as opposed to
-# `namespace` above, which holds the operator itself.
 applicationsNamespace: redhat-ods-applications
 operatorgroup:
   targetNamespaces: false
 subscription:
-  channel: stable
   name: rhods-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
+  # Picked from `channels` by rhoaiVersion unless a cluster sets this, so
+  # moving a cluster to 3 does not also require remembering the channel.
+  channel: ""
+  channels:
+    "2": stable
+    "3": stable-3.5
 
-# The DataScienceCluster that turns the installed operator into a running
-# RHOAI. Every component takes Managed or Removed.
 dataScienceCluster:
   name: default-dsc
-  components:
-    codeflare: Managed
-    dashboard: Managed
-    datasciencepipelines: Managed
-    kserve: Managed
-    kueue: Managed
-    modelmeshserving: Managed
-    modelregistry: Removed
-    ray: Managed
-    trainingoperator: Managed
-    trustyai: Managed
-    workbenches: Managed
-  kserve:
-    serving:
-      managementState: Managed
-      name: knative-serving
-      certificateType: SelfSigned
-  modelregistry:
-    # Set even when modelregistry is Removed; the CRD requires the field.
-    registriesNamespace: rhoai-model-registries
 
-# The dashboard owns the rest of OdhDashboardConfig; only the fields listed
-# here are managed by the chart.
+  # RHOAI 2.x. Components take Managed or Removed; kueue also takes Unmanaged,
+  # which hands the queues to the kueue-operator chart.
+  v2:
+    components:
+      codeflare: Managed
+      dashboard: Managed
+      datasciencepipelines: Managed
+      kserve: Managed
+      kueue: Managed
+      modelmeshserving: Managed
+      modelregistry: Removed
+      ray: Managed
+      trainingoperator: Managed
+      trustyai: Managed
+      workbenches: Managed
+    kserve:
+      # Serverless or RawDeployment. RHOAI 3.x removed Serverless.
+      defaultDeploymentMode: Serverless
+      serving:
+        managementState: Managed
+        name: knative-serving
+        certificateType: SelfSigned
+    modelregistry:
+      # Set even when modelregistry is Removed; the CRD requires the field.
+      registriesNamespace: rhoai-model-registries
+
+  # RHOAI 3.x. Components take Managed or Removed, except kueue; see below.
+  v3:
+    components:
+      aigateway: Removed
+      # Renamed from datasciencepipelines in 3.x.
+      aipipelines: Managed
+      dashboard: Managed
+      feastoperator: Removed
+      kserve: Managed
+      # Managed is rejected at runtime by the 3.x operator, which keeps the
+      # value only so a 2.x DataScienceCluster still converts. Unmanaged hands
+      # the queues to the kueue-operator chart, which is the only way to run
+      # Kueue under 3.x.
+      kueue: Unmanaged
+      # Superseded by ogx, and carried in 3.5 only for backward compatibility.
+      llamastackoperator: Removed
+      mcplifecycleoperator: Removed
+      mlflowoperator: Removed
+      modelregistry: Removed
+      # Needs Service Mesh 3.x and the Connectivity Link operator, neither of
+      # which a cluster installs for 3.x otherwise.
+      ogx: Removed
+      ray: Managed
+      sparkoperator: Removed
+      # Kubeflow Trainer v2, which replaces trainingoperator. The latter is
+      # supported only through 3.5's full-support phase, so clusters start on
+      # the replacement rather than migrating later.
+      trainer: Managed
+      trainingoperator: Removed
+      trustyai: Managed
+      workbenches: Managed
+    aigateway:
+      batchGateway: Removed
+    kserve:
+      # 3.x dropped Serverless, so there is no deployment mode to choose and
+      # no knative stack to configure: RawDeployment is the only mode.
+      rawDeploymentServiceConfig: Headless
+      nim: Managed
+      # Deprecated in favour of aigateway; the operator blocks re-enabling it
+      # once Removed, so it stays off from the start.
+      modelsAsService: Removed
+      wva: Removed
+    kueue:
+      # The operator would otherwise create a default ClusterQueue, LocalQueue
+      # and ResourceFlavor behind Argo's back. The kueue-operator chart owns
+      # those instead, so they stay in git.
+      autoCreateQueues: false
+    modelregistry:
+      registriesNamespace: rhoai-model-registries
+
+# 2.x only; 3.x has no OdhDashboardConfig. The dashboard owns the rest of the
+# resource, so only the fields listed here are managed by the chart.
 dashboardConfig:
-  # Hardware profiles are how workbenches and model servers request GPUs. The
-  # operator default (true) hides the profiles page and leaves the GPU nodes
-  # unreachable from the UI.
   disableHardwareProfiles: false
 
 enabledHardwareProfiles: []

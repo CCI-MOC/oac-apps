@@ -4,7 +4,9 @@ failed_charts=()
 tmpfile=$(mktemp errXXXXXX)
 trap 'rm -f "$tmpfile"' EXIT
 
-for chart in charts/*; do
+mapfile -d '' -t charts < <(find charts -name Chart.yaml -not -path 'charts/*/charts/*' -printf '%h\0' | sort -z)
+
+for chart in "${charts[@]}"; do
   lint_args=()
 
   if [[ -f "$chart/.nolint" ]]; then

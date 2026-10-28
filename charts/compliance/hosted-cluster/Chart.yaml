@@ -1,0 +1,5 @@
+apiVersion: v2
+name: compliance-hosted-cluster
+description: Hub-side compliance resources for a hosted cluster, in its clusters-<name> namespace.
+type: application
+version: 0.1.0

@@ -1,4 +1,5 @@
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- $platformType := .Values.platform.type | default "Agent" }}
 {{- range .Values.nodePools }}
 ---
 apiVersion: hypershift.openshift.io/v1beta1
@@ -9,11 +10,39 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
-  arch: {{ .arch | default "amd64" }}
   clusterName: {{ $clusterName }}
+  {{- /* A pool's own entries may be names or HyperShift's {name: ...} form. */}}
+  {{- $config := $.Values.nodePoolConfig }}
+  {{- $pool := . }}
+  {{- range .machineConfigs | default list }}
+  {{- $config = append $config (printf "%s-%s-%s" $clusterName $pool.name .name) }}
+  {{- end }}
+  {{- range .config | default list }}
+  {{- if kindIs "map" . }}
+  {{- $config = append $config .name }}
+  {{- else }}
+  {{- $config = append $config . }}
+  {{- end }}
+  {{- end }}
+  {{- $config = $config | uniq }}
+  {{- with $config }}
+  config:
+    {{- range . }}
+    - name: {{ . }}
+    {{- end }}
+  {{- end }}
   management:
     autoRepair: {{ .autoRepair | default false }}
+    {{- if eq $platformType "KubeVirt" }}
+    upgradeType: {{ .upgradeType | default "Replace" }}
+    {{- else }}
     upgradeType: {{ .upgradeType | default "InPlace" }}
+    {{- end }}
+  release:
+    image: {{ $.Values.release.image }}
+  replicas: {{ .replicas }}
+  {{- if eq $platformType "Agent" }}
+  arch: {{ .arch | default "amd64" }}
   nodeDrainTimeout: 0s
   nodeVolumeDetachTimeout: 0s
   platform:
@@ -22,7 +51,19 @@ spec:
         matchLabels:
           {{- toYaml .agentLabelSelector | nindent 10 }}
     type: Agent
-  release:
-    image: {{ $.Values.release.image }}
-  replicas: {{ .replicas }}
+  {{- else }}
+  platform:
+    type: KubeVirt
+    kubevirt:
+      compute:
+        cores: {{ .cpu }}
+        memory: {{ .memory }}
+      rootVolume:
+        persistent:
+          size: {{ .disk.size }}
+          {{- with .disk.storageClassName }}
+          storageClassName: {{ . }}
+          {{- end }}
+        type: Persistent
+  {{- end }}
 {{- end }}

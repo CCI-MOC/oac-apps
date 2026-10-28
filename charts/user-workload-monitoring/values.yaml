@@ -1,8 +1,29 @@
 # The switch that turns user workload monitoring on, in the config map the
-# cluster monitoring operator reads. Nothing else belongs here: the workload
-# prometheus never reads this object, so retention or storage set here would
-# silently do nothing.
+# cluster monitoring operator reads. Note what this object is not: the workload
+# prometheus never reads it, so workload retention set here would silently do
+# nothing. The platform block below does belong here, it configures the
+# prometheus that reads this very object.
 enable: true
+
+# Tuning for the platform prometheus, the one in openshift-monitoring. On by
+# default: the install mounts emptyDir there, so without this a cluster that
+# has no values file keeps its history only as long as the pod lives, and Argo
+# still shows it healthy. Switching it on rebuilds the stateful set once, which
+# drops what emptyDir holds; that history goes with the next restart anyway. A
+# cluster that must not have a volume sets enabled: false.
+#
+# At about 4,700 bytes per series and day this holds 15 days up to roughly
+# 600,000 series. A hub carries more and raises both in
+# values/<hub>/local-cluster/, once it has run long enough to be measured.
+platform:
+  enabled: true
+  retention: 15d
+  # Two independent limits, as below. The size cap is what protects the volume.
+  retentionSize: 40GiB
+  volume:
+    size: 50Gi
+    # Same reasoning as for the workload volume below.
+    storageClassName: ""
 
 # Tuning for the workload prometheus, which is a different config map in a
 # different namespace. The two are kept apart on purpose.
@@ -21,3 +42,10 @@ prometheus:
     # several. Set it in the values for a cluster whose default is wrong, which
     # is where facts about a cluster belong.
     storageClassName: ""
+
+# The stock volume alert fires below 3 percent free, too late to save a retention
+# window. The day threshold is derived from each retention above, so it follows
+# a cluster that sets something other than 15d.
+retentionAlerts:
+  enabled: true
+  volumeFullRatio: 0.85

@@ -1,0 +1,122 @@
+suite: NodePool template (KubeVirt platform)
+templates:
+  - templates/nodepool.yaml
+set:
+  clusterName: test-kubevirt
+  baseDomain: hcp.oac.int.massopen.cloud
+  managementCluster: oac-dev-infra
+  hcpInternalDomain: hcp-int.oac.int.massopen.cloud
+  platform:
+    type: KubeVirt
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+
+tests:
+  - it: should render nothing when no node pools are defined
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render a KubeVirt NodePool with compute and rootVolume
+    set:
+      nodePools:
+        - name: compute
+          replicas: 2
+          cpu: 8
+          memory: 16Gi
+          disk:
+            size: 120Gi
+            storageClassName: pure-fb-nfsv4
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-kubevirt-compute
+      - equal:
+          path: spec.platform.type
+          value: KubeVirt
+      - equal:
+          path: spec.platform.kubevirt.compute.cores
+          value: 8
+      - equal:
+          path: spec.platform.kubevirt.compute.memory
+          value: 16Gi
+      - equal:
+          path: spec.platform.kubevirt.rootVolume.persistent.size
+          value: 120Gi
+      - equal:
+          path: spec.platform.kubevirt.rootVolume.persistent.storageClassName
+          value: pure-fb-nfsv4
+      - equal:
+          path: spec.platform.kubevirt.rootVolume.type
+          value: Persistent
+
+  - it: should default upgradeType to Replace
+    set:
+      nodePools:
+        - name: compute
+          replicas: 2
+          cpu: 4
+          memory: 8Gi
+          disk:
+            size: 60Gi
+    asserts:
+      - equal:
+          path: spec.management.upgradeType
+          value: Replace
+
+  - it: should not render Agent-specific fields
+    set:
+      nodePools:
+        - name: compute
+          replicas: 2
+          cpu: 4
+          memory: 8Gi
+          disk:
+            size: 60Gi
+    asserts:
+      - notExists:
+          path: spec.arch
+      - notExists:
+          path: spec.nodeDrainTimeout
+      - notExists:
+          path: spec.nodeVolumeDetachTimeout
+
+  - it: should omit storageClassName when not set
+    set:
+      nodePools:
+        - name: compute
+          replicas: 2
+          cpu: 4
+          memory: 8Gi
+          disk:
+            size: 60Gi
+    asserts:
+      - notExists:
+          path: spec.platform.kubevirt.rootVolume.persistent.storageClassName
+
+  - it: should render multiple node pools
+    set:
+      nodePools:
+        - name: compute
+          replicas: 2
+          cpu: 8
+          memory: 16Gi
+          disk:
+            size: 120Gi
+        - name: large
+          replicas: 1
+          cpu: 16
+          memory: 32Gi
+          disk:
+            size: 240Gi
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: test-kubevirt-compute
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: test-kubevirt-large
+        documentIndex: 1

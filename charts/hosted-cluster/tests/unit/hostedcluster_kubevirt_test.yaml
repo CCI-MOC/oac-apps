@@ -1,0 +1,169 @@
+suite: HostedCluster template (KubeVirt platform)
+templates:
+  - templates/hostedcluster.yaml
+set:
+  clusterName: test-kubevirt
+  baseDomain: hcp.oac.int.massopen.cloud
+  managementCluster: oac-dev-infra
+  hcpInternalDomain: hcp-int.oac.int.massopen.cloud
+  platform:
+    type: KubeVirt
+    kubevirt: {}
+  release:
+    channel: stable-4.22
+    image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+  sshKey:
+    name: oac-ssh-key
+
+tests:
+  - it: should render a KubeVirt HostedCluster
+    asserts:
+      - containsDocument:
+          kind: HostedCluster
+          apiVersion: hypershift.openshift.io/v1beta1
+          name: test-kubevirt
+          namespace: clusters
+
+  - it: should set platform type to KubeVirt with baseDomainPassthrough
+    asserts:
+      - equal:
+          path: spec.platform.type
+          value: KubeVirt
+      - equal:
+          path: spec.platform.kubevirt.baseDomainPassthrough
+          value: true
+
+  - it: should not render Agent-specific fields
+    asserts:
+      - notExists:
+          path: spec.kubeAPIServerDNSName
+      - notExists:
+          path: spec.olmCatalogPlacement
+      - notExists:
+          path: spec.monitoring
+      - notExists:
+          path: spec.configuration.apiServer
+
+  - it: should render issuerURL
+    asserts:
+      - equal:
+          path: spec.issuerURL
+          value: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/test-kubevirt"
+
+  - it: should render OAuth identity providers when mocsso is enabled
+    set:
+      oauth:
+        mocsso:
+          enabled: true
+    asserts:
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].name
+          value: mocsso
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].type
+          value: OpenID
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].openID.clientID
+          value: test-kubevirt
+      - equal:
+          path: spec.configuration.oauth.identityProviders[0].openID.issuer
+          value: https://sso.massopen.cloud/realms/moc
+
+  - it: should publish all required services with simple types
+    asserts:
+      - contains:
+          path: spec.services
+          content:
+            service: APIServer
+            servicePublishingStrategy:
+              type: LoadBalancer
+      - contains:
+          path: spec.services
+          content:
+            service: Ignition
+            servicePublishingStrategy:
+              type: Route
+      - contains:
+          path: spec.services
+          content:
+            service: Konnectivity
+            servicePublishingStrategy:
+              type: Route
+      - contains:
+          path: spec.services
+          content:
+            service: OAuthServer
+            servicePublishingStrategy:
+              type: Route
+      - contains:
+          path: spec.services
+          content:
+            service: OIDC
+            servicePublishingStrategy:
+              type: Route
+
+  - it: should omit hypervisor credentials when infraKubeConfigSecretName is not set
+    asserts:
+      - notExists:
+          path: spec.platform.kubevirt.credentials
+
+  - it: should render hypervisor credentials when infraKubeConfigSecretName is set
+    set:
+      platform:
+        type: KubeVirt
+        kubevirt:
+          infraKubeConfigSecretName: oac-dev-workload1-kubeconfig
+    asserts:
+      - equal:
+          path: spec.platform.kubevirt.credentials.infraKubeConfigSecret.name
+          value: oac-dev-workload1-kubeconfig
+      - equal:
+          path: spec.platform.kubevirt.credentials.infraKubeConfigSecret.key
+          value: kubeconfig
+      - equal:
+          path: spec.platform.kubevirt.credentials.infraNamespace
+          value: clusters-test-kubevirt
+
+  - it: should render machineNetwork when set
+    set:
+      networking:
+        machineNetwork:
+          - cidr: 10.132.0.0/14
+    asserts:
+      - equal:
+          path: spec.networking.machineNetwork[0].cidr
+          value: 10.132.0.0/14
+
+  - it: should omit machineNetwork when not set
+    asserts:
+      - notExists:
+          path: spec.networking.machineNetwork
+
+  - it: should render common fields correctly
+    asserts:
+      - equal:
+          path: spec.controllerAvailabilityPolicy
+          value: HighlyAvailable
+      - equal:
+          path: spec.dns.baseDomain
+          value: hcp.oac.int.massopen.cloud
+      - equal:
+          path: spec.fips
+          value: false
+      - equal:
+          path: spec.pullSecret.name
+          value: pull-secret
+      - equal:
+          path: spec.release.image
+          value: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
+      - equal:
+          path: spec.sshKey.name
+          value: oac-ssh-key
+      - equal:
+          path: spec.secretEncryption.type
+          value: aescbc
+
+  - it: should not render loadBalancer details under operatorConfiguration
+    asserts:
+      - notExists:
+          path: spec.operatorConfiguration.ingressOperator.endpointPublishingStrategy.loadBalancer

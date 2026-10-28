@@ -1,3 +1,4 @@
+{{- if ne (.Values.platform.type | default "Agent") "KubeVirt" }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- $totalReplicas := 0 }}
 {{- range .Values.nodePools }}
@@ -15,3 +16,4 @@ spec:
   hard:
     count/machines.cluster.x-k8s.io: {{ $limit | quote }}
     count/agentmachines.capi-provider.agent-install.openshift.io: {{ $limit | quote }}
+{{- end }}

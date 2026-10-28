@@ -1,0 +1,47 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+# Hub-side compliance resources for hosted clusters. A hosted cluster opts
+# in with a compliance.yaml in its directory (it may be empty); the hub may
+# add shared defaults in hosted-clusters/<hub>/compliance.yaml.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: hosted-cluster-compliance
+  namespace: openshift-gitops
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        revision: main
+        files:
+          - path: "hosted-clusters/{{ $hub }}/*/compliance.yaml"
+  template:
+    metadata:
+      name: "cluster-{{`{{.path.basename}}`}}-compliance"
+      namespace: openshift-gitops
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: charts/compliance/hosted-cluster
+        helm:
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - "/hosted-clusters/{{ $hub }}/compliance.yaml"
+            - "/{{`{{.path.path}}`}}/compliance.yaml"
+          parameters:
+            - name: clusterName
+              value: "{{`{{.path.basename}}`}}"
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m

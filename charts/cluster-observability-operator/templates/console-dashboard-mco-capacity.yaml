@@ -1,0 +1,50 @@
+{{- if .Values.capacityDashboard.console.enabled }}
+# The same dashboard for the console's Observe > Dashboards list, which reads
+# ConfigMaps rather than Perses resources. See the comment in
+# perses-dashboard-mco-capacity.yaml.
+#
+# Fixed 30m windows here because this list does not resolve $__rate_interval.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-mco-capacity
+  namespace: openshift-config-managed
+  labels:
+    console.openshift.io/dashboard: "true"
+data:
+  mco-capacity.json: |
+    {
+      "title": "MCO capacity and growth",
+      "uid": "mco-capacity",
+      "time": {"from": "now-7d", "to": "now"},
+      "panels": [
+        {
+          "type": "graph",
+          "title": "Series held by receive",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [{"expr": "sum(acm_prometheus_tsdb_head_series{job=\"observability-thanos-receive-default\"})", "legendFormat": "series"}]
+        },
+        {
+          "type": "graph",
+          "title": "Samples written per second",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [{"expr": "sum(rate(acm_prometheus_tsdb_head_samples_appended_total{job=\"observability-thanos-receive-default\"}[30m]))", "legendFormat": "samples/s"}]
+        },
+        {
+          "type": "graph",
+          "title": "Disk used per receive replica",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [{"expr": "kubelet_volume_stats_used_bytes{namespace=\"open-cluster-management-observability\",persistentvolumeclaim=~\"data-observability-thanos-receive.*\"}", "legendFormat": "{{`{{persistentvolumeclaim}}`}}"}]
+        },
+        {
+          "type": "graph",
+          "title": "Rejected samples, out of order or out of bounds",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {"expr": "sum(rate(acm_prometheus_tsdb_out_of_order_samples_total{job=\"observability-thanos-receive-default\"}[30m]))", "legendFormat": "out of order"},
+            {"expr": "sum(rate(acm_prometheus_tsdb_out_of_bound_samples_total{job=\"observability-thanos-receive-default\"}[30m]))", "legendFormat": "out of bounds"}
+          ]
+        }
+      ]
+    }
+{{- end }}

@@ -56,3 +56,78 @@ tests:
       - matchRegex:
           path: metadata.annotations["opendatahub.io/sc-config"]
           pattern: '"isDefault":false'
+
+  # Default must match what the clusters do today, so merging changes nothing.
+  - it: should leave the snapshot directory on by default
+    asserts:
+      - equal:
+          path: parameters.pure_fb_snapshot_directory_enabled
+          value: "true"
+
+  # The opt out, per cluster. thanos receive is what found this.
+  - it: should turn the snapshot directory off when a cluster asks
+    set:
+      portworx.snapshot_directory: false
+    asserts:
+      - equal:
+          path: parameters.pure_fb_snapshot_directory_enabled
+          value: "false"
+
+  # A bare bool renders empty and the API server rejects that, so it stays quoted.
+  - it: should render the flag as a string and not a boolean
+    set:
+      portworx.snapshot_directory: true
+    asserts:
+      - isKind:
+          of: StorageClass
+      - matchRegex:
+          path: parameters.pure_fb_snapshot_directory_enabled
+          pattern: '^(true|false)$'
+
+  # Default must match what the clusters do today, so merging changes nothing.
+  - it: should mount without TLS by default
+    asserts:
+      - equal:
+          path: mountOptions
+          value:
+            - nfsvers=4.1
+            - tcp
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: export-policy
+
+  # Compliant clusters: NFS over TLS, against the realm's TLS export policy.
+  - it: should add xprtsec=tls when a cluster asks for TLS
+    set:
+      portworx.tls: true
+    asserts:
+      - equal:
+          path: mountOptions
+          value:
+            - nfsvers=4.1
+            - tcp
+            - xprtsec=tls
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: export-policy-tls
+
+  # The policy follows the TLS flag, so a cluster that sets TLS cannot also
+  # leave the class on the cleartext policy by mistake.
+  - it: should use the TLS export policy whatever nfs_policy says
+    set:
+      portworx.tls: true
+      portworx.nfs_policy: export-policy
+    asserts:
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: export-policy-tls
+
+  # A realm whose TLS policy has another name.
+  - it: should use the TLS export policy a cluster names
+    set:
+      portworx.tls: true
+      portworx.nfs_tls_policy: tls-policy
+    asserts:
+      - equal:
+          path: parameters.pure_nfs_policy
+          value: tls-policy

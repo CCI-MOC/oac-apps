@@ -21,13 +21,28 @@ projects:
     quota:
       hard:
         requests.nvidia.com/gpu: "20"
-        requests.storage: "500Gi"
+        requests.cpu: "320"
+        limits.cpu: "320"
+        requests.memory: "2Ti"
+        limits.memory: "2Ti"
+        requests.storage: "2Ti"
+        pods: "50"
 
   - name: accelidea
     requester: memalhot@redhat.com
     description: "Accelidea maps product decisions to their downstream regulatory, quality, engineering, and submission throghout the product's lifecycle."
     groups:
       - name: project-accelidea
+        role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
+
+  - name: asago
+    requester: memalhot@redhat.com
+    description: "Project Asago is an open-source AI safety and governance orchestration project"
+    groups:
+      - name: project-asago
         role: edit
     quota:
       hard:

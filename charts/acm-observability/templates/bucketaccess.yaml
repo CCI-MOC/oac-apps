@@ -1,0 +1,9 @@
+apiVersion: objectstorage.k8s.io/v1alpha1
+kind: BucketAccess
+metadata:
+  name: acm-observability
+  namespace: {{ .Values.namespace }}
+spec:
+  bucketAccessClassName: fb-access-rw
+  bucketClaimName: acm-observability
+  credentialsSecretName: bucketclaim-acm-observability

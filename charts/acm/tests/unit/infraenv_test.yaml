@@ -1,0 +1,39 @@
+suite: InfraEnv template
+templates:
+  - templates/infraenv.yaml
+set:
+  cim:
+    enabled: true
+
+tests:
+  - it: should render nothing when cim is disabled
+    set:
+      cim:
+        enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should leave kernelArguments out by default
+    documentSelector:
+      path: kind
+      value: InfraEnv
+    asserts:
+      - notExists:
+          path: spec.kernelArguments
+
+  - it: should pass kernelArguments through to the discovery image
+    documentSelector:
+      path: kind
+      value: InfraEnv
+    set:
+      cim:
+        kernelArguments:
+          - operation: append
+            value: fips=1
+    asserts:
+      - equal:
+          path: spec.kernelArguments
+          value:
+            - operation: append
+              value: fips=1

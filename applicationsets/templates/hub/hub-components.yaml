@@ -25,10 +25,16 @@ spec:
           - component: hcp-config
           - component: acm-gitops-integration
           - component: acm-placements
+          - component: acm-observability
           - component: cluster-observability-operator
           - component: cluster-version
           - component: object-storage-proxy
           - component: dns-operator-config
+          - component: moc-metrics-collector
+          # Despite the chart name this configures both prometheus instances,
+          # and on the hubs both still mount emptyDir: the all-managed-clusters
+          # placement selects local-cluster DoesNotExist, so it never ran here.
+          - component: user-workload-monitoring
   template:
     metadata:
       name: "hub-{{`{{component}}`}}"
@@ -45,10 +51,23 @@ spec:
             - "/values/{{ $hub }}/local-cluster/{{`{{component}}`}}.yaml"
       destination:
         server: https://kubernetes.default.svc
+      # Same reason as in all-managed-clusters.yaml: the ACM observability
+      # addon owns the whole data["config.yaml"] key once it writes, and
+      # without this Argo and the addon restart prometheus-k8s every few
+      # minutes. The hubs need it too, they run MCO themselves.
+      ignoreDifferences:
+        - group: ""
+          kind: ConfigMap
+          name: cluster-monitoring-config
+          namespace: openshift-monitoring
+          managedFieldsManagers:
+            - endpoint-monitoring-operator
       syncPolicy:
         automated:
           prune: true
           selfHeal: true
+        syncOptions:
+          - RespectIgnoreDifferences=true
         retry:
           limit: 5
           backoff:

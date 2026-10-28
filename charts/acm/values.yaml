@@ -24,3 +24,6 @@ cim:
   inventory_name: hardware-inventory
   additionalNTPSources:
     - us.pool.ntp.org
+  # Extra kernel arguments for the discovery image, e.g.
+  # [{operation: append, value: fips=1}].
+  kernelArguments: []

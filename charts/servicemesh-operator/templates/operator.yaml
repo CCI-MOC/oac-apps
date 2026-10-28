@@ -1,5 +1,13 @@
+{{- if .Values.enabled }}
+{{- /*
+  operator-library reads subscription.name, so resolve the per-major default
+  into it first. An explicit name in a cluster's values still wins.
+*/ -}}
+{{- $name := .Values.subscription.name | default (index .Values.subscription.names (toString .Values.meshVersion)) }}
+{{- $_ := set .Values.subscription "name" $name }}
 {{/*
   This operator installs into the shared "openshift-operators" namespace, which
   already exists and has a global OperatorGroup. We only need the subscription.
 */}}
 {{ include "operator-library.subscription" . }}
+{{- end }}

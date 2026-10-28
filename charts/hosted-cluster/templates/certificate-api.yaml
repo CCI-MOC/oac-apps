@@ -1,3 +1,4 @@
+{{- if ne (.Values.platform.type | default "Agent") "KubeVirt" }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- $baseDomain := include "hosted-cluster.baseDomain" . }}
 {{- $kubeAPIServerDNSName := include "hosted-cluster.kubeAPIServerDNSName" . }}
@@ -17,3 +18,4 @@ spec:
     name: {{ .Values.certificate.issuer }}
   renewBefore: {{ .Values.certificate.renewBefore }}
   secretName: {{ $clusterName }}-api-certificate
+{{- end }}

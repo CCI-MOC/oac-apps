@@ -17,3 +17,9 @@ placements:
   - name: uat-harness-clusters
     matchLabels:
       massopen.cloud/feature-uat-harness: "true"
+  - name: hypervisor-clusters
+    matchLabels:
+      massopen.cloud/feature-hypervisor: "true"
+  - name: metallb-clusters
+    matchLabels:
+      massopen.cloud/feature-metallb: "true"

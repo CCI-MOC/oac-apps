@@ -1,0 +1,74 @@
+suite: Version switch
+templates:
+  - templates/operator.yaml
+  - templates/odhdashboardconfig.yaml
+  - templates/hardwareprofile.yaml
+
+tests:
+  # Getting this wrong puts a cluster on the wrong major, which cannot be
+  # undone by changing the channel back: 2.x and 3.x are not an upgrade path
+  # in either direction.
+  - it: should subscribe to the 2.x channel by default
+    template: templates/operator.yaml
+    documentIndex: 2
+    asserts:
+      - equal:
+          path: spec.channel
+          value: stable
+
+  - it: should subscribe to the pinned 3.x channel when a cluster moves
+    template: templates/operator.yaml
+    documentIndex: 2
+    set:
+      rhoaiVersion: 3
+    asserts:
+      - equal:
+          path: spec.channel
+          value: stable-3.5
+
+  # A cluster wanting the longer support tail sets eus-3.5 itself.
+  - it: should let a cluster override the channel
+    template: templates/operator.yaml
+    documentIndex: 2
+    set:
+      rhoaiVersion: 3
+      subscription:
+        channel: eus-3.5
+    asserts:
+      - equal:
+          path: spec.channel
+          value: eus-3.5
+
+  - it: should render the dashboard config on 2.x
+    template: templates/odhdashboardconfig.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  # 3.x has no OdhDashboardConfig CRD, so rendering one is a sync failure.
+  - it: should not render the dashboard config on 3.x
+    template: templates/odhdashboardconfig.yaml
+    set:
+      rhoaiVersion: 3
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render hardware profiles at v1alpha1 on 2.x
+    template: templates/hardwareprofile.yaml
+    set:
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - isAPIVersion:
+          of: infrastructure.opendatahub.io/v1alpha1
+
+  - it: should render hardware profiles at v1 on 3.x
+    template: templates/hardwareprofile.yaml
+    set:
+      rhoaiVersion: 3
+      enabledHardwareProfiles:
+        - nvidia-h100-gpu
+    asserts:
+      - isAPIVersion:
+          of: infrastructure.opendatahub.io/v1

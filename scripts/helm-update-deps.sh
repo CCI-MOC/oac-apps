@@ -1,4 +1,4 @@
 #!/bin/bash
 
-find charts/* -maxdepth 0 -type d -print0 |
+find charts -name Chart.yaml -not -path 'charts/*/charts/*' -printf '%h\0' |
   xargs -r0 -P0 -n1 helm dependency update >/dev/null

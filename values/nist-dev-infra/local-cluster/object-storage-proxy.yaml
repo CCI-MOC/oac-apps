@@ -1,0 +1,45 @@
+backend:
+  address: 10.9.7.10
+  verify: true
+  cacert: |
+    -----BEGIN CERTIFICATE-----
+    MIIEkjCCAvqgAwIBAgIUJ3567tlo+EWUTcGcAO7pTFasEmswDQYJKoZIhvcNAQEL
+    BQAwLTESMBAGA1UEAwwJMTAuOS43LjEwMRcwFQYDVQQKDA5NYXNzT3BlbiBDbG91
+    ZDAeFw0yNjEwMjMxNTEwMDdaFw0yODEwMjIxNTEwMDdaMC0xEjAQBgNVBAMMCTEw
+    LjkuNy4xMDEXMBUGA1UECgwOTWFzc09wZW4gQ2xvdWQwggGiMA0GCSqGSIb3DQEB
+    AQUAA4IBjwAwggGKAoIBgQCu1f7NKAo9If2iNy0iy98SaoaEf9lJr+DkHxmWNBB8
+    YDHL2v5jYUHJaWPPy7FqeUXCq3s+leMV9rklvHzuKnIcwtDp8FngrJdrtJ6dkfQw
+    Fgs4LllnuUTJvZiWsiz70hyJd5FkhPJv1qP+5c4uPMEtP8bs/M/+HbMQkKbDXD73
+    vGIsw1AxHeZ9jlbfNFRTYclPSuZUcjV1iB98xUtX7YAJeEO9jQKKeDxNvqR//VBI
+    Qdr82x19P0UOlmrMFLidMEU2b1cnXauKRhHpBsrqJx4jxU7Cwv2YIXFP3dptdu6l
+    V/OCMjms9z4qq4fGMjVcniKkkdm3JItr94X4MOncFkooqOl03ZI5iEd0n0jXT/eO
+    rN4uVUp4liSVZlckVlEe8U8cUn01WCq4jTzpP33pjrPYFmzsE4miZJj0yYIPFTsF
+    gIs+07ig/OuvJS+YvmMR3v+40wTIMPjGWizNCeO+APcx4viwV5RWsF51T6H7M/7T
+    XfUlKKMVt8vLK7v0geRqP4UCAwEAAaOBqTCBpjAdBgNVHQ4EFgQUlndj6TDiHQHq
+    LitAhjP1d3t1AvswHwYDVR0jBBgwFoAUlndj6TDiHQHqLitAhjP1d3t1AvswEgYD
+    VR0TAQH/BAgwBgEB/wIBADAOBgNVHQ8BAf8EBAMCAqQwEwYDVR0lBAwwCgYIKwYB
+    BQUHAwEwDwYDVR0RBAgwBocECgkHCjAaBgNVHR4BAf8EEDAOoAwwCocICgkHCv//
+    //8wDQYJKoZIhvcNAQELBQADggGBACNY61c/EfdJ1ePMuKAkee2MlCxczFC8UEd+
+    9s8FIznp63UthxVBnSVxEk/HzojnpNngjSzTxnJEZBY11sukdkXlgigHZmavqcq0
+    Bqarc10xTuEL9lAzxPu7MC6vT+7lHn4QSP+uUNDjGTBx7WgWW9z9T5OU/38U5l4J
+    S04A8gBeMuPxEcR1dYse/PwIlyQ3ym3Mh0xRFCR+0VvuiDwysLhs5mmBdnROOpLx
+    BM9veSXT02foP+7C1BcikGcFHZqlqmqOSwNjl6raO19dtJGqbTD7wMt45NKcDkG7
+    nqifp+csgn6xYivR7rSnSOEX2akoU4wQlkFmVkSiJ5Z8MvrQEw2FdGIQqL6hB4NU
+    +ZAAeQ5zHsHyBadGuaWTC5NsRTQFmm3d1bPrqLl/oRSZTFJgqq8B4qG+4wjNVhZu
+    eI9N8da7gV7KzE+E7XfJievKJv/IiWgxznSaoe1NiQzUxENZ+53qy96hVqGld1aA
+    S/fWbUkZ/hIe33zdQDJoGe9SD+yq8w==
+    -----END CERTIFICATE-----
+certificate:
+  dnsName: "s3.nist-dev-infra.nist.int.massopen.cloud"
+
+network:
+  cidr: "10.9.7.0/24"
+  range:
+    start: "10.9.7.130"
+    end: "10.9.7.229"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.7.1
+
+service:
+  clusterIP: 172.30.0.53

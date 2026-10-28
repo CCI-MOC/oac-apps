@@ -1,0 +1,78 @@
+suite: Custom metrics allowlist
+templates:
+  - templates/metrics-custom-allowlist.yaml
+
+tests:
+  - it: should render on the hub by default
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: observability-metrics-custom-allowlist
+      - equal:
+          path: metadata.namespace
+          value: open-cluster-management-observability
+
+  - it: should render nothing when disabled
+    set:
+      customAllowlist.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The user workload key would collect nothing here.
+  - it: should use the platform key
+    asserts:
+      - exists:
+          path: data["metrics_list.yaml"]
+      - notExists:
+          path: data["uwl_metrics_list.yaml"]
+
+  - it: should list the workload metrics the platform list leaves out
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_pod_container_status_restarts_total'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_pod_init_container_status_restarts_total'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_namespace_status_phase'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kube_pod_deletion_timestamp'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- kubelet_volume_stats_used_bytes'
+
+  # A selector rather than a name, because vllm names its metrics per model.
+  - it: should carry the vllm selector in matches, not in names
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: 'matches:'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: 'vllm'
+
+  - it: should leave matches out when nothing sets it
+    set:
+      customAllowlist.matches: null
+    asserts:
+      - notMatchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: 'matches:'
+
+  - it: should list the three metrics the GPU panels need
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- DCGM_FI_DEV_GPU_UTIL'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- DCGM_FI_DEV_FB_USED'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- DCGM_FI_DEV_GPU_TEMP'

@@ -1,0 +1,6 @@
+# A hub scrapes its own control plane and every hosted one, roughly twice the
+# series of a workload cluster, so the 40GiB default would hold about 9 days.
+platform:
+  retentionSize: 80GiB
+  volume:
+    size: 100Gi

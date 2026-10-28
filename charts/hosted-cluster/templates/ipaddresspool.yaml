@@ -1,3 +1,4 @@
+{{- if ne (.Values.platform.type | default "Agent") "KubeVirt" }}
 {{- $clusterName := required "clusterName is required" .Values.clusterName }}
 {{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
 {{- range $serviceName, $serviceConfig := .Values.services }}
@@ -38,5 +39,6 @@ metadata:
 spec:
   ipAddressPools:
     - {{ $clusterName }}-{{ lower $serviceName }}
+{{- end }}
 {{- end }}
 {{- end }}

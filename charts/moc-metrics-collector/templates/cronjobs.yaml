@@ -1,0 +1,50 @@
+{{- range .Values.collectors }}
+{{- $tokenSecret := .tokenSecret | default (dict "name" "moc-metrics-collector-token" "key" "token") }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ required "collectors[].clusterName is required" .clusterName }}-metrics-collector
+  namespace: {{ $.Values.name }}
+spec:
+  timeZone: {{ $.Values.timeZone | quote }}
+  schedule: {{ $.Values.schedule | quote }}
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: metrics-collector
+            image: {{ $.Values.image }}
+            command: ["./collect_metrics.sh"]
+            env:
+            - name: OPENSHIFT_PROMETHEUS_URL
+              value: {{ .prometheusUrl | default $.Values.prometheusUrl | required "collectors[].prometheusUrl or prometheusUrl is required" | quote }}
+            - name: PROM_QUERY_INTERVAL_MINUTES
+              value: {{ $.Values.queryIntervalMinutes | quote }}
+            - name: CLUSTER_TYPE
+              value: {{ .clusterType | default "hypershift" | quote }}
+            - name: OPENSHIFT_CLUSTER_ID
+              value: {{ required "collectors[].clusterId is required" .clusterId | quote }}
+            - name: OPENSHIFT_CLUSTER_NAME
+              value: {{ .clusterName | quote }}
+            - name: S3_METRICS_BUCKET
+              value: {{ required "collectors[].bucket is required" .bucket | quote }}
+            - name: OPENSHIFT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $tokenSecret.name }}
+                  key: {{ $tokenSecret.key }}
+            - name: S3_OUTPUT_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .clusterName }}-metrics-bucket
+                  key: access-key-id
+            - name: S3_OUTPUT_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .clusterName }}-metrics-bucket
+                  key: secret-access-key
+          restartPolicy: OnFailure
+{{- end }}

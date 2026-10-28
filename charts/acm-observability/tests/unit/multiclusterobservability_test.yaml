@@ -1,0 +1,51 @@
+suite: MultiClusterObservability
+templates:
+  - templates/multiclusterobservability.yaml
+
+tests:
+  # The operator reconciles exactly one instance, and only under this name.
+  - it: should be the single instance the operator looks for
+    asserts:
+      - isKind:
+          of: MultiClusterObservability
+      - equal:
+          path: metadata.name
+          value: observability
+
+  - it: should keep the retention we agreed on
+    asserts:
+      - equal:
+          path: spec.advanced.retentionConfig.retentionResolutionRaw
+          value: 90d
+      - equal:
+          path: spec.advanced.retentionConfig.retentionResolution5m
+          value: 360d
+      # 0d means forever for the 1h resolution.
+      - equal:
+          path: spec.advanced.retentionConfig.retentionResolution1h
+          value: 0d
+      - equal:
+          path: spec.enableDownsampling
+          value: true
+
+  - it: should collect every 300 seconds
+    asserts:
+      - equal:
+          path: spec.observabilityAddonSpec
+          value:
+            enableMetrics: true
+            interval: 300
+
+  # pure-fb-nfsv4 only works since the FlashBlade .snapshot directory is off,
+  # see the portworx chart. thanos-receive could not lock its directory before.
+  - it: should put the Thanos volumes on the Pure storage class
+    asserts:
+      - equal:
+          path: spec.storageConfig.storageClass
+          value: pure-fb-nfsv4
+      - equal:
+          path: spec.storageConfig.receiveStorageSize
+          value: 100Gi
+      - equal:
+          path: spec.storageConfig.compactStorageSize
+          value: 100Gi

@@ -255,6 +255,20 @@ tests:
           path: spec.configuration.oauth.identityProviders[1].name
           value: htpasswd
 
+  - it: should render token config without identity providers
+    set:
+      oauth:
+        tokenConfig:
+          accessTokenMaxAgeSeconds: 86400
+          accessTokenInactivityTimeout: 10m0s
+    asserts:
+      - equal:
+          path: spec.configuration.oauth
+          value:
+            tokenConfig:
+              accessTokenMaxAgeSeconds: 86400
+              accessTokenInactivityTimeout: 10m0s
+
   - it: should synthesize a mocsso identity provider when enabled
     set:
       managementCluster: oac-dev-infra
@@ -461,3 +475,28 @@ tests:
           value: SRE
       - notExists:
           path: spec.monitoring.metricsForwarding
+
+  - it: should not set audit or image configuration by default
+    asserts:
+      - notExists:
+          path: spec.configuration.apiServer.audit
+      - notExists:
+          path: spec.configuration.image
+
+  - it: should render audit and image configuration from values
+    set:
+      apiServer:
+        audit:
+          profile: WriteRequestBodies
+      imageConfig:
+        registrySources:
+          allowedRegistries: [quay.io]
+    asserts:
+      - equal:
+          path: spec.configuration.apiServer.audit.profile
+          value: WriteRequestBodies
+      - exists:
+          path: spec.configuration.apiServer.servingCerts
+      - equal:
+          path: spec.configuration.image.registrySources.allowedRegistries
+          value: [quay.io]

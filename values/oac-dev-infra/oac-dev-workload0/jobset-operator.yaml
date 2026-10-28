@@ -1,0 +1,4 @@
+# Required by the trainer component, which rhoai.yaml alongside this file
+# leaves Managed under rhoaiVersion 3. Without it the 3.5 trainer reports
+# "JobSet operator not installed" and default-dsc never reaches Ready.
+enabled: true

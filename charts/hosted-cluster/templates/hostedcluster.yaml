@@ -2,8 +2,11 @@
 {{- $release_channel := required "release.channel is required" .Values.release.channel }}
 {{- $release_image := required "release.image is required" .Values.release.image }}
 {{- $baseDomain := include "hosted-cluster.baseDomain" . }}
+{{- $platformType := .Values.platform.type | default "Agent" }}
+{{- if eq $platformType "Agent" }}
 {{- $kubeAPIServerDNSName := include "hosted-cluster.kubeAPIServerDNSName" . }}
 {{- $oauthHostname := include "hosted-cluster.oauthHostname" . }}
+{{- end }}
 apiVersion: hypershift.openshift.io/v1beta1
 kind: HostedCluster
 metadata:
@@ -19,7 +22,6 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  kubeAPIServerDNSName: {{ $kubeAPIServerDNSName }}
   controllerAvailabilityPolicy: {{ .Values.controllerAvailabilityPolicy }}
   dns:
     baseDomain: {{ $baseDomain }}
@@ -35,11 +37,40 @@ spec:
   networking:
     clusterNetwork:
       {{- toYaml .Values.networking.clusterNetwork | nindent 6 }}
+    {{- with .Values.networking.machineNetwork }}
+    machineNetwork:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
     networkType: {{ .Values.networking.networkType }}
     serviceNetwork:
       {{- toYaml .Values.networking.serviceNetwork | nindent 6 }}
+  pullSecret:
+    name: {{ .Values.pullSecret.name }}
+  channel: {{ $release_channel }}
+  release:
+    image: {{ $release_image }}
+  secretEncryption:
+    aescbc:
+      activeKey:
+        name: {{ $clusterName }}-etcd-encryption-key
+    type: aescbc
+  operatorConfiguration:
+    ingressOperator:
+      endpointPublishingStrategy:
+        type: {{ .Values.ingress.type }}
+        {{- if eq $platformType "Agent" }}
+        loadBalancer:
+          scope: {{ .Values.ingress.scope }}
+          dnsManagementPolicy: {{ .Values.ingress.dnsManagementPolicy }}
+        {{- end }}
+  {{- with .Values.sshKey.name }}
+  sshKey:
+    name: {{ . }}
+  {{- end }}
+  {{- if eq $platformType "Agent" }}
+  kubeAPIServerDNSName: {{ include "hosted-cluster.kubeAPIServerDNSName" . }}
   olmCatalogPlacement: {{ .Values.olmCatalogPlacement }}
-{{- with .Values.monitoring }}
+  {{- with .Values.monitoring }}
   monitoring:
     {{- with .metricsSet }}
     # The cluster-wide default. The forwarding path can override it below, and
@@ -56,21 +87,11 @@ spec:
       metricsSet: {{ . }}
       {{- end }}
     {{- end }}
-{{- end }}
+  {{- end }}
   platform:
     agent:
-      agentNamespace: {{ .Values.platform.agentNamespace }}
+      agentNamespace: {{ .Values.platform.agent.namespace }}
     type: Agent
-  pullSecret:
-    name: {{ .Values.pullSecret.name }}
-  channel: {{ $release_channel }}
-  release:
-    image: {{ $release_image }}
-  secretEncryption:
-    aescbc:
-      activeKey:
-        name: {{ $clusterName }}-etcd-encryption-key
-    type: aescbc
   services:
     {{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
     {{- range $serviceName := list "APIServer" "Ignition" "Konnectivity" "OAuthServer" "OIDC" }}
@@ -92,38 +113,74 @@ spec:
       servicePublishingStrategy:
         {{- toYaml $finalStrategy | nindent 8 }}
     {{- end }}
+  {{- else }}
+  platform:
+    type: KubeVirt
+    kubevirt:
+      baseDomainPassthrough: true
+      {{- with .Values.platform.kubevirt.infraKubeConfigSecretName }}
+      credentials:
+        infraKubeConfigSecret:
+          name: {{ . }}
+          key: kubeconfig
+        infraNamespace: clusters-{{ $clusterName }}
+      {{- end }}
+  services:
+    - service: APIServer
+      servicePublishingStrategy:
+        type: {{ dig "APIServer" "type" "LoadBalancer" .Values.services }}
+    - service: Ignition
+      servicePublishingStrategy:
+        type: Route
+    - service: Konnectivity
+      servicePublishingStrategy:
+        type: Route
+    - service: OAuthServer
+      servicePublishingStrategy:
+        type: Route
+    - service: OIDC
+      servicePublishingStrategy:
+        type: Route
+  {{- end }}
   {{- if .Values.issuerURL }}
   issuerURL: {{ .Values.issuerURL | quote }}
   {{- else }}
   issuerURL: "https://oac-clusters-oidc.s3.us-east-1.amazonaws.com/{{ $clusterName }}"
   {{- end }}
-  operatorConfiguration:
-    ingressOperator:
-      endpointPublishingStrategy:
-        type: {{ .Values.ingress.type }}
-        loadBalancer:
-          scope: {{ .Values.ingress.scope }}
-          dnsManagementPolicy: {{ .Values.ingress.dnsManagementPolicy }}
-  sshKey:
-    name: {{ .Values.sshKey.name }}
   configuration:
     {{- $identityProviders := .Values.oauth.identityProviders }}
     {{- if and (not $identityProviders) .Values.oauth.mocsso.enabled }}
     {{- $identityProviders = list (include "hosted-cluster.mocssoIdentityProvider" . | fromYaml) }}
     {{- end }}
-    {{- with $identityProviders }}
+    {{- if or $identityProviders .Values.oauth.tokenConfig }}
     oauth:
+      {{- with $identityProviders }}
       identityProviders:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.oauth.tokenConfig }}
+      tokenConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
     {{- end }}
+    {{- if eq $platformType "Agent" }}
     apiServer:
       servingCerts:
         namedCertificates:
           - names:
-              - {{ $kubeAPIServerDNSName }}
+              - {{ include "hosted-cluster.kubeAPIServerDNSName" . }}
             servingCertificate:
               name: {{ $clusterName }}-api-certificate
           - names:
-              - {{ $oauthHostname }}
+              - {{ include "hosted-cluster.oauthHostname" . }}
             servingCertificate:
               name: {{ $clusterName }}-oauth-certificate
+    {{- with .Values.apiServer.audit }}
+      audit:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- end }}
+    {{- with .Values.imageConfig }}
+    image:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}

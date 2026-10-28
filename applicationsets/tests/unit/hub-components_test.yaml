@@ -30,6 +30,18 @@ tests:
           path: spec.template.spec.source.path
           value: "charts/{{component}}"
 
+  # The hubs are not covered by the all-managed-clusters placement, which
+  # selects local-cluster DoesNotExist, so this is the only path by which they
+  # get a platform prometheus that persists.
+  - it: should enable user workload monitoring on the hub itself
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].list.elements
+          content:
+            component: user-workload-monitoring
+
   - it: should not include per-hub drop-in components in the common set
     set:
       hubName: oac-dev-infra
@@ -56,3 +68,29 @@ tests:
       - equal:
           path: spec.template.spec.source.helm.valueFiles[1]
           value: "/values/oac-dev-infra/local-cluster/{{component}}.yaml"
+
+  # Same as all-managed-clusters: the ACM observability addon takes over the
+  # whole data["config.yaml"] key, and without this Argo and the addon restart
+  # prometheus-k8s every few minutes (MOC-issues#630). The hubs run MCO
+  # themselves, so they need it as much as the managed clusters do.
+  - it: ignores cluster-monitoring-config fields owned by the observability addon
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.template.spec.ignoreDifferences
+          content:
+            group: ""
+            kind: ConfigMap
+            name: cluster-monitoring-config
+            namespace: openshift-monitoring
+            managedFieldsManagers:
+              - endpoint-monitoring-operator
+
+  - it: respects ignoreDifferences during sync so it does not clobber the addon's fields
+    set:
+      hubName: oac-dev-infra
+    asserts:
+      - contains:
+          path: spec.template.spec.syncPolicy.syncOptions
+          content: RespectIgnoreDifferences=true

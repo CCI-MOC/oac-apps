@@ -1,0 +1,15 @@
+suite: ACS operator
+templates:
+  - templates/operator.yaml
+
+tests:
+  # The ACS operator supports AllNamespaces only: an OperatorGroup with
+  # target namespaces makes the install fail.
+  - it: should install the operator for all namespaces
+    asserts:
+      - isKind:
+          of: OperatorGroup
+        documentIndex: 1
+      - notExists:
+          path: spec.targetNamespaces
+        documentIndex: 1

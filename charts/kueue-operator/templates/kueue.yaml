@@ -1,0 +1,22 @@
+{{- if .Values.enabled }}
+{{- $kueue := .Values.kueue }}
+apiVersion: kueue.openshift.io/v1
+kind: Kueue
+metadata:
+  name: {{ $kueue.name }}
+  labels:
+    app.kubernetes.io/name: kueue
+    app.kubernetes.io/instance: {{ $kueue.name }}
+    app.kubernetes.io/part-of: kueue-operator
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  managementState: {{ $kueue.managementState }}
+  config:
+    integrations:
+      frameworks:
+        {{- range $kueue.frameworks }}
+        - {{ . }}
+        {{- end }}
+{{- end }}
