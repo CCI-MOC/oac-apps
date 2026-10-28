@@ -510,3 +510,16 @@ tests:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
           value: "2"
+
+  # Alerting belongs to the platform, PrometheusRule and Alertmanager.
+  - it: turns alerting off in every project Grafana
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentIndex: 4
+    asserts:
+      - equal:
+          path: spec.config.unified_alerting.enabled
+          value: "false"
