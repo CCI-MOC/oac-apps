@@ -1,0 +1,21 @@
+{{- range .Values.bindings }}
+---
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSettingBinding
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+profiles:
+  {{- range .profiles }}
+  - apiGroup: compliance.openshift.io/v1alpha1
+    kind: {{ .kind | default "Profile" }}
+    name: {{ .name }}
+  {{- end }}
+settingsRef:
+  apiGroup: compliance.openshift.io/v1alpha1
+  kind: ScanSetting
+  name: {{ $.Values.scanSetting.name }}
+{{- end }}

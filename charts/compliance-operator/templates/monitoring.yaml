@@ -1,0 +1,70 @@
+{{- if .Values.monitoring.enabled }}
+{{- /* What the operator creates for itself on a standalone cluster, and
+does not on a hosted one: its metrics Service (with a service-ca serving
+certificate), the ServiceMonitor, and the NonCompliant alert. Off where the
+operator makes them, so the two do not fight. */}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics
+  namespace: {{ .Values.namespace }}
+  labels:
+    name: compliance-operator
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: compliance-operator-serving-cert
+spec:
+  selector:
+    name: compliance-operator
+  ports:
+    - name: metrics
+      port: 8383
+      targetPort: 8383
+      protocol: TCP
+    - name: metrics-co
+      port: 8585
+      targetPort: 8585
+      protocol: TCP
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: metrics
+  namespace: {{ .Values.namespace }}
+  labels:
+    name: compliance-operator
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      name: compliance-operator
+  namespaceSelector: {}
+  endpoints:
+    - port: metrics
+    - port: metrics-co
+      path: /metrics-co
+      scheme: https
+      tlsConfig:
+        caFile: /etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt
+        serverName: metrics.{{ .Values.namespace }}.svc
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: compliance
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  groups:
+    - name: compliance
+      rules:
+        - alert: NonCompliant
+          annotations:
+            description: {{ `The compliance suite {{ $labels.name }} returned as NON-COMPLIANT, ERROR, or INCONSISTENT` | quote }}
+            summary: The cluster is out-of-compliance
+          expr: compliance_operator_compliance_state{name=~".+"} > 0
+          for: 1s
+          labels:
+            severity: warning
+{{- end }}

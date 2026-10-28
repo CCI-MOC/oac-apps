@@ -1,0 +1,60 @@
+namespace: openshift-compliance
+operatorgroup:
+  targetNamespaces: true
+subscription:
+  channel: stable
+  name: compliance-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+# The scanner is a sensor, not an actuator. autoApplyRemediations is fixed
+# to false in the template, not a value: node changes come from git through
+# compliance-node-hardening, and a scanner that also writes MachineConfigs
+# would fight ArgoCD's self-heal. New FAILs are turned into manifests by a
+# person (scripts/export-remediations.py) and reviewed like any other change.
+scanSetting:
+  name: oac-default
+  schedule: "0 1 * * *"
+  # Hosted clusters have no master nodes to scan; set [worker] there.
+  roles: [master, worker]
+  rawResultStorage:
+    enabled: true
+    size: 10Gi
+    rotation: 10
+    storageClassName: ""
+    pvAccessModes: [ReadWriteOnce]
+    nodeSelector:
+      node-role.kubernetes.io/master: ""
+    tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+  scanTolerations:
+    - operator: Exists
+  showNotApplicable: false
+  strictNodeScan: true
+  timeout: 30m
+  maxRetryOnTimeout: 3
+
+# Rendered verbatim as TailoredProfile specs. Every exception needs a
+# rationale; the operator rejects a disableRules/setValues entry without one.
+#   - name: oac-ocp4-moderate
+#     spec: {extends: ocp4-moderate, title: ..., description: ..., disableRules: [...], setValues: [...]}
+tailoredProfiles: []
+
+# ScanSettingBindings. A profile entry is {name, kind}; kind defaults to
+# Profile, use TailoredProfile for one of the above.
+bindings:
+  - name: nist-moderate
+    profiles:
+      - name: ocp4-moderate
+      - name: ocp4-moderate-node
+      - name: rhcos4-moderate
+
+# The operator's metrics Service, ServiceMonitor and NonCompliant alert
+# (rule compliance-notification-enabled). The operator creates these itself
+# on a standalone cluster; on a hosted cluster (PLATFORM=HyperShift) it
+# does not, so turn this on there only.
+monitoring:
+  enabled: false
