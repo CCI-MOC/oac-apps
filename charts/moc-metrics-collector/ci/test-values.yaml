@@ -4,3 +4,11 @@ collectors:
     clusterId: 00000000-0000-0000-0000-000000000000
     bucket: test-workload0-metrics
     s3RemoteKey: test-workload0-metrics-bucket
+reports:
+  - clusterName: test-workload0
+    metricsBucket: test-workload0-metrics
+    metricsS3RemoteKey: test-workload0-metrics-ro
+    invoiceBucket: test-invoicing
+    invoiceS3RemoteKey: test-invoicing-rw
+    gpuNodeMap:
+      test-node: NVIDIA-H100-80GB-HBM3

@@ -20,7 +20,23 @@ collectors: []
 # own. Deliberately unset: rendering fails if a collector has no URL.
 # prometheusUrl: https://thanos-querier-openshift-monitoring.apps...
 
+# Daily jobs that build invoices from a cluster's collected metrics and
+# upload them. Empty by default; set it per cluster where reports run:
+#
+# reports:
+#   - clusterName: oac-prod-workload0
+#     metricsBucket: oac-prod-workload0-metrics
+#     metricsS3RemoteKey: b2-key/oac-prod-workload0-ro
+#     invoiceBucket: oac-invoicing
+#     invoiceS3RemoteKey: b2-key/oac-invoicing-rw
+#     gpuNodeMap:                      # optional, node name -> GPU product;
+#       some-node: NVIDIA-H100-80GB-HBM3  # the only GPU source for hypershift
+reports: []
+
 image: ghcr.io/cci-moc/openshift-usage-scripts:v0.5.0
+downloaderImage: amazon/aws-cli:2.38.1
 schedule: "5 6 * * *"
+# Leaves the collectors time to upload yesterday's metrics first.
+reportSchedule: "5 9 * * *"
 timeZone: Etc/UTC
 queryIntervalMinutes: 1

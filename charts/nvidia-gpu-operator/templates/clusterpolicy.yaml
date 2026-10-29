@@ -77,6 +77,12 @@ spec:
     strategy: {{ .Values.clusterPolicy.mig.strategy }}
   toolkit:
     enabled: true
+    env:
+      # Only the device plugin hands out GPUs: without this, any pod that
+      # names the nvidia RuntimeClass and sets NVIDIA_VISIBLE_DEVICES gets
+      # every GPU on the node without requesting one.
+      - name: ACCEPT_NVIDIA_VISIBLE_DEVICES_ENVVAR_WHEN_UNPRIVILEGED
+        value: "false"
   validator:
     plugin:
       env:

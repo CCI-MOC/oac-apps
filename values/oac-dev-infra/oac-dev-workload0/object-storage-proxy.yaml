@@ -25,7 +25,7 @@ backend:
     ydZc/tG8qUDQXaJvf0sd8hY3wZJgtJLA66JlUYRsKJbLRxGs0h3CfolDsAGFxBw=
     -----END CERTIFICATE-----
 certificate:
-  dnsName: "s3.oac-dev-workload0.hcp.oac.int.massopen.cloud."
+  dnsName: "s3.oac-dev-workload0.hcp.oac.int.massopen.cloud"
 
 network:
   cidr: "10.9.4.0/24"
