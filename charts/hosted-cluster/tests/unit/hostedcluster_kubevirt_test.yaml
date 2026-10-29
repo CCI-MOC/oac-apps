@@ -41,8 +41,21 @@ tests:
           path: spec.olmCatalogPlacement
       - notExists:
           path: spec.monitoring
-      - notExists:
-          path: spec.configuration.apiServer
+
+  - it: should render namedCertificates for API and OAuth
+    asserts:
+      - equal:
+          path: spec.configuration.apiServer.servingCerts.namedCertificates[0].names[0]
+          value: api-external-test-kubevirt.hcp-int.oac.int.massopen.cloud
+      - equal:
+          path: spec.configuration.apiServer.servingCerts.namedCertificates[0].servingCertificate.name
+          value: test-kubevirt-api-certificate
+      - equal:
+          path: spec.configuration.apiServer.servingCerts.namedCertificates[1].names[0]
+          value: oauth-test-kubevirt.hcp-int.oac.int.massopen.cloud
+      - equal:
+          path: spec.configuration.apiServer.servingCerts.namedCertificates[1].servingCertificate.name
+          value: test-kubevirt-oauth-certificate
 
   - it: should render issuerURL
     asserts:
@@ -69,7 +82,7 @@ tests:
           path: spec.configuration.oauth.identityProviders[0].openID.issuer
           value: https://sso.massopen.cloud/realms/moc
 
-  - it: should publish all required services with simple types
+  - it: should publish all required services with hostnames
     asserts:
       - contains:
           path: spec.services
@@ -77,24 +90,32 @@ tests:
             service: APIServer
             servicePublishingStrategy:
               type: LoadBalancer
+              loadBalancer:
+                hostname: api-internal-test-kubevirt.hcp-int.oac.int.massopen.cloud
       - contains:
           path: spec.services
           content:
             service: Ignition
             servicePublishingStrategy:
               type: Route
+              route:
+                hostname: ignition-test-kubevirt.hcp-int.oac.int.massopen.cloud
       - contains:
           path: spec.services
           content:
             service: Konnectivity
             servicePublishingStrategy:
               type: Route
+              route:
+                hostname: konnectivity-test-kubevirt.hcp-int.oac.int.massopen.cloud
       - contains:
           path: spec.services
           content:
             service: OAuthServer
             servicePublishingStrategy:
               type: Route
+              route:
+                hostname: oauth-test-kubevirt.hcp-int.oac.int.massopen.cloud
       - contains:
           path: spec.services
           content:

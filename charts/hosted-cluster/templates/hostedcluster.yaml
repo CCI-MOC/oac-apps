@@ -3,10 +3,6 @@
 {{- $release_image := required "release.image is required" .Values.release.image }}
 {{- $baseDomain := include "hosted-cluster.baseDomain" . }}
 {{- $platformType := .Values.platform.type | default "Agent" }}
-{{- if eq $platformType "Agent" }}
-{{- $kubeAPIServerDNSName := include "hosted-cluster.kubeAPIServerDNSName" . }}
-{{- $oauthHostname := include "hosted-cluster.oauthHostname" . }}
-{{- end }}
 apiVersion: hypershift.openshift.io/v1beta1
 kind: HostedCluster
 metadata:
@@ -92,6 +88,19 @@ spec:
     agent:
       agentNamespace: {{ .Values.platform.agent.namespace }}
     type: Agent
+  {{- else }}
+  platform:
+    type: KubeVirt
+    kubevirt:
+      baseDomainPassthrough: true
+      {{- with .Values.platform.kubevirt.infraKubeConfigSecretName }}
+      credentials:
+        infraKubeConfigSecret:
+          name: {{ . }}
+          key: kubeconfig
+        infraNamespace: clusters-{{ $clusterName }}
+      {{- end }}
+  {{- end }}
   services:
     {{- $allDefaults := include "hosted-cluster.serviceDefaults" . | fromYaml }}
     {{- range $serviceName := list "APIServer" "Ignition" "Konnectivity" "OAuthServer" "OIDC" }}
@@ -113,35 +122,6 @@ spec:
       servicePublishingStrategy:
         {{- toYaml $finalStrategy | nindent 8 }}
     {{- end }}
-  {{- else }}
-  platform:
-    type: KubeVirt
-    kubevirt:
-      baseDomainPassthrough: true
-      {{- with .Values.platform.kubevirt.infraKubeConfigSecretName }}
-      credentials:
-        infraKubeConfigSecret:
-          name: {{ . }}
-          key: kubeconfig
-        infraNamespace: clusters-{{ $clusterName }}
-      {{- end }}
-  services:
-    - service: APIServer
-      servicePublishingStrategy:
-        type: {{ dig "APIServer" "type" "LoadBalancer" .Values.services }}
-    - service: Ignition
-      servicePublishingStrategy:
-        type: Route
-    - service: Konnectivity
-      servicePublishingStrategy:
-        type: Route
-    - service: OAuthServer
-      servicePublishingStrategy:
-        type: Route
-    - service: OIDC
-      servicePublishingStrategy:
-        type: Route
-  {{- end }}
   {{- if .Values.issuerURL }}
   issuerURL: {{ .Values.issuerURL | quote }}
   {{- else }}
@@ -163,7 +143,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- end }}
-    {{- if eq $platformType "Agent" }}
     apiServer:
       servingCerts:
         namedCertificates:
@@ -178,7 +157,6 @@ spec:
     {{- with .Values.apiServer.audit }}
       audit:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
     {{- end }}
     {{- with .Values.imageConfig }}
     image:
