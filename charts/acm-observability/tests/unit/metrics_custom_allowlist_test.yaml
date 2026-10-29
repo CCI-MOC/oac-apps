@@ -104,3 +104,15 @@ tests:
       - matchRegex:
           path: data["metrics_list.yaml"]
           pattern: '__name__=~"\^DCGM_\.\*"'
+
+  - it: should list the GPU operator node counts
+    asserts:
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- gpu_operator_node_device_plugin_devices_total'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- gpu_operator_nvidia_pci_devices_total'
+      - matchRegex:
+          path: data["metrics_list.yaml"]
+          pattern: '- gpu_operator_gpu_nodes_total'

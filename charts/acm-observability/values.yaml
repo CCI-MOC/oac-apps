@@ -8,6 +8,9 @@ customAllowlist:
     - DCGM_FI_DEV_GPU_UTIL
     - DCGM_FI_DEV_FB_USED
     - DCGM_FI_DEV_GPU_TEMP
+    - gpu_operator_node_device_plugin_devices_total
+    - gpu_operator_nvidia_pci_devices_total
+    - gpu_operator_gpu_nodes_total
     - kube_pod_container_status_restarts_total
     - kube_pod_init_container_status_restarts_total
     - kube_namespace_status_phase
