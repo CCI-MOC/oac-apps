@@ -143,3 +143,30 @@ tests:
         documentSelector:
           path: metadata.name
           value: maas-admin-limits
+
+  # The MaaS test backs up its database with a CronJob, and starts a backup by
+  # hand with a Job made from it.
+  - it: should let tests run CronJobs and Jobs in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["cronjobs"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["jobs"]
+            verbs: ["create", "get", "list", "watch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
