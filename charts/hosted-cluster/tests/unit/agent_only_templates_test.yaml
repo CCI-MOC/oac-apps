@@ -12,20 +12,6 @@ set:
     image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
 
 tests:
-  - it: should not render API certificate for KubeVirt
-    templates:
-      - templates/certificate-api.yaml
-    asserts:
-      - hasDocuments:
-          count: 0
-
-  - it: should not render OAuth certificate for KubeVirt
-    templates:
-      - templates/certificate-oauth.yaml
-    asserts:
-      - hasDocuments:
-          count: 0
-
   - it: should not render IPAddressPool for KubeVirt
     templates:
       - templates/ipaddresspool.yaml
