@@ -10,10 +10,28 @@ tests:
       - failedTemplate:
           errorMessage: group must be set
 
-  - it: should create seven RoleBindings
+  - it: should create eight RoleBindings
     asserts:
       - hasDocuments:
-          count: 7
+          count: 8
+
+  - it: should bind the MaaS admin portal's account to the limits role
+    asserts:
+      - equal:
+          path: subjects[0]
+          value:
+            kind: ServiceAccount
+            name: maas-admin
+            namespace: uat-project
+        documentSelector:
+          path: metadata.name
+          value: maas-admin-limits
+      - equal:
+          path: roleRef.name
+          value: maas-admin-limits
+        documentSelector:
+          path: metadata.name
+          value: maas-admin-limits
 
   - it: should bind the endpoint picker's account to its own role
     asserts:

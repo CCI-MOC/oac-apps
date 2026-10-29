@@ -111,3 +111,35 @@ tests:
         documentSelector:
           path: metadata.namespace
           value: uat-peer
+
+  # The MaaS admin portal has no Route; it is reached with oc port-forward.
+  - it: should let tests port-forward in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["pods/portforward"]
+            verbs: ["create", "get"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            resources: ["pods/portforward"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  - it: should let the MaaS admin portal change only the limits ConfigMap
+    asserts:
+      - equal:
+          path: rules
+          value:
+            - apiGroups: [""]
+              resources: ["configmaps"]
+              resourceNames: ["maas-limits"]
+              verbs: ["get", "update", "patch"]
+        documentSelector:
+          path: metadata.name
+          value: maas-admin-limits

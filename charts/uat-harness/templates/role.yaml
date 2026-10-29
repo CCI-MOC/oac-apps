@@ -60,6 +60,22 @@ rules:
   - apiGroups: ["route.openshift.io"]
     resources: ["routes"]
     verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create", "get"]
+---
+# The MaaS admin portal rewrites Limitador's limits file, and only that
+# ConfigMap. The test creates it, so create isn't needed.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: maas-admin-limits
+  namespace: uat-project
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["maas-limits"]
+    verbs: ["get", "update", "patch"]
 ---
 # The MaaS test's endpoint picker: reads its InferencePool and the pods it
 # selects. llm-d's own Role also creates token and access reviews, which are
