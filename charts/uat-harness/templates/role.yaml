@@ -57,6 +57,9 @@ rules:
   - apiGroups: ["inference.networking.k8s.io"]
     resources: ["inferencepools"]
     verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
 ---
 # The MaaS test's endpoint picker: reads its InferencePool and the pods it
 # selects. llm-d's own Role also creates token and access reviews, which are

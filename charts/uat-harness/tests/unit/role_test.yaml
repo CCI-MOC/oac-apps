@@ -92,3 +92,22 @@ tests:
         documentSelector:
           path: metadata.name
           value: uat-epp-role
+
+  # The MaaS test exposes its gateway through a Route.
+  - it: should let tests manage Routes in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+            resources: ["routes"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
