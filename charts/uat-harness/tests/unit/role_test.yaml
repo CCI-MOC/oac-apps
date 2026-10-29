@@ -26,9 +26,7 @@ tests:
             apiGroups: ["metrics.k8s.io"]
             resources: ["pods"]
             verbs: ["get"]
-        documentSelector:
-          path: metadata.namespace
-          value: uat-project
+        documentIndex: 0
       - notContains:
           path: rules
           content:
@@ -49,3 +47,48 @@ tests:
           path: metadata.namespace
           value: uat-runner
           matchMany: true
+
+  # The MaaS test runs its components as Deployments in uat-project.
+  - it: should let tests run Deployments and InferencePools in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources: ["deployments"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["inference.networking.k8s.io"]
+            resources: ["inferencepools"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  - it: should give the endpoint picker nothing cluster scoped
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["authentication.k8s.io"]
+          any: true
+        documentSelector:
+          path: metadata.name
+          value: uat-epp-role
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["authorization.k8s.io"]
+          any: true
+        documentSelector:
+          path: metadata.name
+          value: uat-epp-role

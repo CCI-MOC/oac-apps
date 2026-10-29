@@ -10,10 +10,28 @@ tests:
       - failedTemplate:
           errorMessage: group must be set
 
-  - it: should create six RoleBindings
+  - it: should create seven RoleBindings
     asserts:
       - hasDocuments:
-          count: 6
+          count: 7
+
+  - it: should bind the endpoint picker's account to its own role
+    asserts:
+      - equal:
+          path: subjects[0]
+          value:
+            kind: ServiceAccount
+            name: uat-epp
+            namespace: uat-project
+        documentSelector:
+          path: metadata.name
+          value: uat-epp-binding
+      - equal:
+          path: roleRef.name
+          value: uat-epp-role
+        documentSelector:
+          path: metadata.name
+          value: uat-epp-binding
 
   - it: should bind the harness group in all three namespaces
     asserts:
