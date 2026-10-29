@@ -1,0 +1,47 @@
+suite: cluster overview dashboard
+templates:
+  - dashboard.yaml
+tests:
+  - it: attaches to the admin instance after it exists
+    asserts:
+      - isKind:
+          of: GrafanaDashboard
+      - equal:
+          path: spec.instanceSelector.matchLabels.dashboards
+          value: cluster-admin
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
+
+  - it: asks for the GPU resource label kube-state-metrics actually emits
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: 'nvidia_com_gpu'
+      - notMatchRegex:
+          path: spec.json
+          pattern: 'nvidia\.com/gpu'
+
+  - it: caps the point count below what thanos accepts
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: '"maxDataPoints": 2000'
+
+  - it: offers a namespace picker, which a project instance cannot
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: 'label_values\(kube_pod_info, namespace\)'
+      - matchRegex:
+          path: spec.json
+          pattern: '"multi": true'
+
+  - it: lets the picker reach every namespace by default
+    asserts:
+      - matchRegex:
+          path: spec.json
+          pattern: '"allValue": "\.\*"'
+      - matchRegex:
+          path: spec.json
+          pattern: 'namespace=~\\"\$namespace\\"'
