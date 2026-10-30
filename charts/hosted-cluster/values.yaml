@@ -115,6 +115,25 @@ pushSecrets:
 #           mode: 0600
 #           contents: |
 #             ...
+# An entry may set `kernelArguments` instead of, or as well as, `files`.
+#
+# KubeVirt pools take these too, for GPU VMs (all optional):
+#   nodeSelector: {kubernetes.io/hostname: <node>}  # where the VMs may run
+#   hostDevices:                                     # PCI devices passed through
+#     - deviceName: nvidia.com/GH100_H100_SXM5_80GB  # a permittedHostDevices name
+#       count: 4
+#   dedicatedCpus: true  # a host CPU per vCPU; needs the static CPU manager
+#   cpuThreads: 2        # vCPUs come in sibling pairs, so cpu x 2 vCPUs
+#   rollingUpdate:       # HyperShift defaults to maxSurge 1, maxUnavailable 0:
+#     maxSurge: 0        # a replacement VM wanting GPUs that the old VM still
+#     maxUnavailable: 1  # holds never starts. Each upgrade is then downtime.
+#   machineConfigs:
+#     - name: 80-nosmt
+#       kernelArguments: [nosmt]  # with cpuThreads: 2, one vCPU per core
+# A GPU cluster on jetty also sets ingress.type: NodePortService (below), so
+# it needs no MetalLB or new addresses on jetty.
+# On jetty's H100s (2026-10-29), pods in such a VM matched bare metal with
+# dedicated CPUs, and small all-reduces only with SMT off in the guest.
 nodePools: []
 
 # ConfigMaps (by name, in this namespace) for NodePool.spec.config on every
@@ -159,6 +178,11 @@ services: {}
 issuerURL: ""
 
 ingress:
+  # NodePortService for a KubeVirt cluster that should reuse its hypervisor's
+  # router instead of a LoadBalancer there: HyperShift then routes
+  # *.apps.<clusterName>.<hypervisor's apps domain> through that router, HTTPS
+  # only. The hypervisor's default IngressController must allow wildcard
+  # routes, and the cluster must not get the feature-metallb label.
   type: LoadBalancerService
   scope: External
   dnsManagementPolicy: Unmanaged
