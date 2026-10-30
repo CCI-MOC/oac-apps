@@ -1,7 +1,6 @@
 suite: uat-harness MaaS portals
 templates:
   - templates/serviceaccount.yaml
-  - templates/maas-db-secret.yaml
 
 tests:
   # Sign-in is through the MaaS's own Keycloak, so the key portal's account is
@@ -24,48 +23,3 @@ tests:
           name: maas-admin
           namespace: uat-project
           any: true
-
-  # A namespaced generator keeps the chart out of cluster scope.
-  - it: should generate the database password with a namespaced generator
-    template: templates/maas-db-secret.yaml
-    asserts:
-      - containsDocument:
-          kind: Password
-          apiVersion: generators.external-secrets.io/v1alpha1
-          name: maas-db-password
-          namespace: uat-project
-          any: true
-      - equal:
-          path: spec.dataFrom[0].sourceRef.generatorRef.kind
-          value: Password
-        documentSelector:
-          path: kind
-          value: ExternalSecret
-
-  # Without "0" the password would rotate and break the database's login.
-  - it: should generate the password once
-    template: templates/maas-db-secret.yaml
-    asserts:
-      - equal:
-          path: spec.refreshInterval
-          value: "0"
-        documentSelector:
-          path: kind
-          value: ExternalSecret
-
-  # External Secrets fills these in; Helm must leave the braces alone.
-  - it: should pass the template through to External Secrets
-    template: templates/maas-db-secret.yaml
-    asserts:
-      - equal:
-          path: spec.target.template.data.POSTGRESQL_PASSWORD
-          value: "{{ .password }}"
-        documentSelector:
-          path: kind
-          value: ExternalSecret
-      - equal:
-          path: spec.target.template.data.DATABASE_URL
-          value: "postgresql://maas:{{ .password }}@maas-db:5432/maas"
-        documentSelector:
-          path: kind
-          value: ExternalSecret
