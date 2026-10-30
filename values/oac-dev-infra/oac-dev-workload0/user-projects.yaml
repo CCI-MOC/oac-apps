@@ -33,3 +33,15 @@ projects:
     quota:
       hard:
         requests.nvidia.com/gpu: "4"
+
+  - name: buit
+    requester: hdempsey@redhat.com
+    description: "BU IS&T example project"
+    groups:
+      - name: project-buit
+        role: edit
+    quota:
+      hard:
+        requests.nvidia.com/gpu: "4"
+    grafana:
+      enabled: true
