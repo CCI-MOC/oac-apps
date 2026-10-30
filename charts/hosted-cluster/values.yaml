@@ -115,6 +115,20 @@ pushSecrets:
 #           mode: 0600
 #           contents: |
 #             ...
+# An entry may set `kernelArguments` instead of, or as well as, `files`.
+#
+# KubeVirt pools take these too, for GPU VMs (all optional):
+#   nodeSelector: {kubernetes.io/hostname: <node>}  # where the VMs may run
+#   hostDevices:                                     # PCI devices passed through
+#     - deviceName: nvidia.com/GH100_H100_SXM5_80GB  # a permittedHostDevices name
+#       count: 4
+#   dedicatedCpus: true  # a host CPU per vCPU; needs the static CPU manager
+#   cpuThreads: 2        # vCPUs come in sibling pairs, so cpu x 2 vCPUs
+#   machineConfigs:
+#     - name: 80-nosmt
+#       kernelArguments: [nosmt]  # with cpuThreads: 2, one vCPU per core
+# On jetty's H100s (2026-10-29), pods in such a VM matched bare metal with
+# dedicated CPUs, and small all-reduces only with SMT off in the guest.
 nodePools: []
 
 # ConfigMaps (by name, in this namespace) for NodePool.spec.config on every

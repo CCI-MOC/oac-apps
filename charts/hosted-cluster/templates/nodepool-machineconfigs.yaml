@@ -16,6 +16,9 @@
       "spec" (dict "config" (dict
         "ignition" (dict "version" "3.2.0")
         "storage" (dict "files" $files))) }}
+{{- with .kernelArguments }}
+{{- $_ := set $mc.spec "kernelArguments" . }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap
