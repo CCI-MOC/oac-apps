@@ -43,3 +43,16 @@ secretStore:
 #     dns:
 #       - 8.8.8.8
 nodes: []
+
+# Import the cluster into ACM once it is installed, so placements can select it
+# by label. The kubeconfig comes from AWS Secrets Manager: awsSecretKey names a
+# secret whose whole value is the cluster's admin kubeconfig.
+import:
+  enabled: false
+  awsSecretKey: ""
+  secretStore:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  labels: {}
+  # labels:
+  #   massopen.cloud/feature-hypervisor: "true"

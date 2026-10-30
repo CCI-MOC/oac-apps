@@ -1,0 +1,3 @@
+# KubeVirt hosted clusters whose worker VMs run on jetty, each with
+# platform.kubevirt.infraKubeConfigSecretName: jetty-kubeconfig.
+hostedClusters: []
