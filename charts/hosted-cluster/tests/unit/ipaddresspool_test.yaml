@@ -29,6 +29,22 @@ tests:
           name: test-cluster-apiserver
           any: true
 
+  - it: should pin the API server address for KubeVirt clusters too
+    set:
+      platform:
+        type: KubeVirt
+        kubevirt: {}
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: spec.addresses[0]
+          value: "10.20.5.10/32"
+        documentIndex: 0
+
   - it: should use the correct IP address in the pool
     set:
       services:
@@ -84,7 +100,7 @@ tests:
           ipAddress: "10.20.5.11"
     asserts:
       - failedTemplate:
-          errorMessage: 'service "OAuthServer" has ipAddress but only APIServer supports LoadBalancer publishing on the Agent platform'
+          errorMessage: 'service "OAuthServer" has ipAddress but only APIServer is published as a LoadBalancer'
 
   - it: should generate only APIServer resources and ignore other services without ipAddress
     set:
