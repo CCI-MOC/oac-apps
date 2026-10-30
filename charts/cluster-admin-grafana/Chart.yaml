@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cluster-admin-grafana
+description: One Grafana per cluster for cluster admins, reading all namespaces
+version: 0.1.0
+type: application

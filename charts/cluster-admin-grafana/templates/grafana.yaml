@@ -1,0 +1,252 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+spec: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-admin-grafana-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: grafana-sa
+    namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  # The datasource queries 9091 with this account's token, not the viewer's.
+  # No narrower role exists, and its write verbs have no path we use.
+  name: cluster-monitoring-view
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-admin-grafana-auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: grafana-sa
+    namespace: {{ .Values.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  # Needed by --openshift-delegate-urls, which reviews as the proxy itself.
+  name: system:auth-delegator
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-service-ca
+  namespace: {{ .Values.namespace }}
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: grafana
+  namespace: {{ .Values.namespace }}
+  labels:
+    dashboards: cluster-admin
+  annotations:
+    # The CRD arrives with the grafana-operator chart, a different Application.
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  version: {{ .Values.grafana.version | quote }}
+  # Set disableDefaultAdminSecret once the proxy SAR is confirmed.
+  # Until then that secret is the only way in if the SAR does not work.
+  route:
+    metadata:
+      name: grafana-route
+    spec:
+      tls:
+        termination: reencrypt
+      to:
+        kind: Service
+        name: grafana-service
+      # The operator defaults targetPort to Grafana's own 3000, and the override
+      # merges on top, so a reencrypt route would otherwise bypass the proxy.
+      port:
+        targetPort: https
+  service:
+    metadata:
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: grafana-tls
+    spec:
+      ports:
+        # The operator reaches Grafana on its own port, so 3000 cannot move
+        # to the proxy or nothing gets provisioned at all.
+        - name: grafana
+          port: 3000
+          targetPort: 3000
+          protocol: TCP
+        - name: https
+          port: 8443
+          targetPort: https
+          protocol: TCP
+  serviceAccount:
+    metadata:
+      name: grafana-sa
+      annotations:
+        serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
+          {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}
+  config:
+    auth:
+      # Hides the form only. Grafana still takes the operator's admin
+      # credentials on 3000, which the network policy below keeps shut.
+      disable_login_form: "true"
+    auth.anonymous:
+      enabled: "true"
+      # An Editor could add a second datasource, and here that would be another
+      # cluster-wide one rather than a scoped one.
+      org_role: "Viewer"
+    users:
+      viewers_can_edit: "false"
+  deployment:
+    spec:
+      template:
+        spec:
+          serviceAccountName: grafana-sa
+          containers:
+            - name: grafana
+              resources:
+                {{- toYaml .Values.grafana.resources | nindent 16 }}
+            - name: oauth-proxy
+              image: {{ .Values.grafana.oauthProxyImage | quote }}
+              ports:
+                - containerPort: 8443
+                  name: https
+              args:
+                - --https-address=:8443
+                - --provider=openshift
+                - --upstream=http://localhost:3000
+                - --tls-cert=/etc/tls/private/tls.crt
+                - --tls-key=/etc/tls/private/tls.key
+                - --openshift-service-account=grafana-sa
+                - --cookie-secret-file=/etc/grafana-cookie/key
+                - --cookie-expire=30m
+                - --cookie-refresh=10m
+                - --pass-basic-auth=false
+                # cluster-monitoring-view grants prometheuses/api for the
+                # k8s instance only, so the name is not optional here.
+                - '--openshift-sar={"group": "monitoring.coreos.com", "resource": "prometheuses", "subresource": "api", "name": "k8s", "namespace": "openshift-monitoring", "verb": "get"}'
+                - '--openshift-delegate-urls={"/": {"group": "monitoring.coreos.com", "resource": "prometheuses", "subresource": "api", "name": "k8s", "namespace": "openshift-monitoring", "verb": "get"}}'
+              resources:
+                {{- toYaml .Values.grafana.proxyResources | nindent 16 }}
+              volumeMounts:
+                - name: grafana-tls
+                  mountPath: /etc/tls/private
+                - name: grafana-cookie
+                  mountPath: /etc/grafana-cookie
+                  readOnly: true
+          volumes:
+            - name: grafana-tls
+              secret:
+                secretName: grafana-tls
+            - name: grafana-cookie
+              secret:
+                secretName: grafana-cookie-secret
+---
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: thanos
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    # After the Grafana in wave 1, or the operator finds no instance.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: cluster-admin
+  datasource:
+    name: thanos
+    type: prometheus
+    access: proxy
+    isDefault: true
+    # 9091, not the tenancy port: this instance exists to see every namespace.
+    url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
+    jsonData:
+      timeInterval: "30s"
+      tlsAuthWithCACert: true
+      httpHeaderName1: "Authorization"
+    editable: false
+    secureJsonData:
+      httpHeaderValue1: "Bearer ${token}"
+      tlsCACert: "${service-ca.crt}"
+  valuesFrom:
+    - targetPath: secureJsonData.httpHeaderValue1
+      valueFrom:
+        secretKeyRef:
+          name: grafana-sa-token
+          key: token
+    - targetPath: secureJsonData.tlsCACert
+      valueFrom:
+        configMapKeyRef:
+          name: grafana-service-ca
+          key: service-ca.crt
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-sa-token
+  namespace: {{ .Values.namespace }}
+  annotations:
+    kubernetes.io/service-account.name: grafana-sa
+    # After the Grafana resource, which is what creates the account.
+    argocd.argoproj.io/sync-wave: "2"
+type: kubernetes.io/service-account-token
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-operator-and-router
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector: {}
+  # Egress too, this pod holds a token for cluster-wide metrics. The tenant
+  # label would bring a Deny baseline but also a rule allowing 9092 only.
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # 3000 is unauthenticated and bypasses the proxy, so only the operator.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: grafana-operator
+      ports:
+        - protocol: TCP
+          port: 3000
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              policy-group.network.openshift.io/ingress: ""
+      ports:
+        - protocol: TCP
+          port: 8443
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-monitoring
+      ports:
+        - protocol: TCP
+          port: 9091
+    - ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+    # A hosted cluster's kube-apiserver runs elsewhere, so kubernetes.default
+    # points outside and no namespaceSelector reaches it. The proxy needs it.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443

@@ -28,6 +28,7 @@ spec:
                 - component: restrict-tenant-networks
                 - component: dns-operator-config
                 - component: grafana-operator
+                - component: cluster-admin-grafana
   syncPolicy:
     preserveResourcesOnDeletion: true
   template:
