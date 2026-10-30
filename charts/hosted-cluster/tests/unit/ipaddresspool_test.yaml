@@ -45,6 +45,17 @@ tests:
           value: "10.20.5.10/32"
         documentIndex: 0
 
+  - it: should fail when APIServer has ipAddress but is not published as a LoadBalancer
+    set:
+      services:
+        APIServer:
+          ipAddress: "10.20.5.10"
+          servicePublishingStrategy:
+            type: Route
+    asserts:
+      - failedTemplate:
+          errorMessage: 'service "APIServer" has ipAddress but is published as Route; ipAddress needs LoadBalancer'
+
   - it: should use the correct IP address in the pool
     set:
       services:
@@ -100,7 +111,7 @@ tests:
           ipAddress: "10.20.5.11"
     asserts:
       - failedTemplate:
-          errorMessage: 'service "OAuthServer" has ipAddress but only APIServer is published as a LoadBalancer'
+          errorMessage: 'service "OAuthServer" has ipAddress but only APIServer supports LoadBalancer publishing on the Agent platform'
 
   - it: should generate only APIServer resources and ignore other services without ipAddress
     set:
