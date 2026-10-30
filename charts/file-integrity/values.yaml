@@ -1,0 +1,29 @@
+# File integrity monitoring (800-53 SI-7, SI-7(1); 800-171 3.14.1/6/7).
+# Closes ocp4-moderate file-integrity-exists and
+# file-integrity-notification-enabled. The NodeHasIntegrityFailure alert
+# reaches nobody until Alertmanager has a receiver; say so in the SSP.
+#
+# Re-initialise one node after an intended change:
+#   oc annotate fileintegrity <name> -n openshift-file-integrity \
+#     file-integrity.openshift.io/re-init=<node> --overwrite
+namespace: openshift-file-integrity
+operatorgroup:
+  targetNamespaces: true
+subscription:
+  channel: stable
+  name: file-integrity-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+fileIntegrity:
+  name: all-nodes
+  # All nodes, masters included: they hold etcd, the API servers and the
+  # audit logs. The operator's default selects workers only.
+  nodeSelector:
+    kubernetes.io/os: linux
+  tolerations:
+    - {key: node-role.kubernetes.io/master, operator: Exists, effect: NoSchedule}
+    - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
+  gracePeriod: 900
+  maxBackups: 5
