@@ -127,6 +127,8 @@ pushSecrets:
 #   machineConfigs:
 #     - name: 80-nosmt
 #       kernelArguments: [nosmt]  # with cpuThreads: 2, one vCPU per core
+# A GPU cluster on jetty also sets ingress.type: NodePortService (below), so
+# it needs no MetalLB or new addresses on jetty.
 # On jetty's H100s (2026-10-29), pods in such a VM matched bare metal with
 # dedicated CPUs, and small all-reduces only with SMT off in the guest.
 nodePools: []
@@ -173,6 +175,11 @@ services: {}
 issuerURL: ""
 
 ingress:
+  # NodePortService for a KubeVirt cluster that should reuse its hypervisor's
+  # router instead of a LoadBalancer there: HyperShift then routes
+  # *.apps.<clusterName>.<hypervisor's apps domain> through that router, HTTPS
+  # only. The hypervisor's default IngressController must allow wildcard
+  # routes, and the cluster must not get the feature-metallb label.
   type: LoadBalancerService
   scope: External
   dnsManagementPolicy: Unmanaged
