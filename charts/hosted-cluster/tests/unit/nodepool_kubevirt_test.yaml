@@ -120,3 +120,61 @@ tests:
           path: metadata.name
           value: test-kubevirt-large
         documentIndex: 1
+
+  - it: should pass nodeSelector and hostDevices through to the KubeVirt platform
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          cpu: 32
+          memory: 256Gi
+          disk:
+            size: 120Gi
+          nodeSelector:
+            kubernetes.io/hostname: gpu-node-1
+          hostDevices:
+            - deviceName: nvidia.com/GH100_H100_SXM5_80GB
+              count: 4
+    asserts:
+      - equal:
+          path: spec.platform.kubevirt.nodeSelector
+          value:
+            kubernetes.io/hostname: gpu-node-1
+      - equal:
+          path: spec.platform.kubevirt.hostDevices
+          value:
+            - deviceName: nvidia.com/GH100_H100_SXM5_80GB
+              count: 4
+
+  - it: should patch dedicated CPUs and threads into the VM template
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          cpu: 32
+          memory: 256Gi
+          disk:
+            size: 120Gi
+          dedicatedCpus: true
+          cpuThreads: 2
+    asserts:
+      - equal:
+          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
+          value: '[{"op":"add","path":"/spec/template/spec/domain/cpu/dedicatedCpuPlacement","value":true},{"op":"add","path":"/spec/template/spec/domain/cpu/threads","value":2}]'
+
+  - it: should not add a VM patch or GPU fields when none are set
+    set:
+      nodePools:
+        - name: compute
+          replicas: 1
+          cpu: 8
+          memory: 16Gi
+          disk:
+            size: 120Gi
+    asserts:
+      - notExists:
+          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
+      - notExists:
+          path: spec.platform.kubevirt.nodeSelector
+      - notExists:
+          path: spec.platform.kubevirt.hostDevices

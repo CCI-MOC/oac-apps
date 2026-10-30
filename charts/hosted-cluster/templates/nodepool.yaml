@@ -9,6 +9,20 @@ metadata:
   namespace: {{ $.Values.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    {{- if eq $platformType "KubeVirt" }}
+    {{- /* CPU settings the NodePool API lacks, patched into HyperShift's VM
+    template. Paths are relative to the VirtualMachineTemplateSpec. */}}
+    {{- $vmPatch := list }}
+    {{- if .dedicatedCpus }}
+    {{- $vmPatch = append $vmPatch (dict "op" "add" "path" "/spec/template/spec/domain/cpu/dedicatedCpuPlacement" "value" true) }}
+    {{- end }}
+    {{- with .cpuThreads }}
+    {{- $vmPatch = append $vmPatch (dict "op" "add" "path" "/spec/template/spec/domain/cpu/threads" "value" (int .)) }}
+    {{- end }}
+    {{- with $vmPatch }}
+    hypershift.openshift.io/kubevirt-vm-jsonpatch: {{ toJson . | quote }}
+    {{- end }}
+    {{- end }}
 spec:
   clusterName: {{ $clusterName }}
   {{- /* A pool's own entries may be names or HyperShift's {name: ...} form. */}}
@@ -58,6 +72,14 @@ spec:
       compute:
         cores: {{ .cpu }}
         memory: {{ .memory }}
+      {{- with .nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .hostDevices }}
+      hostDevices:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       rootVolume:
         persistent:
           size: {{ .disk.size }}
