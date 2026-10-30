@@ -1,0 +1,192 @@
+suite: uat-harness Roles
+templates:
+  - templates/role.yaml
+
+tests:
+  # The metrics isolation test publishes a metric from each test namespace.
+  - it: should let tests create PodMonitors in both test namespaces
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["monitoring.coreos.com"]
+            resources: ["podmonitors"]
+            verbs: ["create", "get", "list", "watch", "delete"]
+        documentSelector:
+          path: metadata.name
+          value: uat-user-role
+          matchMany: true
+
+  # The test reads metrics from uat-project.
+  - it: should let tests read pod metrics in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["metrics.k8s.io"]
+            resources: ["pods"]
+            verbs: ["get"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["metrics.k8s.io"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  - it: should keep PodMonitors out of the runner's namespace
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["monitoring.coreos.com"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-runner
+          matchMany: true
+
+  # The MaaS test runs its components as Deployments in uat-project.
+  - it: should let tests run Deployments and InferencePools in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources: ["deployments"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["inference.networking.k8s.io"]
+            resources: ["inferencepools"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  - it: should give the endpoint picker nothing cluster scoped
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["authentication.k8s.io"]
+          any: true
+        documentSelector:
+          path: metadata.name
+          value: uat-epp-role
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["authorization.k8s.io"]
+          any: true
+        documentSelector:
+          path: metadata.name
+          value: uat-epp-role
+
+  # The MaaS test exposes its gateway through a Route.
+  - it: should let tests manage Routes in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+            resources: ["routes"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  # The MaaS admin portal has no Route; it is reached with oc port-forward.
+  - it: should let tests port-forward in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["pods/portforward"]
+            verbs: ["create", "get"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            resources: ["pods/portforward"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  - it: should let the MaaS admin portal change only the limits ConfigMap
+    asserts:
+      - equal:
+          path: rules
+          value:
+            - apiGroups: [""]
+              resources: ["configmaps"]
+              resourceNames: ["maas-limits"]
+              verbs: ["get", "update", "patch"]
+        documentSelector:
+          path: metadata.name
+          value: maas-admin-limits
+
+  # The MaaS test backs up its database with a CronJob, and starts a backup by
+  # hand with a Job made from it.
+  - it: should let tests run CronJobs and Jobs in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["cronjobs"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+            resources: ["jobs"]
+            verbs: ["create", "get", "list", "watch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["batch"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer
+
+  # MaaS admins provide secrets the chart can't generate, such as the GitHub
+  # client secret for the MaaS Keycloak.
+  - it: should let tests manage Secrets in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["secrets"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            resources: ["secrets"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer

@@ -1,0 +1,25 @@
+suite: uat-harness MaaS portals
+templates:
+  - templates/serviceaccount.yaml
+
+tests:
+  # Sign-in is through the MaaS's own Keycloak, so the key portal's account is
+  # not an OAuth client of the cluster.
+  - it: should not make the key portal's account a cluster OAuth client
+    template: templates/serviceaccount.yaml
+    asserts:
+      - notExists:
+          path: metadata.annotations
+        documentSelector:
+          path: metadata.name
+          value: maas-keys
+
+  - it: should give the admin portal its own account
+    template: templates/serviceaccount.yaml
+    asserts:
+      - containsDocument:
+          kind: ServiceAccount
+          apiVersion: v1
+          name: maas-admin
+          namespace: uat-project
+          any: true

@@ -1,0 +1,171 @@
+# What a test run needs in uat-project: plain pods and services plus the
+# workload APIs the tests exercise.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: uat-user-role
+  namespace: uat-project
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["cronjobs"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: ["jobset.x-k8s.io"]
+    resources: ["jobsets"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["kubeflow.org"]
+    resources: ["pytorchjobs", "tfjobs", "mpijobs", "xgboostjobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["trainer.kubeflow.org"]
+    resources: ["trainjobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["serving.kserve.io"]
+    resources: ["inferenceservices", "servingruntimes"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["ray.io"]
+    resources: ["rayjobs", "rayclusters", "rayservices"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["kubevirt.io"]
+    resources: ["virtualmachines", "virtualmachineinstances"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["podmonitors"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods"]
+    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["inference.networking.k8s.io"]
+    resources: ["inferencepools"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create", "get"]
+  # Namespace members run the MaaS, including secrets from outside the chart
+  # such as an identity provider's client secret. This also lets them read
+  # every Secret in uat-project, which is in keeping with that role.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+---
+# The MaaS admin portal rewrites Limitador's limits file, and only that
+# ConfigMap. The test creates it, so create isn't needed.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: maas-admin-limits
+  namespace: uat-project
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["maas-limits"]
+    verbs: ["get", "update", "patch"]
+---
+# The MaaS test's endpoint picker: reads its InferencePool and the pods it
+# selects. llm-d's own Role also creates token and access reviews, which are
+# cluster scoped, so they are left out.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: uat-epp-role
+  namespace: uat-project
+rules:
+  - apiGroups: ["inference.networking.k8s.io"]
+    resources: ["inferencepools"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["llm-d.ai"]
+    resources: ["inferenceobjectives", "inferencemodelrewrites"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+# uat-peer hosts plain pods and services, plus a PodMonitor for the metrics
+# isolation test, so it gets none of the workload APIs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: uat-user-role
+  namespace: uat-peer
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["podmonitors"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+---
+# The runner service account in its own namespace: enough to inspect the runner
+# pod and its configuration, and no more.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: uat-runner-role
+  namespace: uat-runner
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+---
+# A person launching and watching the runner pod.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: uat-runner-user-role
+  namespace: uat-runner
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
