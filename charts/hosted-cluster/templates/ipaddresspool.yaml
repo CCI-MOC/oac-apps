@@ -3,9 +3,13 @@
 {{- range $serviceName, $serviceConfig := .Values.services }}
 {{- if $serviceConfig.ipAddress }}
 {{- if ne $serviceName "APIServer" }}
-{{- fail (printf "service %q has ipAddress but only APIServer is published as a LoadBalancer" $serviceName) }}
+{{- fail (printf "service %q has ipAddress but only APIServer supports LoadBalancer publishing on the %s platform" $serviceName ($.Values.platform.type | default "Agent")) }}
 {{- end }}
 {{- $svcDef := dig $serviceName dict $allDefaults }}
+{{- $strategyType := dig "servicePublishingStrategy" "type" $svcDef.defaultType $serviceConfig }}
+{{- if ne $strategyType "LoadBalancer" }}
+{{- fail (printf "service %q has ipAddress but is published as %s; ipAddress needs LoadBalancer" $serviceName $strategyType) }}
+{{- end }}
 {{- $k8sServiceName := dig "k8sServiceName" "" $svcDef }}
 ---
 apiVersion: metallb.io/v1beta1
