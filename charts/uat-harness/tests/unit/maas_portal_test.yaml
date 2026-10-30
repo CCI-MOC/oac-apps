@@ -4,13 +4,13 @@ templates:
   - templates/maas-db-secret.yaml
 
 tests:
-  # The OAuth server only redirects back to the Route this annotation names.
-  - it: should make the key portal's account an OAuth client of its Route
+  # Sign-in is through the MaaS's own Keycloak, so the key portal's account is
+  # not an OAuth client of the cluster.
+  - it: should not make the key portal's account a cluster OAuth client
     template: templates/serviceaccount.yaml
     asserts:
-      - equal:
-          path: metadata.annotations["serviceaccounts.openshift.io/oauth-redirectreference.keys"]
-          value: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"maas-keys"}}'
+      - notExists:
+          path: metadata.annotations
         documentSelector:
           path: metadata.name
           value: maas-keys

@@ -170,3 +170,23 @@ tests:
         documentSelector:
           path: metadata.namespace
           value: uat-peer
+
+  # MaaS admins provide secrets the chart can't generate, such as the GitHub
+  # client secret for the MaaS Keycloak.
+  - it: should let tests manage Secrets in uat-project only
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources: ["secrets"]
+            verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
+        documentIndex: 0
+      - notContains:
+          path: rules
+          content:
+            resources: ["secrets"]
+          any: true
+        documentSelector:
+          path: metadata.namespace
+          value: uat-peer

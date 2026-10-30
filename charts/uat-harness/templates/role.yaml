@@ -66,6 +66,12 @@ rules:
   - apiGroups: [""]
     resources: ["pods/portforward"]
     verbs: ["create", "get"]
+  # Namespace members run the MaaS, including secrets from outside the chart
+  # such as an identity provider's client secret. This also lets them read
+  # every Secret in uat-project, which is in keeping with that role.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "get", "list", "watch", "update", "patch", "delete"]
 ---
 # The MaaS admin portal rewrites Limitador's limits file, and only that
 # ConfigMap. The test creates it, so create isn't needed.
