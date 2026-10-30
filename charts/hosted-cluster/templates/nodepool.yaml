@@ -49,6 +49,12 @@ spec:
     autoRepair: {{ .autoRepair | default false }}
     {{- if eq $platformType "KubeVirt" }}
     upgradeType: {{ .upgradeType | default "Replace" }}
+    {{- with .rollingUpdate }}
+    replace:
+      strategy: RollingUpdate
+      rollingUpdate:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
     {{- else }}
     upgradeType: {{ .upgradeType | default "InPlace" }}
     {{- end }}
