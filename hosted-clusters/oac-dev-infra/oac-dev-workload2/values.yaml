@@ -9,6 +9,18 @@ oauth:
   mocsso:
     enabled: true
 
+services:
+  APIServer:
+    # Pinned internal LoadBalancer IP: drives the MetalLB pin and the internal
+    # API DNS record. Without it the worker VMs' API hostname falls through
+    # to the hub router's wildcard, which does not serve :6443, and no node
+    # ever joins.
+    ipAddress: 10.20.3.15
+
+dns:
+  enabled: true
+  autoGenerate: true
+
 release:
   channel: stable-4.22
   image: quay.io/openshift-release-dev/ocp-release:4.22.14-multi
