@@ -178,3 +178,37 @@ tests:
           path: spec.platform.kubevirt.nodeSelector
       - notExists:
           path: spec.platform.kubevirt.hostDevices
+
+  - it: should set the replace rollout when rollingUpdate is given
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          cpu: 32
+          memory: 256Gi
+          disk:
+            size: 120Gi
+          rollingUpdate:
+            maxSurge: 0
+            maxUnavailable: 1
+    asserts:
+      - equal:
+          path: spec.management.replace
+          value:
+            strategy: RollingUpdate
+            rollingUpdate:
+              maxSurge: 0
+              maxUnavailable: 1
+
+  - it: should leave the rollout to HyperShift by default
+    set:
+      nodePools:
+        - name: compute
+          replicas: 1
+          cpu: 8
+          memory: 16Gi
+          disk:
+            size: 120Gi
+    asserts:
+      - notExists:
+          path: spec.management.replace

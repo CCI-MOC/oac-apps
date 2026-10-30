@@ -124,6 +124,9 @@ pushSecrets:
 #       count: 4
 #   dedicatedCpus: true  # a host CPU per vCPU; needs the static CPU manager
 #   cpuThreads: 2        # vCPUs come in sibling pairs, so cpu x 2 vCPUs
+#   rollingUpdate:       # HyperShift defaults to maxSurge 1, maxUnavailable 0:
+#     maxSurge: 0        # a replacement VM wanting GPUs that the old VM still
+#     maxUnavailable: 1  # holds never starts. Each upgrade is then downtime.
 #   machineConfigs:
 #     - name: 80-nosmt
 #       kernelArguments: [nosmt]  # with cpuThreads: 2, one vCPU per core
