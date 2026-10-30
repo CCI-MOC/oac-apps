@@ -1,0 +1,54 @@
+{{- if .Values.storage.requireNfsTls }}
+# FlashBlade NFS on a compliant hub is TLS only. A node with a cleartext
+# mount to the FlashBlade reuses that session for later xprtsec=tls mounts,
+# which then fail, or most likely run unencrypted on an export that allows
+# cleartext. So no cleartext FlashBlade StorageClass may exist, and no
+# FlashBlade volume may be created without xprtsec=tls.
+#
+# StorageClasses: CREATE and UPDATE. PersistentVolumes: CREATE only, so a
+# volume that predates this policy can still be updated and released.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: flashblade-nfs-tls
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [storage.k8s.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [storageclasses]
+      - apiGroups: [""]
+        apiVersions: ["*"]
+        operations: [CREATE]
+        resources: [persistentvolumes]
+  matchConditions:
+    - name: not-being-deleted
+      expression: "!has(object.metadata.deletionTimestamp)"
+  validations:
+    - expression: >-
+        request.resource.resource != 'storageclasses' ||
+        object.provisioner != 'pxd.portworx.com' ||
+        !has(object.parameters) || !('backend' in object.parameters) ||
+        object.parameters['backend'] != 'pure_file' ||
+        (has(object.mountOptions) && object.mountOptions.exists(o, o == 'xprtsec=tls'))
+      message: "FlashBlade StorageClasses must mount with xprtsec=tls on this hub (portworx.tls: true)"
+    - expression: >-
+        request.resource.resource != 'persistentvolumes' ||
+        !has(object.spec.csi) || object.spec.csi.driver != 'pxd.portworx.com' ||
+        !has(object.spec.csi.volumeAttributes) ||
+        !('backend' in object.spec.csi.volumeAttributes) ||
+        object.spec.csi.volumeAttributes['backend'] != 'pure_file' ||
+        (has(object.spec.mountOptions) && object.spec.mountOptions.exists(o, o == 'xprtsec=tls'))
+      message: "FlashBlade volumes must mount with xprtsec=tls on this hub"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: flashblade-nfs-tls
+spec:
+  policyName: flashblade-nfs-tls
+  validationActions:
+    {{- toYaml .Values.validationActions | nindent 4 }}
+{{- end }}
