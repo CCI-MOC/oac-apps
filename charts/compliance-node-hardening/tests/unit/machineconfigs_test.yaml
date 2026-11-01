@@ -1,0 +1,107 @@
+suite: MachineConfigs
+templates:
+  - templates/machineconfigs.yaml
+
+tests:
+  - it: should render a MachineConfig per rule and role, named for its scan
+    asserts:
+      - containsDocument:
+          apiVersion: machineconfiguration.openshift.io/v1
+          kind: MachineConfig
+          name: 75-rhcos4-moderate-master-coreos-pti-kernel-argument
+          any: true
+      - equal:
+          path: metadata.labels["machineconfiguration.openshift.io/role"]
+          value: worker
+        documentSelector:
+          path: metadata.name
+          value: 75-rhcos4-moderate-worker-coreos-pti-kernel-argument
+      - equal:
+          path: spec.kernelArguments
+          value: [pti=on]
+        documentSelector:
+          path: metadata.name
+          value: 75-rhcos4-moderate-worker-coreos-pti-kernel-argument
+
+  # Only masters have API audit log directories to watch.
+  - it: should render master-only rules for masters only, without the role in the name
+    asserts:
+      - equal:
+          path: metadata.labels["machineconfiguration.openshift.io/role"]
+          value: master
+        documentSelector:
+          path: metadata.name
+          value: 75-ocp4-moderate-node-master-directory-access-var-log-kube-audit
+      - containsDocument:
+          apiVersion: machineconfiguration.openshift.io/v1
+          kind: MachineConfig
+          name: 75-ocp4-moderate-node-master-worker-directory-access-var-log-kube-audit
+        not: true
+
+  - it: should leave out excluded rules for every role
+    set:
+      excludeRules: [coreos-nousb-kernel-argument]
+    asserts:
+      - containsDocument:
+          apiVersion: machineconfiguration.openshift.io/v1
+          kind: MachineConfig
+          name: 75-rhcos4-moderate-master-coreos-nousb-kernel-argument
+        not: true
+      - containsDocument:
+          apiVersion: machineconfiguration.openshift.io/v1
+          kind: MachineConfig
+          name: 75-rhcos4-moderate-worker-coreos-nousb-kernel-argument
+        not: true
+      - containsDocument:
+          apiVersion: machineconfiguration.openshift.io/v1
+          kind: MachineConfig
+          name: 75-rhcos4-moderate-worker-coreos-pti-kernel-argument
+          any: true
+
+  - it: should write the sshd AllowUsers drop-in as a data URL
+    asserts:
+      - equal:
+          path: spec.config.storage.files[0]
+          value:
+            path: /etc/ssh/sshd_config.d/10-allowusers.conf
+            mode: 384
+            overwrite: true
+            contents:
+              source: data:,%23%20Managed%20by%20the%20compliance-node-hardening%20chart%0AAllowUsers%20core%0A
+        documentSelector:
+          path: metadata.name
+          value: 76-worker-sshd-allowusers
+      - containsDocument:
+          apiVersion: machineconfiguration.openshift.io/v1
+          kind: MachineConfig
+          name: 76-master-sshd-allowusers
+          any: true
+
+  - it: should list every allowed user
+    set:
+      sshdAllowUsers.users: [core, admin]
+    asserts:
+      - matchRegex:
+          path: spec.config.storage.files[0].contents.source
+          pattern: AllowUsers%20core%20admin%0A$
+        documentSelector:
+          path: metadata.name
+          value: 76-master-sshd-allowusers
+
+  - it: should not render the sshd drop-in when it is off
+    set:
+      sshdAllowUsers.enabled: false
+    asserts:
+      - containsDocument:
+          apiVersion: machineconfiguration.openshift.io/v1
+          kind: MachineConfig
+          name: 76-worker-sshd-allowusers
+        not: true
+
+  # A hub that only feeds NodePools has no use for its own MachineConfigs.
+  - it: should render nothing when machineConfigs is off
+    set:
+      machineConfigs.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
