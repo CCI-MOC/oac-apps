@@ -1,0 +1,99 @@
+suite: tlshd DaemonSet
+templates:
+  - templates/daemonset.yaml
+set:
+  image:
+    repository: ghcr.io/example/tlshd
+    digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+  ca.externalSecret.remoteKey: cluster/example/nfs-tls-ca
+
+tests:
+  - it: should require the image by digest
+    set:
+      image.digest: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: image.digest is required
+
+  - it: should pull the image by digest
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/example/tlshd@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+  # Anything that mounts storage needs a handshake daemon on its node.
+  - it: should run on every node, in the host network
+    asserts:
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - operator: Exists
+      - notExists:
+          path: spec.template.spec.nodeSelector
+      - equal:
+          path: spec.template.spec.hostNetwork
+          value: true
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: system-node-critical
+
+  - it: should update one node at a time
+    asserts:
+      - equal:
+          path: spec.updateStrategy
+          value:
+            type: RollingUpdate
+            rollingUpdate:
+              maxUnavailable: 1
+
+  - it: should mount the Secret from the secret store
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: nfs-certificates
+              secret:
+                secretName: nfs-certificates
+
+  - it: should mount an existing ConfigMap by name
+    set:
+      ca.externalSecret.remoteKey: ""
+      ca.existingConfigMap: storage-ca
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: nfs-certificates
+              configMap:
+                name: storage-ca
+
+  - it: should mount the chart's ConfigMap for an inline trust anchor
+    set:
+      ca.externalSecret.remoteKey: ""
+      ca.inline: pem
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: nfs-certificates
+              configMap:
+                name: nfs-certificates
+
+  - it: should exit when it has no trust anchors
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: 'exit 1\n'
+      - matchRegex:
+          path: spec.template.spec.containers[0].command[2]
+          pattern: 'exec tlshd -s\n'
+
+  - it: should add pull secrets when given
+    set:
+      imagePullSecrets:
+        - name: ghcr
+    asserts:
+      - equal:
+          path: spec.template.spec.imagePullSecrets
+          value:
+            - name: ghcr
