@@ -44,7 +44,7 @@ tests:
           path: spec.platform.kubevirt.rootVolume.persistent.size
           value: 120Gi
       - equal:
-          path: spec.platform.kubevirt.rootVolume.persistent.storageClassName
+          path: spec.platform.kubevirt.rootVolume.persistent.storageClass
           value: pure-fb-nfsv4
       - equal:
           path: spec.platform.kubevirt.rootVolume.type
@@ -81,7 +81,7 @@ tests:
       - notExists:
           path: spec.nodeVolumeDetachTimeout
 
-  - it: should omit storageClassName when not set
+  - it: should omit the root volume storageClass when not set
     set:
       nodePools:
         - name: compute
@@ -92,7 +92,7 @@ tests:
             size: 60Gi
     asserts:
       - notExists:
-          path: spec.platform.kubevirt.rootVolume.persistent.storageClassName
+          path: spec.platform.kubevirt.rootVolume.persistent.storageClass
 
   - it: should render multiple node pools
     set:

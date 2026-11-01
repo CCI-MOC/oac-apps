@@ -62,7 +62,7 @@ spec:
         persistent:
           size: {{ .disk.size }}
           {{- with .disk.storageClassName }}
-          storageClassName: {{ . }}
+          storageClass: {{ . }}
           {{- end }}
         type: Persistent
   {{- end }}
