@@ -1,0 +1,22 @@
+{{- if .Values.imageConfig.enabled }}
+{{- /* required lets an empty list through, which allows every registry. */}}
+{{- if empty .Values.imageConfig.allowedRegistries }}
+{{- fail "imageConfig.allowedRegistries is required" }}
+{{- end }}
+# A cluster singleton: server-side apply so only these fields are owned,
+# and never pruned.
+apiVersion: config.openshift.io/v1
+kind: Image
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Prune=false
+spec:
+  registrySources:
+    allowedRegistries:
+      {{- .Values.imageConfig.allowedRegistries | toYaml | nindent 6 }}
+  {{- with .Values.imageConfig.allowedRegistriesForImport }}
+  allowedRegistriesForImport:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

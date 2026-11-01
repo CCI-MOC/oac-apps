@@ -1,0 +1,58 @@
+suite: Image
+templates:
+  - templates/image.yaml
+
+tests:
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # A missing registry breaks the next pull, so there is no default list.
+  - it: should require a registry list
+    set:
+      imageConfig.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: imageConfig.allowedRegistries is required
+
+  - it: should allow only the listed registries
+    set:
+      imageConfig:
+        enabled: true
+        allowedRegistries: [quay.io, registry.redhat.io]
+    asserts:
+      - equal:
+          path: spec.registrySources.allowedRegistries
+          value: [quay.io, registry.redhat.io]
+      - notExists:
+          path: spec.allowedRegistriesForImport
+
+  - it: should limit imports when asked
+    set:
+      imageConfig:
+        enabled: true
+        allowedRegistries: [quay.io]
+        allowedRegistriesForImport:
+          - domainName: quay.io
+            insecure: false
+    asserts:
+      - equal:
+          path: spec.allowedRegistriesForImport
+          value:
+            - domainName: quay.io
+              insecure: false
+
+  # A cluster singleton: own only these fields, and never delete it.
+  - it: should apply server-side and never prune
+    set:
+      imageConfig:
+        enabled: true
+        allowedRegistries: [quay.io]
+    asserts:
+      - equal:
+          path: metadata.name
+          value: cluster
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true,Prune=false

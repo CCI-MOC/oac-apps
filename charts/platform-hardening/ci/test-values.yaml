@@ -1,0 +1,11 @@
+imageConfig:
+  enabled: true
+  allowedRegistries: [quay.io, registry.redhat.io]
+  allowedRegistriesForImport:
+    - domainName: quay.io
+      insecure: false
+systemUseNotice:
+  enabled: true
+  banner: "Test banner"
+  motd: |
+    Test notice.

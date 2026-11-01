@@ -1,0 +1,16 @@
+{{- if .Values.apiServerAudit.enabled }}
+# A cluster singleton: server-side apply so only the audit profile is
+# owned, and never pruned. Another Application that renders the whole
+# APIServer object (oac-apps cluster-certificates with certificates.api
+# enabled hard-codes audit.profile: Default) would fight this one; turn
+# one of them off.
+apiVersion: config.openshift.io/v1
+kind: APIServer
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Prune=false
+spec:
+  audit:
+    profile: {{ .Values.apiServerAudit.profile }}
+{{- end }}

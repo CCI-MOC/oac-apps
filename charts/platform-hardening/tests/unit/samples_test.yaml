@@ -1,0 +1,35 @@
+suite: Samples operator Config
+templates:
+  - templates/samples.yaml
+
+tests:
+  - it: should render nothing without a samples registry
+    set:
+      imageConfig:
+        enabled: true
+        allowedRegistries: [quay.io]
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render nothing when the registry list is off
+    set:
+      imageConfig.samplesRegistry: quay.io/openshift
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should set only the samples registry, server-side
+    set:
+      imageConfig:
+        enabled: true
+        allowedRegistries: [quay.io/openshift]
+        samplesRegistry: quay.io/openshift
+    asserts:
+      - equal:
+          path: spec
+          value:
+            samplesRegistry: quay.io/openshift
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true,Prune=false
