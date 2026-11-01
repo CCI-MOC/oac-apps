@@ -1,0 +1,33 @@
+# For namespaces that are not tenant projects and not openshift-*/kube-*:
+# the operators and agents we add (GPU, storage, ACS, our own DaemonSets).
+# Tenant projects are covered by user-projects and restrict-tenant-networks.
+#
+# Closes ocp4-moderate configure-network-policies-namespaces and
+# resource-requests-quota (800-53 SC-7, SC-7(5), SC-6, CM-6). The checks
+# pass on ANY policy or quota existing; these are written to be real, from
+# observed traffic, not to satisfy the check.
+#
+# Per namespace, every key is optional:
+#   quota:    ResourceQuota spec.hard. Object counts and storage only: a
+#             cpu/memory quota rejects pods that set no requests, which
+#             vendor operator pods often do.
+#   ingress:  default-deny ingress plus
+#               sameNamespace: true          pods in the namespace
+#               monitoringPorts: [...]       from openshift-monitoring
+#               hostNetworkPorts: [...]      from host-network (API server webhooks)
+#   egress:   default-deny egress plus
+#               apiAndDns: true              API server (apiServerPort) and DNS
+#               sameNamespace: true          pods in the namespace
+#   extraPolicies: list of {name, spec}, rendered verbatim.
+# Omit ingress or egress to leave that direction alone (for example where
+# an operator already ships ingress policies).
+namespaces: {}
+
+quotaName: oac-objects
+
+# OVN-Kubernetes applies egress policy after Service DNAT, so pods dialling
+# the kubernetes Service are matched on the API server's own port. 6443 on
+# a standalone cluster. On a hosted cluster it is wherever the kubernetes
+# Service's endpoints point (the hosted API server, published from the
+# hub): check `oc get endpoints kubernetes -n default` there.
+apiServerPort: 6443

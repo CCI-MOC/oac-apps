@@ -1,0 +1,140 @@
+{{- range $ns, $c := .Values.namespaces }}
+{{- with $c.quota }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ $.Values.quotaName }}
+  namespace: {{ $ns }}
+spec:
+  hard:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+{{- if hasKey $c "ingress" }}
+{{- $i := $c.ingress | default dict }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: {{ $ns }}
+  annotations:
+    # After the allow rules (wave 0): a deny applied first can cut off the
+    # traffic Argo itself needs, such as ACM's cluster-proxy on a managed
+    # cluster, and leave the sync unable to finish.
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+{{- if $i.sameNamespace }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: {{ $ns }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector: {}
+{{- end }}
+{{- with $i.monitoringPorts }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-platform-monitoring
+  namespace: {{ $ns }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-monitoring
+      ports:
+        {{- range . }}
+        - {port: {{ . }}, protocol: TCP}
+        {{- end }}
+{{- end }}
+{{- with $i.hostNetworkPorts }}
+---
+# OVN-Kubernetes labels host-network traffic (the API server calling a
+# webhook) with this namespace selector.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-webhook-from-host-network
+  namespace: {{ $ns }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              policy-group.network.openshift.io/host-network: ""
+      ports:
+        {{- range . }}
+        - {port: {{ . }}, protocol: TCP}
+        {{- end }}
+{{- end }}
+{{- end }}
+{{- if hasKey $c "egress" }}
+{{- $e := $c.egress | default dict }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: {{ $ns }}
+  annotations:
+    # After the allow rules (wave 0): a deny applied first can cut off the
+    # traffic Argo itself needs, such as ACM's cluster-proxy on a managed
+    # cluster, and leave the sync unable to finish.
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+{{- if $e.apiAndDns }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-api-dns
+  namespace: {{ $ns }}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    {{- include "guardrails.apiAndDns" $ | nindent 4 }}
+{{- end }}
+{{- if $e.sameNamespace }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-same-namespace
+  namespace: {{ $ns }}
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector: {}
+{{- end }}
+{{- end }}
+{{- range $c.extraPolicies }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .name }}
+  namespace: {{ $ns }}
+spec:
+  {{- toYaml .spec | nindent 2 }}
+{{- end }}
+{{- end }}

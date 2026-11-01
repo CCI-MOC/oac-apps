@@ -1,0 +1,18 @@
+namespaces:
+  example:
+    quota:
+      pods: "10"
+    ingress:
+      sameNamespace: true
+      monitoringPorts: [8080]
+      hostNetworkPorts: [9443]
+    egress:
+      apiAndDns: true
+      sameNamespace: true
+    extraPolicies:
+      - name: allow-egress-https
+        spec:
+          podSelector: {}
+          policyTypes: [Egress]
+          egress:
+            - ports: [{protocol: TCP, port: 443}]
