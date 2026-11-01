@@ -1,0 +1,24 @@
+# Nightly etcd backup (800-53 CP-9) for a cluster with its own control plane
+# nodes: the hub. It does NOT back up hosted clusters; their etcd runs as
+# pods in the hub's HCP namespaces and needs its own method.
+#
+# A backup contains the etcd encryption key (static_kuberesources includes
+# encryption-config), so it can decrypt every Secret in it. The volume is
+# Secret-grade: nothing else in the namespace, files 0600 root.
+#
+# Runs the operator-installed /usr/local/bin/cluster-backup.sh on a control
+# plane node, as `oc debug node` does. OpenShift's own backup API needs the
+# AutomatedEtcdBackup feature gate (TechPreviewNoUpgrade) on 4.22.
+namespace: etcd-backup
+schedule: "30 2 * * *"
+retain: 14
+
+# The release payload's cli image, by digest: it is covered by the built-in
+# `openshift` ClusterImagePolicy, so CRI-O verifies its signature. It only
+# supplies bash and coreutils. It changes with every OpenShift release:
+#   oc adm release info --image-for=cli
+image: ""
+
+storage:
+  storageClassName: ""
+  size: 10Gi
