@@ -1,0 +1,66 @@
+{{- if .Values.nodePool.enabled }}
+{{- $files := dict }}
+{{- $units := dict }}
+{{- $kargs := list }}
+{{- $exts := list }}
+{{- $rules := include "cnh.rules" (list $ "worker") | fromJsonArray }}
+{{- if .Values.sshdAllowUsers.enabled }}
+{{- $sshd := include "cnh.sshdFile" . | fromJson }}
+{{- $rules = append $rules (dict "name" "sshd-allowusers" "spec" (dict "config" (dict "storage" (dict "files" (list $sshd))))) }}
+{{- end }}
+{{- if .Values.nodePool.usbguardEnable }}
+{{- $unit := dict "name" "usbguard-enable.service" "enabled" true "contents" (.Files.Get "nodepool/usbguard-enable.service") }}
+{{- $rules = append $rules (dict "name" "usbguard-enable" "spec" (dict "config" (dict "systemd" (dict "units" (list $unit))))) }}
+{{- end }}
+{{- if .Values.nodePool.fioStaticPodResourcesDir }}
+{{- $tmpf := dict "path" "/etc/tmpfiles.d/fio-static-pod-resources.conf" "mode" 420 "overwrite" true "contents" (dict "source" (include "cnh.dataURL" "d /etc/kubernetes/static-pod-resources 0755 root root -\n")) }}
+{{- $rules = append $rules (dict "name" "fio-static-pod-resources" "spec" (dict "config" (dict "storage" (dict "files" (list $tmpf))))) }}
+{{- end }}
+{{- range $rules }}
+{{- $r := . }}
+{{- range ((.spec.config).storage).files }}
+{{- if and (hasKey $files .path) (ne (toJson (get $files .path)) (toJson .)) }}
+{{- fail (printf "%s writes %s with different content than an earlier rule; exclude one of them" $r.name .path) }}
+{{- end }}
+{{- $_ := set $files .path . }}
+{{- end }}
+{{- range ((.spec.config).systemd).units }}
+{{- if and (hasKey $units .name) (ne (toJson (get $units .name)) (toJson .)) }}
+{{- fail (printf "%s defines unit %s differently than an earlier rule" $r.name .name) }}
+{{- end }}
+{{- $_ := set $units .name . }}
+{{- end }}
+{{- range .spec.kernelArguments }}
+{{- $kargs = append $kargs . | uniq }}
+{{- end }}
+{{- range .spec.extensions }}
+{{- $exts = append $exts . | uniq }}
+{{- end }}
+{{- end }}
+{{- $fileList := list }}
+{{- range $k := keys $files | sortAlpha }}{{ $fileList = append $fileList (get $files $k) }}{{ end }}
+{{- $unitList := list }}
+{{- range $k := keys $units | sortAlpha }}{{ $unitList = append $unitList (get $units $k) }}{{ end }}
+{{- $mc := dict
+      "apiVersion" "machineconfiguration.openshift.io/v1"
+      "kind" "MachineConfig"
+      "metadata" (dict "name" "75-compliance-node-hardening" "labels" (dict "machineconfiguration.openshift.io/role" "worker"))
+      "spec" (dict
+        "config" (dict
+          "ignition" (dict "version" .Values.nodePool.ignitionVersion)
+          "storage" (dict "files" $fileList)
+          "systemd" (dict "units" $unitList))
+        "kernelArguments" $kargs
+        "extensions" $exts) }}
+# One merged MachineConfig built from {{ len $rules }} rules. Reference it from
+# each NodePool: spec.config: [{name: {{ .Values.nodePool.configMapName }}}].
+# Changing this ConfigMap rolls every NodePool that references it.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.nodePool.configMapName }}
+  namespace: {{ .Values.nodePool.namespace }}
+data:
+  config: |
+    {{- toYaml $mc | nindent 4 }}
+{{- end }}
