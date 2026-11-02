@@ -122,16 +122,14 @@ pushSecrets:
 #   hostDevices:                                     # PCI devices passed through
 #     - deviceName: nvidia.com/GH100_H100_SXM5_80GB  # a permittedHostDevices name
 #       count: 4
-#   dedicatedCpus: true  # a host CPU per vCPU; needs the static CPU manager
-#   cpuThreads: 2        # vCPUs come in sibling pairs, so cpu x 2 vCPUs
+#   qosClass: Guaranteed # host CPUs of the VM's own, with the static CPU
+#                        # manager on the hypervisor node
 #   rollingUpdate:       # HyperShift defaults to maxSurge 1, maxUnavailable 0:
 #     maxSurge: 0        # a replacement VM wanting GPUs that the old VM still
 #     maxUnavailable: 1  # holds never starts. Each upgrade is then downtime.
-#   machineConfigs:
-#     - name: 80-nosmt
-#       kernelArguments: [nosmt]  # with cpuThreads: 2, one vCPU per core
-# On jetty's H100s (2026-10-29), pods in such a VM matched bare metal with
-# dedicated CPUs, and small all-reduces only with SMT off in the guest.
+# On jetty's H100s (2026-11-02), pods in a Guaranteed VM matched bare metal.
+# The hypervisor needs KubeVirt's maxHotplugRatio at 1 for VMs over 63 vCPUs:
+# at the default 4, QEMU refuses to pass GPUs to them.
 nodePools: []
 
 # ConfigMaps (by name, in this namespace) for NodePool.spec.config on every

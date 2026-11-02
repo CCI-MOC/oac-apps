@@ -146,23 +146,22 @@ tests:
             - deviceName: nvidia.com/GH100_H100_SXM5_80GB
               count: 4
 
-  - it: should patch dedicated CPUs and threads into the VM template
+  - it: should set the QoS class when given
     set:
       nodePools:
         - name: gpu
           replicas: 1
-          cpu: 32
+          cpu: 64
           memory: 256Gi
           disk:
             size: 120Gi
-          dedicatedCpus: true
-          cpuThreads: 2
+          qosClass: Guaranteed
     asserts:
       - equal:
-          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
-          value: '[{"op":"add","path":"/spec/template/spec/domain/cpu/dedicatedCpuPlacement","value":true},{"op":"add","path":"/spec/template/spec/domain/cpu/threads","value":2}]'
+          path: spec.platform.kubevirt.compute.qosClass
+          value: Guaranteed
 
-  - it: should not add a VM patch or GPU fields when none are set
+  - it: should not add a QoS class or GPU fields when none are set
     set:
       nodePools:
         - name: compute
@@ -173,7 +172,7 @@ tests:
             size: 120Gi
     asserts:
       - notExists:
-          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
+          path: spec.platform.kubevirt.compute.qosClass
       - notExists:
           path: spec.platform.kubevirt.nodeSelector
       - notExists:
