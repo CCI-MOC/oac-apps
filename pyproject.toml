@@ -1,0 +1,9 @@
+[project]
+name = "oac-apps"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "cel-python>=0.5.0",
+    "pytest>=9.2.0",
+    "pyyaml>=6.0.3",
+]
