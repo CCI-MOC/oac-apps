@@ -43,8 +43,8 @@ tests:
             - domainName: quay.io
               insecure: false
 
-  # A cluster singleton: own only these fields, and never delete it.
-  - it: should apply server-side and never prune
+  # A cluster singleton: own only these fields.
+  - it: should apply server-side
     set:
       imageConfig:
         enabled: true
@@ -55,4 +55,4 @@ tests:
           value: cluster
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-options"]
-          value: ServerSideApply=true,Prune=false
+          value: ServerSideApply=true

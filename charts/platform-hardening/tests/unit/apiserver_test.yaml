@@ -33,10 +33,10 @@ tests:
           value: AllRequestBodies
 
   # Own only the audit profile; the serving certificates belong to others.
-  - it: should apply server-side and never prune
+  - it: should apply server-side
     set:
       apiServerAudit.enabled: true
     asserts:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-options"]
-          value: ServerSideApply=true,Prune=false
+          value: ServerSideApply=true

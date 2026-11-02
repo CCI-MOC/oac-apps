@@ -1,12 +1,13 @@
 {{- if and .Values.imageConfig.enabled .Values.imageConfig.samplesRegistry }}
 # A cluster singleton owned by the samples operator: server-side apply so
-# only samplesRegistry is owned, and never pruned.
+# only samplesRegistry is owned. Turned off, Argo deletes the object and
+# the operator recreates it with defaults.
 apiVersion: samples.operator.openshift.io/v1
 kind: Config
 metadata:
   name: cluster
   annotations:
-    argocd.argoproj.io/sync-options: ServerSideApply=true,Prune=false
+    argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
   samplesRegistry: {{ .Values.imageConfig.samplesRegistry | quote }}
 {{- end }}

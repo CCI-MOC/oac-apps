@@ -32,4 +32,4 @@ tests:
             samplesRegistry: quay.io/openshift
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-options"]
-          value: ServerSideApply=true,Prune=false
+          value: ServerSideApply=true
