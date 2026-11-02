@@ -1,0 +1,29 @@
+suite: Monitoring
+templates:
+  - templates/monitoring.yaml
+
+tests:
+  # The operator makes these itself on a standalone cluster.
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # On a hosted cluster it does not.
+  - it: should render the Service, ServiceMonitor and alert when enabled
+    set:
+      monitoring.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 3
+      - isKind:
+          of: ServiceMonitor
+        documentIndex: 1
+      - equal:
+          path: spec.groups[0].rules[0].alert
+          value: NonCompliant
+        documentIndex: 2
+      - equal:
+          path: spec.groups[0].rules[0].annotations.description
+          value: "The compliance suite {{ $labels.name }} returned as NON-COMPLIANT, ERROR, or INCONSISTENT"
+        documentIndex: 2

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: compliance-operator
+description: Install the Compliance Operator and schedule scans; it never remediates
+version: 0.1.0
+type: application
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"

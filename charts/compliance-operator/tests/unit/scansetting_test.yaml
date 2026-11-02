@@ -1,0 +1,62 @@
+suite: ScanSetting
+templates:
+  - templates/scansetting.yaml
+
+tests:
+  # Node changes come from git (compliance-node-hardening); a scanner that
+  # also wrote MachineConfigs would fight Argo's self-heal.
+  - it: should never remediate, whatever the values say
+    set:
+      scanSetting:
+        autoApplyRemediations: true
+        autoUpdateRemediations: true
+    asserts:
+      - equal:
+          path: autoApplyRemediations
+          value: false
+      - equal:
+          path: autoUpdateRemediations
+          value: false
+      - equal:
+          path: suspend
+          value: false
+
+  - it: should keep raw results on the masters by default
+    asserts:
+      - equal:
+          path: rawResultStorage.enabled
+          value: true
+      - equal:
+          path: rawResultStorage.nodeSelector
+          value:
+            node-role.kubernetes.io/master: ""
+      - notExists:
+          path: rawResultStorage.storageClassName
+      - equal:
+          path: roles
+          value: [master, worker]
+      - equal:
+          path: schedule
+          value: "0 1 * * *"
+
+  - it: should use the storage class when one is set
+    set:
+      scanSetting.rawResultStorage.storageClassName: nfs-over-tls
+    asserts:
+      - equal:
+          path: rawResultStorage.storageClassName
+          value: nfs-over-tls
+
+  # Hosted clusters have no masters to put the results on.
+  - it: should render only enabled when raw results are off
+    set:
+      scanSetting.rawResultStorage.enabled: false
+      scanSetting.roles: [worker]
+    asserts:
+      - equal:
+          path: rawResultStorage
+          value:
+            enabled: false
+      - equal:
+          path: roles
+          value: [worker]

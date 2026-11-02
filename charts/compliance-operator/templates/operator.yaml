@@ -1,0 +1,17 @@
+# Not operator-library.namespace, which takes no labels. Red Hat's install
+# procedure labels this namespace: the scanner pods mount the host
+# filesystem, and openshift-* namespaces get no Pod Security label sync.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    openshift.io/cluster-monitoring: "true"
+    pod-security.kubernetes.io/enforce: privileged
+    security.openshift.io/scc.podSecurityLabelSync: "false"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+{{ include "operator-library.operatorgroup" . }}
+---
+{{ include "operator-library.subscription" . }}

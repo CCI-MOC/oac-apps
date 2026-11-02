@@ -1,0 +1,56 @@
+suite: Tailored profiles and bindings
+templates:
+  - templates/tailoredprofiles.yaml
+  - templates/bindings.yaml
+
+tests:
+  - it: should bind the moderate profiles by default, with no tailoring
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/tailoredprofiles.yaml
+      - hasDocuments:
+          count: 1
+        template: templates/bindings.yaml
+      - equal:
+          path: profiles
+          value:
+            - {apiGroup: compliance.openshift.io/v1alpha1, kind: Profile, name: ocp4-moderate}
+            - {apiGroup: compliance.openshift.io/v1alpha1, kind: Profile, name: ocp4-moderate-node}
+            - {apiGroup: compliance.openshift.io/v1alpha1, kind: Profile, name: rhcos4-moderate}
+        template: templates/bindings.yaml
+      - equal:
+          path: settingsRef.name
+          value: oac-default
+        template: templates/bindings.yaml
+
+  - it: should render a tailored profile verbatim and bind it by kind
+    set:
+      tailoredProfiles:
+        - name: oac-ocp4-moderate
+          spec:
+            extends: ocp4-moderate
+            title: Tailored
+            description: Tailored
+            disableRules:
+              - name: ocp4-cluster-wide-proxy-set
+                rationale: No proxy at MOC.
+      bindings:
+        - name: nist
+          profiles:
+            - name: oac-ocp4-moderate
+              kind: TailoredProfile
+            - name: rhcos4-moderate
+    asserts:
+      - equal:
+          path: spec.disableRules[0].name
+          value: ocp4-cluster-wide-proxy-set
+        template: templates/tailoredprofiles.yaml
+      - equal:
+          path: profiles[0].kind
+          value: TailoredProfile
+        template: templates/bindings.yaml
+      - equal:
+          path: profiles[1].kind
+          value: Profile
+        template: templates/bindings.yaml

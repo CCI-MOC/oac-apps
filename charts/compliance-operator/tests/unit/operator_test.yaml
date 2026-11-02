@@ -1,0 +1,41 @@
+suite: Compliance Operator install
+templates:
+  - templates/operator.yaml
+
+tests:
+  # The scanner pods mount the host filesystem, and openshift-* namespaces
+  # get no Pod Security label sync.
+  - it: should label the namespace for privileged scanner pods
+    asserts:
+      - isKind:
+          of: Namespace
+        documentIndex: 0
+      - equal:
+          path: metadata.labels["pod-security.kubernetes.io/enforce"]
+          value: privileged
+        documentIndex: 0
+      - equal:
+          path: metadata.labels["security.openshift.io/scc.podSecurityLabelSync"]
+          value: "false"
+        documentIndex: 0
+      - equal:
+          path: metadata.labels["openshift.io/cluster-monitoring"]
+          value: "true"
+        documentIndex: 0
+
+  - it: should install the operator into its own namespace
+    asserts:
+      - isKind:
+          of: OperatorGroup
+        documentIndex: 1
+      - equal:
+          path: spec.targetNamespaces
+          value: [openshift-compliance]
+        documentIndex: 1
+      - isKind:
+          of: Subscription
+        documentIndex: 2
+      - equal:
+          path: spec.name
+          value: compliance-operator
+        documentIndex: 2

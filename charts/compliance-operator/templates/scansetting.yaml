@@ -1,0 +1,42 @@
+{{- $s := .Values.scanSetting }}
+apiVersion: compliance.openshift.io/v1alpha1
+kind: ScanSetting
+metadata:
+  name: {{ $s.name }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+autoApplyRemediations: false
+autoUpdateRemediations: false
+rawResultStorage:
+  {{- with $s.rawResultStorage }}
+  enabled: {{ .enabled }}
+  {{- if .enabled }}
+  size: {{ .size }}
+  rotation: {{ .rotation }}
+  {{- with .storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  pvAccessModes:
+    {{- toYaml .pvAccessModes | nindent 4 }}
+  {{- with .nodeSelector }}
+  nodeSelector:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .tolerations }}
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+roles:
+  {{- toYaml $s.roles | nindent 2 }}
+scanTolerations:
+  {{- toYaml $s.scanTolerations | nindent 2 }}
+schedule: {{ $s.schedule | quote }}
+showNotApplicable: {{ $s.showNotApplicable }}
+strictNodeScan: {{ $s.strictNodeScan }}
+suspend: false
+timeout: {{ $s.timeout }}
+maxRetryOnTimeout: {{ $s.maxRetryOnTimeout }}
