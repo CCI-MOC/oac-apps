@@ -1,0 +1,98 @@
+suite: Namespace, access and trust anchors
+templates:
+  - templates/base.yaml
+set:
+  ca.externalSecret.remoteKey: cluster/example/nfs-tls-ca
+
+tests:
+  # tlshd is privileged and host-networked.
+  - it: should allow privileged pods in its namespace only
+    asserts:
+      - equal:
+          path: metadata.labels
+          value:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/warn: privileged
+        documentIndex: 0
+      - isKind:
+          of: RoleBinding
+        documentIndex: 2
+      - equal:
+          path: roleRef.name
+          value: system:openshift:scc:privileged
+        documentIndex: 2
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: tlshd
+              namespace: nfs-tls
+        documentIndex: 2
+
+  - it: should require exactly one trust anchor source
+    set:
+      ca.externalSecret.remoteKey: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: set exactly one of ca.inline, ca.existingConfigMap, ca.externalSecret.remoteKey
+
+  - it: should refuse two trust anchor sources
+    set:
+      ca.inline: |
+        -----BEGIN CERTIFICATE-----
+        -----END CERTIFICATE-----
+    asserts:
+      - failedTemplate:
+          errorMessage: set exactly one of ca.inline, ca.existingConfigMap, ca.externalSecret.remoteKey
+
+  - it: should pull the trust anchor from the secret store
+    set:
+      ca.externalSecret.property: ca
+    asserts:
+      - hasDocuments:
+          count: 4
+      - isKind:
+          of: ExternalSecret
+        documentIndex: 3
+      - equal:
+          path: spec.secretStoreRef
+          value:
+            name: aws-secrets-manager
+            kind: ClusterSecretStore
+        documentIndex: 3
+      - equal:
+          path: spec.data
+          value:
+            - secretKey: ca.crt
+              remoteRef:
+                key: cluster/example/nfs-tls-ca
+                property: ca
+        documentIndex: 3
+
+  - it: should write an inline trust anchor to a ConfigMap
+    set:
+      ca.externalSecret.remoteKey: ""
+      ca.inline: |
+        -----BEGIN CERTIFICATE-----
+        -----END CERTIFICATE-----
+    asserts:
+      - hasDocuments:
+          count: 4
+      - isKind:
+          of: ConfigMap
+        documentIndex: 3
+      - equal:
+          path: data["ca.crt"]
+          value: |
+            -----BEGIN CERTIFICATE-----
+            -----END CERTIFICATE-----
+        documentIndex: 3
+
+  - it: should create nothing for an existing ConfigMap
+    set:
+      ca.externalSecret.remoteKey: ""
+      ca.existingConfigMap: storage-ca
+    asserts:
+      - hasDocuments:
+          count: 3

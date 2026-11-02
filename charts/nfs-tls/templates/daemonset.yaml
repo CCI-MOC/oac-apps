@@ -1,0 +1,98 @@
+{{- $src := include "nfs-tls.caSource" . }}
+# privileged + hostNetwork are both required: tlshd serves handshakes for
+# the host's own sockets, so it lives in the host network namespace.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: tlshd
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: tlshd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  selector:
+    matchLabels:
+      app: tlshd
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # Storage data path: one node at a time.
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: tlshd
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: tlshd
+      # Nothing can mount a TLS-backed volume until this is Running.
+      priorityClassName: system-node-critical
+      # Every node, control plane included: anything that mounts storage
+      # needs a handshake daemon there. Do not narrow this to where pods
+      # happen to run today.
+      tolerations:
+        - operator: Exists
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: tlshd
+          image: {{ required "image.repository is required" .Values.image.repository }}@{{ required "image.digest is required" .Values.image.digest }}
+          securityContext:
+            privileged: true
+            seccompProfile:
+              type: RuntimeDefault
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              shopt -s nullglob
+              # Trust anchors are installed into THIS container's store, which
+              # is correct: tlshd performs the handshake, so tlshd is what
+              # needs to trust the storage server.
+              found=0
+              for cert in /certs/*.crt; do
+                echo "installing trust anchor: $cert"
+                trust anchor --store "$cert"
+                found=1
+              done
+              if [ "$found" -eq 0 ]; then
+                echo "FATAL: no certificates in /certs -- tlshd would fail every" \
+                     "handshake. Check the chart's ca values." >&2
+                exit 1
+              fi
+              exec tlshd -s
+          volumeMounts:
+            - name: nfs-certificates
+              mountPath: /certs
+              readOnly: true
+          # tlshd is PID 1 (the command execs it). Not pgrep: procps-ng is
+          # absent from ubi9/ubi.
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", '[ "$(cat /proc/1/comm)" = tlshd ]']
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", '[ "$(cat /proc/1/comm)" = tlshd ]']
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: nfs-certificates
+          {{- if eq $src "secret" }}
+          secret:
+            secretName: nfs-certificates
+          {{- else }}
+          configMap:
+            name: {{ .Values.ca.existingConfigMap | default "nfs-certificates" }}
+          {{- end }}

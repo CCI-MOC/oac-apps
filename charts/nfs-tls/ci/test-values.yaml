@@ -1,0 +1,6 @@
+image:
+  repository: ghcr.io/example/tlshd
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+ca:
+  externalSecret:
+    remoteKey: cluster/example/nfs-tls-ca
