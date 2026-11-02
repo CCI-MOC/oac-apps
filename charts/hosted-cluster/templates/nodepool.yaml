@@ -61,7 +61,7 @@ spec:
       rootVolume:
         persistent:
           size: {{ .disk.size }}
-          {{- with .disk.storageClassName }}
+          {{- with .disk.storageClass }}
           storageClass: {{ . }}
           {{- end }}
         type: Persistent

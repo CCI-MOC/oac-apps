@@ -26,7 +26,7 @@ tests:
           memory: 16Gi
           disk:
             size: 120Gi
-            storageClassName: pure-fb-nfsv4
+            storageClass: pure-fb-nfsv4
     asserts:
       - equal:
           path: metadata.name
