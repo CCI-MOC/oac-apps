@@ -69,3 +69,11 @@ nodes:
     gateway: 10.20.16.1
     dns:
       - 8.8.8.8
+
+# jetty hosts GPU VMs for KubeVirt hosted clusters (hypervisorClusters in
+# hcp-config.yaml), so it is imported with the hypervisor label.
+import:
+  enabled: true
+  awsSecretKey: cluster/oac-dev-infra/spoke-cluster/jetty/kubeadmin
+  labels:
+    massopen.cloud/feature-hypervisor: "true"

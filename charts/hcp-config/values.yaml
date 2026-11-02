@@ -17,6 +17,9 @@ sshKey:
 hypervisorClusters: []
 # - name: hypervisor-workload0
 #   awsSecretKey: cluster/<hub>/hostedcluster/hypervisor-workload0/kubeadmin
+#   # The secret's field holding the kubeconfig; "" for a secret that is the
+#   # bare kubeconfig, like a spoke cluster's. Default adminKubeconfig.
+#   property: adminKubeconfig
 
 # Instructs hypershift operator to collect metrics of all control plane
 # components of a hosted cluster
