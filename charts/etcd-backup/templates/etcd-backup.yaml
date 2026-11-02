@@ -51,7 +51,6 @@ metadata:
   name: etcd-backup
   namespace: {{ .Values.namespace }}
 spec:
-  # 02:30 UTC: clear of the 01:00 compliance scans.
   schedule: {{ .Values.schedule | quote }}
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 3600

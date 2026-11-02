@@ -10,13 +10,21 @@
 # plane node, as `oc debug node` does. OpenShift's own backup API needs the
 # AutomatedEtcdBackup feature gate (TechPreviewNoUpgrade) on 4.22.
 namespace: etcd-backup
+# 02:30 UTC: clear of the compliance-operator chart's 01:00 scans.
 schedule: "30 2 * * *"
 retain: 14
 
 # The release payload's cli image, by digest: it is covered by the built-in
 # `openshift` ClusterImagePolicy, so CRI-O verifies its signature. It only
-# supplies bash and coreutils. It changes with every OpenShift release:
+# supplies bash and coreutils, so an older release's image keeps working
+# after an upgrade. To find the current one:
 #   oc adm release info --image-for=cli
+# The in-cluster imagestream would follow upgrades by itself
+# (image-registry.openshift-image-registry.svc:5000/openshift/cli), but
+# it is not the default: on bare metal the image registry starts Removed
+# (oac-dev-infra's is), and a pull through the registry is not
+# signature-verified. A cluster whose registry is Managed can set it
+# here. Check with: oc get configs.imageregistry cluster
 image: ""
 
 storage:
