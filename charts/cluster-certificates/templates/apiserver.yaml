@@ -5,9 +5,12 @@ kind: APIServer
 metadata:
   name: cluster
   namespace: openshift-config
+  annotations:
+    # A cluster singleton other charts also set fields on (platform-hardening
+    # sets audit.profile): server-side apply so this chart owns only the
+    # serving certificate.
+    argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
-  audit:
-    profile: Default
   servingCerts:
     namedCertificates:
       - names:

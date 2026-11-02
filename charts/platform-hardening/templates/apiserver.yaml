@@ -1,11 +1,9 @@
 {{- if .Values.apiServerAudit.enabled }}
 # A cluster singleton: server-side apply so only the audit profile is
-# owned. Turned off, Argo deletes the object and the CVO recreates it with
+# owned. cluster-certificates sets servingCerts on the same object the same
+# way. Turned off, Argo deletes the object and the CVO recreates it with
 # defaults; other Applications' fields (cluster-certificates' servingCerts)
-# return when they next sync. Another Application that renders the whole
-# APIServer object (oac-apps cluster-certificates with certificates.api
-# enabled hard-codes audit.profile: Default) would fight this one; turn
-# one of them off.
+# return when they next sync.
 apiVersion: config.openshift.io/v1
 kind: APIServer
 metadata:
