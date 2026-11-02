@@ -1,10 +1,39 @@
-{{- range $ns, $c := .Values.namespaces }}
+{{- /*
+Default-deny NetworkPolicies and object-count quotas for the namespaces a
+chart owns: namespaces that are not tenant projects and not openshift-
+or kube- ones, such as the operators and agents we add. Tenant projects are
+covered by user-projects and restrict-tenant-networks.
+
+Closes ocp4-moderate configure-network-policies-namespaces and
+resource-requests-quota (800-53 SC-7, SC-7(5), SC-6, CM-6). The checks
+pass on ANY policy or quota existing; write these from observed traffic,
+not to satisfy the check.
+
+A chart lists this one as a dependency, includes "namespace-guardrails.render"
+with its root context, and takes .Values.guardrails: a map of namespace to
+settings, empty by default. Per namespace, every key is optional:
+  quota:    ResourceQuota spec.hard. Object counts and storage only: a
+            cpu/memory quota rejects pods that set no requests, which
+            vendor operator pods often do.
+  ingress:  default-deny ingress plus
+              sameNamespace: true          pods in the namespace
+              monitoringPorts: [...]       from openshift-monitoring
+              hostNetworkPorts: [...]      from host-network (API server webhooks)
+  egress:   default-deny egress plus
+              apiAndDns: true              API server and DNS
+              sameNamespace: true          pods in the namespace
+  extraPolicies: list of {name, spec}, rendered verbatim.
+Omit ingress or egress to leave that direction alone (for example where
+an operator already ships ingress policies).
+*/}}
+{{- define "namespace-guardrails.render" -}}
+{{- range $ns, $c := .Values.guardrails }}
 {{- with $c.quota }}
 ---
 apiVersion: v1
 kind: ResourceQuota
 metadata:
-  name: {{ $.Values.quotaName }}
+  name: oac-objects
   namespace: {{ $ns }}
 spec:
   hard:
@@ -110,7 +139,7 @@ spec:
   podSelector: {}
   policyTypes: [Egress]
   egress:
-    {{- include "guardrails.apiAndDns" $ | nindent 4 }}
+    {{- include "namespace-guardrails.apiAndDns" $ | nindent 4 }}
 {{- end }}
 {{- if $e.sameNamespace }}
 ---
@@ -138,3 +167,25 @@ spec:
   {{- toYaml .spec | nindent 2 }}
 {{- end }}
 {{- end }}
+{{- end -}}
+
+{{- /*
+Egress rules for the API server and cluster DNS. OVN-Kubernetes applies
+egress policy after Service DNAT, so pods dialling the kubernetes Service
+are matched on the API server's own port: 6443, on a hosted cluster too
+(oc get endpoints kubernetes -n default).
+*/}}
+{{- define "namespace-guardrails.apiAndDns" -}}
+- ports:
+    - {protocol: TCP, port: 6443}
+- ports:
+    - {protocol: UDP, port: 53}
+    - {protocol: TCP, port: 53}
+- to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: openshift-dns
+  ports:
+    - {protocol: UDP, port: 5353}
+    - {protocol: TCP, port: 5353}
+{{- end -}}

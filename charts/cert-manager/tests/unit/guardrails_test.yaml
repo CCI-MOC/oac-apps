@@ -1,4 +1,4 @@
-suite: Namespace guardrails
+suite: cert-manager namespace guardrails
 templates:
   - templates/guardrails.yaml
 
@@ -10,8 +10,8 @@ tests:
 
   - it: should render only a quota when only a quota is set
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           quota:
             pods: "10"
             services.nodeports: "0"
@@ -24,30 +24,19 @@ tests:
           path: metadata
           value:
             name: oac-objects
-            namespace: example
+            namespace: cert-manager
       - equal:
           path: spec.hard
           value:
             pods: "10"
             services.nodeports: "0"
 
-  - it: should take the quota's name from values
-    set:
-      quotaName: platform-objects
-      namespaces:
-        example:
-          quota:
-            pods: "10"
-    asserts:
-      - equal:
-          path: metadata.name
-          value: platform-objects
 
   # An empty direction is a plain default deny.
   - it: should deny all ingress and egress for empty directions
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           ingress: {}
           egress: {}
     asserts:
@@ -73,8 +62,8 @@ tests:
   # A deny applied first can cut off the traffic Argo needs to finish.
   - it: should apply the denies after the allow rules
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           ingress:
             sameNamespace: true
           egress:
@@ -105,8 +94,8 @@ tests:
 
   - it: should leave a direction alone when it is omitted
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           egress:
             apiAndDns: true
     asserts:
@@ -114,13 +103,13 @@ tests:
           apiVersion: networking.k8s.io/v1
           kind: NetworkPolicy
           name: default-deny-ingress
-          namespace: example
+          namespace: cert-manager
         not: true
 
   - it: should allow ingress from the namespace, monitoring and the host network
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           ingress:
             sameNamespace: true
             monitoringPorts: [8443, 9091]
@@ -164,8 +153,8 @@ tests:
 
   - it: should allow egress to the API server and DNS
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           egress:
             apiAndDns: true
     asserts:
@@ -188,27 +177,11 @@ tests:
           path: metadata.name
           value: allow-egress-api-dns
 
-  # On a hosted cluster the API server is published from the hub.
-  - it: should take the API server port from values
-    set:
-      apiServerPort: 443
-      namespaces:
-        example:
-          egress:
-            apiAndDns: true
-    asserts:
-      - equal:
-          path: spec.egress[0].ports
-          value:
-            - {protocol: TCP, port: 443}
-        documentSelector:
-          path: metadata.name
-          value: allow-egress-api-dns
 
   - it: should allow egress within the namespace
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           egress:
             sameNamespace: true
     asserts:
@@ -223,8 +196,8 @@ tests:
 
   - it: should render extra policies verbatim
     set:
-      namespaces:
-        example:
+      guardrails:
+        cert-manager:
           extraPolicies:
             - name: allow-egress-https
               spec:
@@ -239,7 +212,7 @@ tests:
           path: metadata
           value:
             name: allow-egress-https
-            namespace: example
+            namespace: cert-manager
       - equal:
           path: spec
           value:
@@ -250,19 +223,19 @@ tests:
 
   - it: should render each namespace separately
     set:
-      namespaces:
-        one:
+      guardrails:
+        cert-manager-operator:
           ingress: {}
-        two:
+        cert-manager:
           ingress: {}
     asserts:
       - hasDocuments:
           count: 2
       - equal:
           path: metadata.namespace
-          value: one
+          value: cert-manager
         documentIndex: 0
       - equal:
           path: metadata.namespace
-          value: two
+          value: cert-manager-operator
         documentIndex: 1
