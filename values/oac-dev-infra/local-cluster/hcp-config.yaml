@@ -11,3 +11,7 @@ ingressController:
 hypervisorClusters:
   - name: oac-dev-workload1
     awsSecretKey: cluster/oac-dev-infra/hostedcluster/oac-dev-workload1/kubeadmin
+  # GPU VMs (H100 passthrough). Its secret is the bare kubeconfig.
+  - name: jetty
+    awsSecretKey: cluster/oac-dev-infra/spoke-cluster/jetty/kubeadmin
+    property: ""

@@ -1,0 +1,47 @@
+suite: ACM import of the spoke cluster
+templates:
+  - templates/managed-cluster.yaml
+values:
+  - ../../ci/test-values.yaml
+
+tests:
+  - it: should render nothing unless import is enabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should import with the given labels and an auto-import secret
+    set:
+      import:
+        enabled: true
+        awsSecretKey: cluster/hub/spoke-cluster/spoke-cluster/kubeadmin
+        labels:
+          massopen.cloud/feature-hypervisor: "true"
+    asserts:
+      - hasDocuments:
+          count: 4
+      - equal:
+          path: metadata.labels["massopen.cloud/feature-hypervisor"]
+          value: "true"
+        documentSelector:
+          path: kind
+          value: ManagedCluster
+      - equal:
+          path: spec.target.template.metadata.annotations["managedcluster-import-controller.open-cluster-management.io/keeping-auto-import-secret"]
+          value: ""
+        documentSelector:
+          path: kind
+          value: ExternalSecret
+      - notExists:
+          path: spec.data[0].remoteRef.property
+        documentSelector:
+          path: kind
+          value: ExternalSecret
+
+  - it: should require awsSecretKey when import is enabled
+    set:
+      import:
+        enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: import.awsSecretKey is required

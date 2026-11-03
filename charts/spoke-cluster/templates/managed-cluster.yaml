@@ -1,0 +1,77 @@
+{{- if .Values.import.enabled }}
+{{- $name := include "spoke-cluster.clusterName" . }}
+{{- /*
+Imports the installed cluster into ACM. Its ClusterDeployment lives in
+`namespace`, not in a namespace named after the cluster, so ACM cannot import
+it from there; it imports from auto-import-secret instead, a kubeconfig from
+AWS Secrets Manager. ACM deletes that secret after importing unless asked to
+keep it, and keeping it lets the ExternalSecret own it without a fight.
+*/}}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+---
+apiVersion: cluster.open-cluster-management.io/v1
+kind: ManagedCluster
+metadata:
+  name: {{ $name }}
+  labels:
+    cloud: auto-detect
+    vendor: auto-detect
+    {{- with .Values.import.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  hubAcceptsClient: true
+---
+apiVersion: agent.open-cluster-management.io/v1
+kind: KlusterletAddonConfig
+metadata:
+  name: {{ $name }}
+  namespace: {{ $name }}
+spec:
+  clusterName: {{ $name }}
+  clusterNamespace: {{ $name }}
+  clusterLabels:
+    cloud: auto-detect
+    vendor: auto-detect
+  applicationManager:
+    enabled: true
+  certPolicyController:
+    enabled: true
+  iamPolicyController:
+    enabled: true
+  policyController:
+    enabled: true
+  searchCollector:
+    enabled: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: auto-import-secret
+  namespace: {{ $name }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    {{- toYaml .Values.import.secretStore | nindent 4 }}
+  target:
+    name: auto-import-secret
+    template:
+      metadata:
+        annotations:
+          managedcluster-import-controller.open-cluster-management.io/keeping-auto-import-secret: ""
+      data:
+        autoImportRetry: "5"
+        kubeconfig: "{{ "{{" }} .kubeconfig {{ "}}" }}"
+  data:
+    - secretKey: kubeconfig
+      remoteRef:
+        key: {{ required "import.awsSecretKey is required" .Values.import.awsSecretKey }}
+{{- end }}

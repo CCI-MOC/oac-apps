@@ -1,0 +1,11 @@
+# KubeVirt hosted clusters whose worker VMs run on jetty, each with
+# platform.kubevirt.infraKubeConfigSecretName: jetty-kubeconfig and
+# ingress.type: NodePortService. jetty has no MetalLB: their apps are served
+# through jetty's own router, which allows wildcard routes for this
+# (2026-10-30), as *.apps.<cluster>.apps.<jetty's domain>.
+#
+# jetty's OpenShift Virtualization is set up outside oac-apps. GPU pools with
+# qosClass Guaranteed need its HyperConverged at maxHotplugRatio 1 (set
+# 2026-11-02): at the default 4, a VM over 63 vCPUs gets a virtual IOMMU and
+# QEMU refuses to pass it GPUs.
+hostedClusters: []
