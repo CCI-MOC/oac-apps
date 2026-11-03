@@ -71,3 +71,17 @@ tests:
       - matchRegex:
           path: data.config
           pattern: "mode: 420"
+
+  - it: should render kernelArguments in a pool's MachineConfig
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          agentLabelSelector: {role: worker}
+          machineConfigs:
+            - name: 80-nosmt
+              kernelArguments: [nosmt]
+    asserts:
+      - matchRegex:
+          path: data.config
+          pattern: "kernelArguments:\\n\\s*- nosmt"

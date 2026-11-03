@@ -35,6 +35,12 @@ spec:
     autoRepair: {{ .autoRepair | default false }}
     {{- if eq $platformType "KubeVirt" }}
     upgradeType: {{ .upgradeType | default "Replace" }}
+    {{- with .rollingUpdate }}
+    replace:
+      strategy: RollingUpdate
+      rollingUpdate:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
     {{- else }}
     upgradeType: {{ .upgradeType | default "InPlace" }}
     {{- end }}
@@ -58,6 +64,17 @@ spec:
       compute:
         cores: {{ .cpu }}
         memory: {{ .memory }}
+        {{- with .qosClass }}
+        qosClass: {{ . }}
+        {{- end }}
+      {{- with .nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .hostDevices }}
+      hostDevices:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       rootVolume:
         persistent:
           size: {{ .disk.size }}
