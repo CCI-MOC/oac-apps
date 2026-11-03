@@ -45,3 +45,14 @@ projects:
         requests.nvidia.com/gpu: "4"
     grafana:
       enabled: true
+
+  - name: ajamias-testing
+    requester: ajamias@redhat.com
+    description: "Testing for ajamias"
+    groups:
+      - name: open-accelerator-admins
+        role: edit
+    quota:
+      hard:
+        requests.memory: "24Gi"
+        requests.nvidia.com/gpu: "4"
