@@ -8,4 +8,5 @@
 # qosClass Guaranteed need its HyperConverged at maxHotplugRatio 1 (set
 # 2026-11-02): at the default 4, a VM over 63 vCPUs gets a virtual IOMMU and
 # QEMU refuses to pass it GPUs.
-hostedClusters: []
+hostedClusters:
+  - andalusia
