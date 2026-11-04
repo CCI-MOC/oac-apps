@@ -2,6 +2,9 @@
 # its four H100s. No cluster labels, so no components; kubeadmin login only.
 clusterName: andalusia
 
+# Set at creation only: changing it means deleting the HostedCluster.
+fips: true
+
 platform:
   type: KubeVirt
   kubevirt:
