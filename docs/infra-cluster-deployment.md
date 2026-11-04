@@ -20,8 +20,8 @@ After identifying the nodes that will be used for the cluster, the configuration
       * [Add cluster and storage networks to the MOC inventory](network-inventory-and-configuration.md#network-inventory)
       * [Attach these networks to each node](hardware-inventory-and-configuration.md#network-configuration)
    * Perform the [appropriate firewall configurations](network-inventory-and-configuration.md#firewall) for the cluster and storage networks
-* **`open-accelerator-infra` inventory**
-   * Modify [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml) to add the new infra cluster and its associated nodes
+* **`oac-infra` inventory**
+   * Modify [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/oac-infra/blob/main/infra/inventory/00hosts.yaml) to add the new infra cluster and its associated nodes
 * **Additional node information**
    * Obtain additional information from the nodes by [booting the node](hardware-inventory-and-configuration.md#boot-configuration) with the discovery image `http://10.2.0.82/boot/discovery.iso`
       * Once booted, discovery information can be accessed at `http://<node-ip-on-cluster-network>/index.txt`
@@ -29,19 +29,19 @@ After identifying the nodes that will be used for the cluster, the configuration
 
 ## Cluster Deployment
 
-Start by creating a cluster discovery image. The current procedure for doing so is as follows:
+Start by creating a cluster discovery image. The current procedure for doing so is to make the following changes in the [`oac-infra` repository](https://github.com/CCI-MOC/oac-infra):
 
-* Check out the [`open-accelerator` branch of the `ai-ivp` repository](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator)
-* Add an entry for the new cluster in [`playbooks/inventory.yml`](https://github.com/CCI-MOC/ai-ivp/blob/open-accelerator/playbooks/inventory.yml)
-* Create a directory for the new cluster in `playbooks/credentials/<cluster>/`
+* Add an entry for the new cluster in [`hub-images/inventory.yml`](https://github.com/CCI-MOC/oac-infra/blob/main/hub-images/inventory.yml)
+* Create a directory for the new cluster in `hub-images/credentials/<infra-cluster>/`; this directory and its files should not be committed into the repository
    * Create a new keypair
       * Copy the public key here
-      * Add the public and private key as a secret in AWS Secrets Manager with the name `cluster/<cluster>/sshkey` and properties `publicKey` and `privateKey`
+      * Add the public and private key as a secret in AWS Secrets Manager with the name `cluster/<infra-cluster>/sshkey` and properties `publicKey` and `privateKey`
    * Obtain [your pull secret](https://console.redhat.com/openshift/install/pull-secret) and place it here
-* Create a directory for the new cluster in [`playbooks/group_vars/<infra-cluster>/`](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator/playbooks/group_vars)
-   * Add a `secrets.yml` file that specifies the `pull_secret`
-   * Copy a `vars.yml` file from an existing cluster, and update it to specify the desired hardware and networks (information obtained from booting the discovery image is required)
-      * The values for `api_ip` and `ingress_ip` should be on the cluster subnet
+* Create a directory for the new cluster in [`hub-images/group_vars/<infra-cluster>/`](https://github.com/CCI-MOC/oac-infra/tree/main/hub-images/group_vars)
+   * Using the files in [`hub-images/group_vars/examples/`](https://github.com/CCI-MOC/oac-infra/tree/main/hub-images/group_vars/examples) as a guide, add the following files:
+      * `secrets.yml`: specifies the `pull_secret`
+      * `vars.yml`: specify the desired hardware and networks (information obtained from booting the discovery image is required)
+         * The values for `api_ip` and `ingress_ip` should be on the cluster subnet
    * [Update internal DNS](network-inventory-and-configuration.md#internal-dns) with these entries:
 
 ```
@@ -50,13 +50,12 @@ Start by creating a cluster discovery image. The current procedure for doing so 
           *.apps.<cluster_domain_name>.<base_domain_name>.     300 IN A     <ingress_ip>
 ```
 
-* Run `ansible-playbook playbooks/create_agent_install_media.yaml -e "cluster_name=<infra-cluster>"`
-   * The [templates used](https://github.com/CCI-MOC/ai-ivp/tree/open-accelerator/playbooks/roles/create_agent_install_media/templates) are hardcoded for a compact cluster; however these templates are easily modified for a standard cluster.
+* Run `ansible-playbook -i inventory.yml create_agent_install_media.yaml -e cluster_name=<infra-cluster>`
 * The playbook generates a `kubeadmin` password, kubeconfig, and cluster discovery image
    * Record the `kubeadmin` password and kubeconfig as a secret in AWS Secrets Manager with the name `cluster/<infra-cluster>/kubeadmin` and properties `password` and `kubeconfig`
    * Rename the cluster discovery image to `<infra-cluster>-discovery.iso` and copy it to the `/srv/boot/` directory of the bastion host
 
-Afterwards, update [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/open-accelerator-infra/blob/main/infra/inventory/00hosts.yaml) to specify the discovery image `http://10.2.0.82/boot/<infra-cluster>-discovery.iso` and [boot the nodes](hardware-inventory-and-configuration.md#boot-configuration).
+Afterwards, update [`inventory/00hosts.yaml`](https://github.com/CCI-MOC/oac-infra/blob/main/infra/inventory/00hosts.yaml) to specify the discovery image `http://10.2.0.82/boot/<infra-cluster>-discovery.iso` and [boot the nodes](hardware-inventory-and-configuration.md#boot-configuration).
 
 ## Cluster Configuration
 
