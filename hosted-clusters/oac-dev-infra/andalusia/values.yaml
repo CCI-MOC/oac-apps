@@ -18,6 +18,9 @@ services:
 # jetty has no MetalLB: apps are served through jetty's router.
 ingress:
   type: NodePortService
+  # jetty's ingress VIP: the chart publishes *.apps.andalusia.<baseDomain>
+  # here, and jetty's router passes it through to andalusia's router.
+  ipAddress: 10.20.17.11
 
 dns:
   enabled: true

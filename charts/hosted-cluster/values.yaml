@@ -176,8 +176,9 @@ issuerURL: ""
 ingress:
   # LoadBalancerService (default) gives the cluster its own ingress. Set to
   # NodePortService for a KubeVirt cluster that should reuse its hypervisor's
-  # router instead; the hypervisor must allow wildcard routes, and the cluster
-  # must not get the feature-metallb label.
+  # router instead; the hypervisor must allow wildcard routes, the cluster
+  # must not get the feature-metallb label, and ipAddress below must be the
+  # hypervisor's ingress VIP, or the apps wildcard gets no DNS record.
   type: LoadBalancerService
   scope: External
   dnsManagementPolicy: Unmanaged
