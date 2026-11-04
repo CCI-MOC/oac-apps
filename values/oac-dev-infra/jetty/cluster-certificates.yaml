@@ -1,0 +1,7 @@
+clusterDomain: jetty.oac.int.massopen.cloud
+certificates:
+  issuer_name: letsencrypt-prod-dns01
+  # Keep jetty's own API certificate: the kubeconfigs that HyperShift and ACM
+  # hold for jetty trust its internal CA, not Let's Encrypt.
+  api:
+    enabled: false
