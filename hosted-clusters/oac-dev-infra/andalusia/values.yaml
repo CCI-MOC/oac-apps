@@ -64,3 +64,5 @@ nodePools:
     rollingUpdate:
       maxSurge: 0
       maxUnavailable: 1
+    # One node: the drain can't finish, so stop waiting after 10 minutes.
+    nodeDrainTimeout: 10m

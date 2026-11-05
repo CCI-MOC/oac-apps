@@ -127,6 +127,9 @@ pushSecrets:
 #   rollingUpdate:       # HyperShift defaults to maxSurge 1, maxUnavailable 0:
 #     maxSurge: 0        # a replacement VM wanting GPUs that the old VM still
 #     maxUnavailable: 1  # holds never starts. Each upgrade is then downtime.
+#   nodeDrainTimeout: 10m # with one node, pods guarded by a disruption budget
+#                         # have nowhere to go and the old node never drains.
+#                         # After this long the node is removed anyway.
 # On jetty's H100s (2026-11-02), pods in a Guaranteed VM matched bare metal.
 # The hypervisor needs KubeVirt's maxHotplugRatio at 1 for VMs over 63 vCPUs:
 # at the default 4, QEMU refuses to pass GPUs to them.

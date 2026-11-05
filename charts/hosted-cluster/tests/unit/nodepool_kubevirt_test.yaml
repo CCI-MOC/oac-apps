@@ -211,3 +211,18 @@ tests:
     asserts:
       - notExists:
           path: spec.management.replace
+
+  - it: should set nodeDrainTimeout when given
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          cpu: 32
+          memory: 256Gi
+          disk:
+            size: 120Gi
+          nodeDrainTimeout: 10m
+    asserts:
+      - equal:
+          path: spec.nodeDrainTimeout
+          value: 10m
