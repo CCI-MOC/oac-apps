@@ -1,0 +1,9 @@
+apiVersion: v2
+name: connectivity-link
+description: Install Red Hat Connectivity Link (Kuadrant) and ClusterIP gateways behind the cluster's router
+type: application
+version: 0.1.0
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"
