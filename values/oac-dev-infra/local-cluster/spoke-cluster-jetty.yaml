@@ -77,3 +77,4 @@ import:
   awsSecretKey: cluster/oac-dev-infra/spoke-cluster/jetty/kubeadmin
   labels:
     massopen.cloud/feature-hypervisor: "true"
+    massopen.cloud/feature-connectivity-link: "true"

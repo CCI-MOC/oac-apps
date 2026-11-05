@@ -1,0 +1,21 @@
+suite: Kuadrant instance
+templates:
+  - templates/kuadrant.yaml
+
+tests:
+  - it: renders one Kuadrant in the operator's namespace
+    asserts:
+      - isKind:
+          of: Kuadrant
+      - equal:
+          path: metadata.namespace
+          value: kuadrant-system
+
+  - it: syncs after the subscription and skips the dry-run
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: SkipDryRunOnMissingResource=true

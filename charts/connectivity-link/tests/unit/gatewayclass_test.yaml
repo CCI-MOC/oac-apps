@@ -1,0 +1,29 @@
+suite: GatewayClass
+templates:
+  - templates/gatewayclass.yaml
+
+tests:
+  - it: uses OpenShift's gateway controller
+    asserts:
+      - isKind:
+          of: GatewayClass
+      - equal:
+          path: metadata.name
+          value: openshift-default
+      - equal:
+          path: spec.controllerName
+          value: openshift.io/gateway-controller/v1
+
+  # Kuadrant only looks for Istio when its operator starts.
+  - it: syncs before the operator
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-1"
+
+  - it: can be left to someone else
+    set:
+      gatewayClass.create: false
+    asserts:
+      - hasDocuments:
+          count: 0

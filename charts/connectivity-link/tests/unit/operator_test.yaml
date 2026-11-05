@@ -1,0 +1,34 @@
+suite: Connectivity Link operator
+templates:
+  - templates/operator.yaml
+
+tests:
+  - it: renders namespace, operatorgroup and subscription
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  # The community kuadrant and limitador packages are not flagged
+  # FIPS-compliant; Red Hat's are.
+  - it: subscribes to Red Hat's rhcl-operator
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: Subscription
+      - equal:
+          path: spec.name
+          value: rhcl-operator
+      - equal:
+          path: spec.source
+          value: redhat-operators
+      - equal:
+          path: metadata.namespace
+          value: kuadrant-system
+
+  - it: watches all namespaces
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: OperatorGroup
+      - notExists:
+          path: spec.targetNamespaces

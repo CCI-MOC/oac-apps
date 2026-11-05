@@ -1,0 +1,5 @@
+{{ include "operator-library.namespace" . }}
+---
+{{ include "operator-library.operatorgroup" . }}
+---
+{{ include "operator-library.subscription" . }}
