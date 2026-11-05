@@ -53,7 +53,7 @@ nodePools:
     memory: 128Gi   # as in the GPU VM benchmarks, with a 300Gi disk
     disk:
       size: 300Gi
-      storageClassName: pure-fb-nfsv4
+      storageClass: pure-fb-nfsv4
     nodeSelector:
       kubernetes.io/hostname: a0-88-c2-27-c0-d4
     hostDevices:
