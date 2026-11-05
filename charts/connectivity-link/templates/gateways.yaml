@@ -61,6 +61,10 @@ spec:
     # The router terminates the client's TLS with its own certificate, adds
     # X-Forwarded-For, and re-encrypts to the gateway. Passthrough would hide
     # the client's address and every client would share one rate limit.
+    # It also keeps TLS 1.3 for clients: on a FIPS cluster the gateway's
+    # Istio runs with COMPLIANCE_POLICY=fips-140-2, which allows only
+    # TLS 1.2, while the router does 1.3. Only the router-to-gateway hop
+    # is 1.2. Anything exposing a gateway directly gets 1.2 only.
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect
 ---
