@@ -58,6 +58,9 @@ spec:
           {{- toYaml .agentLabelSelector | nindent 10 }}
     type: Agent
   {{- else }}
+  {{- with .nodeDrainTimeout }}
+  nodeDrainTimeout: {{ . }}
+  {{- end }}
   platform:
     type: KubeVirt
     kubevirt:
