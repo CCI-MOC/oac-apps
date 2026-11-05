@@ -1,0 +1,42 @@
+suite: APIServer audit profile
+templates:
+  - templates/apiserver.yaml
+
+tests:
+  # Hosted clusters set it on the hub, in their HostedCluster.
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should log write bodies by default when on
+    set:
+      apiServerAudit.enabled: true
+    asserts:
+      - equal:
+          path: spec
+          value:
+            audit:
+              profile: WriteRequestBodies
+      - equal:
+          path: metadata.name
+          value: cluster
+
+  - it: should take the profile from values
+    set:
+      apiServerAudit:
+        enabled: true
+        profile: AllRequestBodies
+    asserts:
+      - equal:
+          path: spec.audit.profile
+          value: AllRequestBodies
+
+  # Own only the audit profile; the serving certificates belong to others.
+  - it: should apply server-side
+    set:
+      apiServerAudit.enabled: true
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true

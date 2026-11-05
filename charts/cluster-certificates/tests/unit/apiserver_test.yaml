@@ -1,0 +1,26 @@
+suite: APIServer serving certificate
+templates:
+  - templates/apiserver.yaml
+set:
+  clusterDomain: example.com
+tests:
+  - it: should set only the serving certificate, with server-side apply
+    asserts:
+      - equal:
+          path: spec.servingCerts.namedCertificates[0].names[0]
+          value: api.example.com
+      - equal:
+          path: spec.servingCerts.namedCertificates[0].servingCertificate.name
+          value: default-api-certificate
+      - notExists:
+          path: spec.audit
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true
+
+  - it: should render nothing when the API certificate is off
+    set:
+      certificates.api.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
