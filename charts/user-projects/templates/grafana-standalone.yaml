@@ -30,7 +30,7 @@ metadata:
     # below after they log in. Same as the operator mode, where the operator
     # owns the account and this annotation goes through the Grafana resource.
     serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
-      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}
+      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana"}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -300,7 +300,7 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: grafana-route
+  name: grafana
   namespace: "project-{{ .name }}"
   labels:
     massopen.cloud/project: "{{ .name }}"
