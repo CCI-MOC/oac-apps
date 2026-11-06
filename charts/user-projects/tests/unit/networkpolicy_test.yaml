@@ -62,3 +62,19 @@ tests:
       - equal:
           path: spec.ingress[1].ports[0].protocol
           value: TCP
+
+  # Without the operator Grafana listens on localhost only, so nothing needs
+  # port 3000 from another namespace.
+  - it: does not open port 3000 when Grafana runs without the operator
+    set:
+      defaultGrafana:
+        operator: false
+        image: example.com/grafana:test
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    asserts:
+      - lengthEqual:
+          path: spec.ingress
+          count: 1
