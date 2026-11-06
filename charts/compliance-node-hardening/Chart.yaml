@@ -1,0 +1,5 @@
+apiVersion: v2
+name: compliance-node-hardening
+description: RHCOS hardening from Compliance Operator remediations, delivered from git
+version: 0.1.0
+type: application

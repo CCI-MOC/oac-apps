@@ -1,0 +1,75 @@
+# Node OS hardening, rendered from Compliance Operator remediations that were
+# exported to files/ by scripts/export-remediations.py. The scanner keeps
+# running (charts/compliance-operator) but never applies anything; this chart
+# is the only writer of node configuration.
+#
+# Two outputs, independently switched; a HyperShift hub wants both.
+#
+# machineConfigs: for a cluster with a Machine Config Operator (the hub
+#   itself). One MachineConfig per rule and role, named the way the
+#   Compliance Operator names them (75-<scan>-<rule>), so each one traces
+#   back to the scan result that asked for it.
+#
+# nodePool: for hosted clusters. They have no MachineConfig API; node
+#   configuration is NodePool.spec.config, a list of ConfigMaps in the
+#   NodePool's namespace on the hub. This renders ONE ConfigMap holding ONE
+#   merged worker MachineConfig for every NodePool to reference by name.
+#   Rules that write the same path must have identical content or rendering
+#   fails.
+machineConfigs:
+  enabled: true
+
+# Directories under files/. namePrefix and role make the MachineConfig name:
+#   roleInName: true   <namePrefix>-<role>-<rule>   (75-rhcos4-moderate-worker-...)
+#   roleInName: false  <namePrefix>-<rule>          (master-only scans)
+profiles:
+  - dir: rhcos4-moderate
+    namePrefix: 75-rhcos4-moderate
+    roles: [master, worker]
+    roleInName: true
+  # Three audit-watch rules for API audit log directories; only masters
+  # have them. Not rendered into the NodePool ConfigMap (hosted clusters have no
+  # masters; their API servers run on the hub).
+  - dir: ocp4-moderate-node-master
+    namePrefix: 75-ocp4-moderate-node-master
+    roles: [master]
+    roleInName: false
+
+# Rule names (file name without .yaml) to leave out, each with a reason in
+# a comment. Leaving a rule out here is the GitOps equivalent of not
+# applying its remediation; record the exception in the SSP as well.
+excludeRules: []
+
+# sshd AllowUsers (rhcos4-moderate-*-sshd-limit-user-access). The rule has
+# no automatic remediation because user names are site-specific.
+sshdAllowUsers:
+  enabled: true
+  users: [core]
+  fileName: 10-allowusers.conf
+  namePrefix: "76"
+  header: "# Managed by the compliance-node-hardening chart"
+
+# machineConfigs only. Makes the MCO restart sshd instead of rebooting
+# when the AllowUsers drop-in changes. Applied to the MachineConfiguration
+# singleton with server-side apply, so other fields are left alone.
+nodeDisruptionPolicy:
+  enabled: true
+
+nodePool:
+  enabled: false
+  configMapName: compliance-node-hardening
+  namespace: clusters
+  # Highest Ignition spec version among the inputs; the merged config uses
+  # this one.
+  ignitionVersion: 3.4.0
+  # rhcos4-moderate-*-service-usbguard-enabled. The usbguard remediation
+  # installs the package as an extension and enables the service in the
+  # same update, before the unit exists, so the service stays disabled. A
+  # oneshot unit enables it at boot instead.
+  usbguardEnable: true
+  # File Integrity Operator on hosted workers. Red Hat does not support FIO
+  # on hosted control planes: its AIDE pods' init container exits unless
+  # /etc/kubernetes/static-pod-resources exists, and hosted workers have no
+  # static pods. This creates the empty directory. Unsupported; off unless a
+  # hub chooses it.
+  fioStaticPodResourcesDir: false

@@ -1,0 +1,60 @@
+suite: MachineConfiguration
+templates:
+  - templates/machineconfiguration.yaml
+
+tests:
+  # Without the policy, changing the drop-in reboots every node.
+  - it: should restart sshd instead of rebooting when the drop-in changes
+    asserts:
+      - equal:
+          path: spec.nodeDisruptionPolicy.files
+          value:
+            - path: /etc/ssh/sshd_config.d/10-allowusers.conf
+              actions:
+                - type: Restart
+                  restart:
+                    serviceName: sshd.service
+      - equal:
+          path: metadata.name
+          value: cluster
+
+  # The singleton belongs to the cluster: apply only these fields, and
+  # never delete it.
+  - it: should apply server-side ahead of the MachineConfigs and never prune
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-1"
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true,Prune=false
+
+  - it: should follow the drop-in's file name
+    set:
+      sshdAllowUsers.fileName: 20-allowusers.conf
+    asserts:
+      - equal:
+          path: spec.nodeDisruptionPolicy.files[0].path
+          value: /etc/ssh/sshd_config.d/20-allowusers.conf
+
+  - it: should render nothing when the policy is off
+    set:
+      nodeDisruptionPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render nothing without the sshd drop-in
+    set:
+      sshdAllowUsers.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # Hosted clusters have no MachineConfiguration to patch.
+  - it: should render nothing when machineConfigs is off
+    set:
+      machineConfigs.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
