@@ -10,6 +10,11 @@ subscription:
   sourceNamespace: openshift-marketplace
   installPlanApproval: Automatic
 
+# NetworkPolicies and quotas for this chart's namespaces
+# (cert-manager-operator, cert-manager), keyed by namespace. Settings are
+# described in charts/namespace-guardrails/templates/_guardrails.tpl.
+guardrails: {}
+
 aws:
   region: us-east-1
   roleArn: ""
