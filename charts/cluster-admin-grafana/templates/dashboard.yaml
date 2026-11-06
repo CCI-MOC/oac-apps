@@ -1,0 +1,117 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: cluster-overview
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    # After the Grafana in wave 1, or the operator finds no instance.
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  instanceSelector:
+    matchLabels:
+      dashboards: cluster-admin
+  json: |
+    {
+      "title": "Cluster overview",
+      "uid": "cluster-admin-overview",
+      "time": {"from": "now-6h", "to": "now"},
+      {{- /* The namespace picker is the point: a project Grafana has its
+             namespace pinned by prom-label-proxy and cannot offer one. */}}
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "label": "Namespace",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "thanos"},
+            "query": "label_values(kube_pod_info, namespace)",
+            "refresh": 1,
+            "includeAll": true,
+            "allValue": ".*",
+            "multi": true,
+            "current": {"text": "All", "value": "$__all"},
+            "sort": 1
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Nodes ready",
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [{
+            "expr": "count(kube_node_status_condition{condition=\"Ready\",status=\"true\"} == 1)",
+            "refId": "A"
+          }]
+        },
+        {
+          "type": "stat",
+          "title": "Pods running",
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [{
+            "expr": "sum(kube_pod_status_phase{phase=\"Running\",namespace=~\"$namespace\"})",
+            "refId": "A"
+          }]
+        },
+        {
+          "type": "stat",
+          "title": "GPUs requested",
+          "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+          "targets": [{
+            {{- /* The label value is nvidia_com_gpu: kube-state-metrics
+                   replaces dots and slashes, so nvidia.com/gpu matches
+                   nothing and the panel stays empty without a hint. */}}
+            "expr": "sum(kube_pod_container_resource_requests{resource=\"nvidia_com_gpu\",namespace=~\"$namespace\"})",
+            "refId": "A"
+          }]
+        },
+        {
+          "type": "stat",
+          "title": "Namespaces visible",
+          "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+          "targets": [{
+            "expr": "count(count by (namespace) (kube_pod_info))",
+            "refId": "A"
+          }]
+        },
+        {
+          {{- /* Thanos refuses over 11000 points per series, and Grafana
+                 counts by panel width, so a wide screen gets a 400. */}}
+          "type": "timeseries",
+          "title": "CPU by namespace",
+          "gridPos": {"h": 9, "w": 12, "x": 0, "y": 4},
+          "fieldConfig": {"defaults": {"unit": "short"}},
+          "maxDataPoints": 2000,
+          "targets": [{
+            "expr": "topk(10, sum by (namespace) (rate(container_cpu_usage_seconds_total{container!=\"\",namespace=~\"$namespace\"}[5m])))",
+            "legendFormat": "{{`{{namespace}}`}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory by namespace",
+          "gridPos": {"h": 9, "w": 12, "x": 12, "y": 4},
+          "fieldConfig": {"defaults": {"unit": "bytes"}},
+          "maxDataPoints": 2000,
+          "targets": [{
+            "expr": "topk(10, sum by (namespace) (container_memory_working_set_bytes{container!=\"\",namespace=~\"$namespace\"}))",
+            "legendFormat": "{{`{{namespace}}`}}",
+            "refId": "A"
+          }]
+        },
+        {
+          "type": "timeseries",
+          "title": "GPU utilisation",
+          "gridPos": {"h": 9, "w": 24, "x": 0, "y": 13},
+          "fieldConfig": {"defaults": {"unit": "percent", "max": 100, "min": 0}},
+          "maxDataPoints": 2000,
+          "targets": [{
+            "expr": "avg by (instance) (DCGM_FI_DEV_GPU_UTIL)",
+            "legendFormat": "{{`{{instance}}`}}",
+            "refId": "A"
+          }]
+        }
+      ]
+    }

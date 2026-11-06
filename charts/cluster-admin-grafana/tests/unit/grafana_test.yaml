@@ -1,0 +1,94 @@
+suite: cluster admin grafana
+templates:
+  - grafana.yaml
+tests:
+  - it: points the datasource at the cluster-wide port
+    documentIndex: 5
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - equal:
+          path: spec.datasource.url
+          value: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
+
+  - it: pins no namespace on the datasource
+    documentIndex: 5
+    asserts:
+      - isKind:
+          of: GrafanaDatasource
+      - notExists:
+          path: spec.datasource.jsonData.customQueryParameters
+
+  - it: applies the datasource after the Grafana resource
+    documentIndex: 5
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "2"
+
+  - it: gates the proxy on the same right the datasource port needs
+    documentIndex: 4
+    asserts:
+      - isKind:
+          of: Grafana
+      - contains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: '--openshift-sar={"group": "monitoring.coreos.com", "resource": "prometheuses", "subresource": "api", "name": "k8s", "namespace": "openshift-monitoring", "verb": "get"}'
+
+  - it: does not gate on a right unrelated to metrics
+    documentIndex: 4
+    asserts:
+      - notContains:
+          path: spec.deployment.spec.template.spec.containers[1].args
+          content: '--openshift-sar={"resource": "namespaces", "verb": "get"}'
+
+  - it: gives the service account the right the datasource port demands
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: roleRef.name
+          value: cluster-monitoring-view
+      - equal:
+          path: subjects[0].name
+          value: grafana-sa
+
+  - it: restricts egress as well as ingress
+    documentIndex: 7
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - contains:
+          path: spec.policyTypes
+          content: Egress
+      - contains:
+          path: spec.policyTypes
+          content: Ingress
+
+  - it: keeps the unauthenticated port to the operator
+    documentIndex: 7
+    asserts:
+      - equal:
+          path: spec.ingress[0].ports[0].port
+          value: 3000
+      - equal:
+          path: spec.ingress[0].from[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
+          value: grafana-operator
+
+  - it: sends the datasource to the cluster-wide port in openshift-monitoring
+    documentIndex: 7
+    asserts:
+      - equal:
+          path: spec.egress[0].ports[0].port
+          value: 9091
+      - equal:
+          path: spec.egress[0].to[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
+          value: openshift-monitoring
+
+  - it: keeps DNS on the port the service actually uses
+    documentIndex: 7
+    asserts:
+      - equal:
+          path: spec.egress[1].ports[0].port
+          value: 53
