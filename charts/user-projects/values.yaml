@@ -51,6 +51,16 @@ projects: []
 # volume, so what is saved survives the pod. Without it Grafana is read only on
 # emptyDir.
 defaultGrafana:
+  # How project Grafanas are run. true: through the grafana-operator chart, as
+  # on every cluster today. false: this chart deploys Grafana itself and sets
+  # it up from files at startup, so no operator is needed. That is for
+  # compliant clusters, where the operator is not a FIPS build and pushes each
+  # datasource token to Grafana over plain HTTP; see grafana-standalone.yaml.
+  operator: true
+  # Only with operator: false, and then required. On a compliant cluster, the
+  # UBI image with RHEL's Grafana package (FIPS crypto through RHEL's OpenSSL).
+  image: ""
+  # Only with operator: true. With operator: false the image decides.
   version: "11.3.0"
   # Only used with grafana.editable. The SQLite file of one project stays in
   # the tens of MiB.
