@@ -12,7 +12,7 @@ spec:
   ingress:
   - from:
     - podSelector: {}
-{{- if and .grafana .grafana.enabled }}
+{{- if and .grafana .grafana.enabled $.Values.defaultGrafana.operator }}
   # Grafana listens on 3000 without authentication, because the operator manages
   # it over that port and cannot authenticate to the proxy. This is what keeps
   # that port to the operator alone.
