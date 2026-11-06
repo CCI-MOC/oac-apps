@@ -1,0 +1,19 @@
+{{- with .Values.ingress.poolAddress }}
+# router-default is created and reconciled by the cluster-ingress-operator, not
+# this chart, so this is a server-side-apply patch rather than a resource we
+# own outright. Without this annotation, MetalLB picks a pool for the service
+# purely by matching the default-ingress pool's serviceAllocation selectors; if
+# that pool is ever momentarily absent (e.g. its own ArgoCD app re-syncs out of
+# step with the metallb chart's), MetalLB silently falls back to the
+# unrestricted "default" pool and the router keeps that wrong address even
+# after default-ingress reappears. Requesting the pool by name instead makes
+# that failure loud (service stays pending) rather than silently wrong.
+apiVersion: v1
+kind: Service
+metadata:
+  name: router-default
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+    metallb.io/address-pool: default-ingress
+{{- end }}
