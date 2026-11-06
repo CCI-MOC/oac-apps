@@ -55,7 +55,12 @@ defaultGrafana:
   # on every cluster today. false: this chart deploys Grafana itself and sets
   # it up from files at startup, so no operator is needed. That is for
   # compliant clusters, where the operator is not a FIPS build and pushes each
-  # datasource token to Grafana over plain HTTP; see grafana-standalone.yaml.
+  # datasource token to Grafana over plain HTTP.
+  #
+  # Which template renders what: true renders the Grafana, GrafanaDatasource
+  # and GrafanaDashboard resources in grafana.yaml. false renders
+  # grafana-standalone.yaml instead. The access resources at the top of
+  # grafana.yaml (bindings, token secret, service CA) render either way.
   operator: true
   # Only with operator: false, and then required. On a compliant cluster, the
   # UBI image with RHEL's Grafana package (FIPS crypto through RHEL's OpenSSL).
