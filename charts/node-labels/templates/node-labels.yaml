@@ -1,54 +1,60 @@
 {{- /*
-Renders the strategic-merge patch body (metadata.labels) for a rule.
-- .labels: literal values, quoted as-is.
-- .labelTemplates: patch-operator Go-template strings emitted verbatim (still
-  quoted so the rendered value is a proper string). patch-operator evaluates
-  them per target node, with the target node available as (index . 0).
+One ACM ConfigurationPolicy per rule, enforced by the config-policy-controller
+that ACM runs on every hub and managed cluster. "musthave" merges only the
+listed labels, so labels from the installer or operators are left alone, and
+the controller puts them back if they drift.
+
+The policy's object-templates-raw is an ACM template, evaluated on the
+cluster at each evaluation. Helm emits the ACM template markers as literal
+strings.
+- Selector rules range over the nodes that match the selector.
+- nodeNames rules look up each node and emit it only if it exists, so the
+  policy never tries to create a Node.
+- labelTemplates are ACM templates emitted verbatim, with the matched node as
+  ".", for example "{{ .metadata.name }}".
 */ -}}
-{{- define "node-labels.patchLabels" -}}
-metadata:
-  labels:
+{{- define "node-labels.labels" -}}
+labels:
 {{- range $k, $v := .labels }}
-    {{ $k }}: {{ $v | quote }}
+  {{ $k }}: {{ $v | quote }}
 {{- end }}
 {{- range $k, $v := .labelTemplates }}
-    {{ $k }}: {{ $v | quote }}
+  {{ $k }}: {{ $v | quote }}
 {{- end }}
 {{- end -}}
-{{- if .Values.rules }}
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ .Values.namespace }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: node-labels-patch-operator
-  namespace: {{ .Values.namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: node-labels-patch-operator
-rules:
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: node-labels-patch-operator
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: node-labels-patch-operator
-subjects:
-  - kind: ServiceAccount
-    name: node-labels-patch-operator
-    namespace: {{ .Values.namespace }}
+
+{{- /* A label selector string, in the form ACM's lookup takes. */ -}}
+{{- define "node-labels.selector" -}}
+{{- $terms := list }}
+{{- range $k, $v := .matchLabels }}
+{{- $terms = append $terms (printf "%s=%s" $k $v) }}
 {{- end }}
+{{- range .matchExpressions }}
+{{- if eq .operator "Exists" }}
+{{- $terms = append $terms .key }}
+{{- else if eq .operator "DoesNotExist" }}
+{{- $terms = append $terms (printf "!%s" .key) }}
+{{- else if eq .operator "In" }}
+{{- $terms = append $terms (printf "%s in (%s)" .key (join "," .values)) }}
+{{- else if eq .operator "NotIn" }}
+{{- $terms = append $terms (printf "%s notin (%s)" .key (join "," .values)) }}
+{{- else }}
+{{- fail (printf "node-labels: matchExpressions operator %q is not supported" .operator) }}
+{{- end }}
+{{- end }}
+{{- join "," $terms }}
+{{- end -}}
+
+{{- define "node-labels.objectTemplate" -}}
+- complianceType: musthave
+  objectDefinition:
+    apiVersion: v1
+    kind: Node
+    metadata:
+      name: {{ "{{ .metadata.name }}" }}
+{{ include "node-labels.labels" . | indent 6 }}
+{{- end -}}
+
 {{- range $rule := .Values.rules }}
 {{- if not $rule.name }}
 {{- fail "each node-labels rule must set a name" }}
@@ -65,44 +71,26 @@ subjects:
 {{- fail (printf "node-labels rule %q must set either a selector (matchLabels/matchExpressions) or nodeNames" $rule.name) }}
 {{- end }}
 ---
-apiVersion: redhatcop.redhat.io/v1alpha1
-kind: Patch
+apiVersion: policy.open-cluster-management.io/v1
+kind: ConfigurationPolicy
 metadata:
-  name: {{ $rule.name }}
-  namespace: {{ $.Values.namespace }}
+  name: node-labels-{{ $rule.name }}
+  namespace: {{ $.Values.policyNamespace }}
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  serviceAccountRef:
-    name: node-labels-patch-operator
-  patches:
+  remediationAction: enforce
+  severity: low
+  object-templates-raw: |
 {{- if $hasSelector }}
-    {{ $rule.name }}:
-      targetObjectRef:
-        apiVersion: v1
-        kind: Node
-        labelSelector:
-{{- with $rule.matchLabels }}
-          matchLabels:
-{{ toYaml . | indent 12 }}
-{{- end }}
-{{- with $rule.matchExpressions }}
-          matchExpressions:
-{{ toYaml . | indent 12 }}
-{{- end }}
-      patchType: application/strategic-merge-patch+json
-      patchTemplate: |
-{{ include "node-labels.patchLabels" $rule | indent 8 }}
+    {{ printf "{{- range (lookup \"v1\" \"Node\" \"\" \"\" %s).items }}" (include "node-labels.selector" $rule | quote) }}
+{{ include "node-labels.objectTemplate" $rule | indent 4 }}
+    {{ "{{- end }}" }}
 {{- else }}
 {{- range $node := $rule.nodeNames }}
-    {{ $node }}:
-      targetObjectRef:
-        apiVersion: v1
-        kind: Node
-        name: {{ $node }}
-      patchType: application/strategic-merge-patch+json
-      patchTemplate: |
-{{ include "node-labels.patchLabels" $rule | indent 8 }}
+    {{ printf "{{- with (lookup \"v1\" \"Node\" \"\" %s) }}{{- if .metadata }}" ($node | quote) }}
+{{ include "node-labels.objectTemplate" $rule | indent 4 }}
+    {{ "{{- end }}{{- end }}" }}
 {{- end }}
 {{- end }}
 {{- end }}
