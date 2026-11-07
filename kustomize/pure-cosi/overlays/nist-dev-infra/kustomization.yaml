@@ -3,6 +3,17 @@ kind: Kustomization
 resources:
   - ../../base
 
+# A compliant hub, so all three parts use the FIPS images.
+images:
+  - name: ghcr.io/cci-moc/pure-cosi
+    newTag: v0.2.0
+  - name: registry.k8s.io/sig-storage/objectstorage-sidecar
+    newName: ghcr.io/cci-moc/pure-cosi/cosi-sidecar
+    newTag: v0.2.0
+  - name: gcr.io/k8s-staging-sig-storage/objectstorage-controller
+    newName: ghcr.io/cci-moc/pure-cosi/cosi-controller
+    newTag: v0.2.0
+
 patches:
   - target:
       kind: BucketClass
