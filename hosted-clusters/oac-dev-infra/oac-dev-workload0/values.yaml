@@ -40,6 +40,14 @@ dns:
   # ingress wildcard record. The OAuth/Konnectivity/Ignition routes are covered
   # by the hub-wide HCP wildcards (see hosted-clusters/oac-dev-infra/values.yaml).
   autoGenerate: true
+  records:
+    # object-storage-proxy's fixed Service clusterIP, reachable only from
+    # inside this cluster. It must live in this zone (not moc-dns): the parent
+    # zone delegates hcp.oac.int.massopen.cloud, so a record there is ignored
+    # and the hub-wide *.hcp wildcard answers instead.
+    - name: s3
+      hostname: s3.oac-dev-workload0.hcp.oac.int.massopen.cloud
+      target: 172.31.0.53
 
 nodePools:
   - name: compute
