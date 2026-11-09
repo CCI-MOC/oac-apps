@@ -28,9 +28,8 @@ subjects:
     name: etcd-backup
     namespace: {{ .Values.namespace }}
 ---
-# ~170 MB per backup x 14 retained = ~2.4 GB. 10Gi leaves room for etcd to
-# grow several-fold. After it binds, patch the PV to Retain (StorageClass
-# default is Delete) -- same rule as the compliance evidence PVs.
+# The steps after this claim binds (Retain, record the volume) are in
+# values.yaml, under storage.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

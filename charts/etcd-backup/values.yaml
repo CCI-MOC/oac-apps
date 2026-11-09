@@ -27,6 +27,24 @@ retain: 14
 # here. Check with: oc get configs.imageregistry cluster
 image: ""
 
+# ~170 MB per backup x 14 retained = ~2.4 GB. 10Gi leaves room for etcd to
+# grow several-fold.
+#
+# The volume is provisioned dynamically, so its name on the storage is
+# generated (on Portworx FlashBlade, px_<cluster id>-pvc-<claim uid>) and
+# only the cluster knows it. To find the backups when the cluster is gone,
+# do this once after the first sync, and again if the claim is ever
+# recreated:
+#
+# 1. Keep the volume when the claim goes (StorageClass default is Delete):
+#      PV=$(oc get pvc etcd-backup -n etcd-backup -o jsonpath='{.spec.volumeName}')
+#      oc patch pv "$PV" -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'
+# 2. Look up its name on the FlashBlade (Portworx keeps it in a PureVolume
+#    named after the PV's volume handle):
+#      VH=$(oc get pv "$PV" -o jsonpath='{.spec.csi.volumeHandle}')
+#      oc get purevolume "$VH" -n portworx -o jsonpath='{.spec.volumeName}'
+# 3. Record that name off the cluster, in AWS Secrets Manager as
+#    cluster/<hub>/etcd-backup-volume.
 storage:
   storageClassName: ""
   size: 10Gi
