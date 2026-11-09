@@ -1,0 +1,49 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+# Compliance charts for the hub itself. As with hosted-cluster-compliance,
+# hosted-clusters/<hub>/compliance.yaml marks the hub compliant; without it
+# this generates nothing. File integrity runs here only: the operator does
+# not run on hosted workers (RFE-8168), as its AIDE init container needs
+# /etc/kubernetes/static-pod-resources, which they lack.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: hub-compliance
+  namespace: openshift-gitops
+spec:
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/CCI-MOC/oac-apps.git
+              revision: main
+              files:
+                - path: "hosted-clusters/{{ $hub }}/compliance.yaml"
+          - list:
+              elements:
+                - component: file-integrity
+  template:
+    metadata:
+      name: "hub-{{`{{component}}`}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{`{{component}}`}}"
+        helm:
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - "/values/{{ $hub }}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/local-cluster/{{`{{component}}`}}.yaml"
+      destination:
+        server: https://kubernetes.default.svc
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m
