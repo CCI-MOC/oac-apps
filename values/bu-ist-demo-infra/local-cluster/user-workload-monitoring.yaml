@@ -1,0 +1,4 @@
+platform:
+  retentionSize: 80GiB
+  volume:
+    size: 100Gi

@@ -1,0 +1,4 @@
+# Set the actual cluster DNS domain before enabling certificate issuance.
+clusterDomain: bu-ist-demo.int.massopen.cloud
+certificates:
+  issuer_name: letsencrypt-prod-dns01

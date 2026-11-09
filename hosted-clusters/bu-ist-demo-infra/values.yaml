@@ -1,0 +1,9 @@
+# Defaults for future hosted clusters on this hub. No hosted clusters are
+# created until a per-cluster directory is added under this directory.
+baseDomain: hcp.bu-ist-demo.int.massopen.cloud
+managementCluster: bu-ist-demo-infra
+
+# Set these to the DNS zones provisioned for hosted clusters before adding one.
+hcpInternalDomain: "hcp-int.bu-ist-demo.int.massopen.cloud"
+# Set hcpExternalDomain only if external routes use a different domain.
+hcpExternalDomain: "hcp.bu-ist-demo.int.massopen.cloud"
