@@ -1,7 +1,6 @@
 {{/*
-The overview dashboard every project Grafana starts with. Shared by the
-operator's GrafanaDashboard and the provisioned dashboard file, so both
-modes show the same thing.
+The overview dashboard every project Grafana starts with, provisioned as a
+file.
 */}}
 {{- define "user-projects.grafana.overviewDashboard" -}}
 {
@@ -41,7 +40,7 @@ modes show the same thing.
 
 {{/*
 The oauth-proxy container in front of each project Grafana, the only way a
-person reaches it. Shared by both modes. Called with a dict: the project as
+person reaches it. Called with a dict: the project as
 .p and the root context as .root.
 */}}
 {{- define "user-projects.grafana.proxyContainer" -}}

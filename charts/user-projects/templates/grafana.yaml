@@ -1,3 +1,11 @@
+{{- /*
+Project Grafana, for each project with grafana.enabled. The chart deploys
+Grafana itself and Grafana sets itself up from files at startup
+(provisioning): the datasource and the overview dashboard are files here,
+not resources pushed into Grafana's admin API. So no token crosses the
+network, and Grafana only listens on localhost, where the oauth-proxy in the
+same pod is the only thing that can reach it.
+*/}}
 {{ range .Values.projects }}
 {{- if and .grafana .grafana.enabled }}
 apiVersion: rbac.authorization.k8s.io/v1
@@ -49,14 +57,11 @@ metadata:
     massopen.cloud/project: "{{ .name }}"
   annotations:
     kubernetes.io/service-account.name: grafana-sa
-    # After the Grafana resource in wave 1, because the operator is what
-    # creates grafana-sa now and this secret names an account that has to
-    # exist already.
-    argocd.argoproj.io/sync-wave: "2"
+    # After the service account below, which this secret names and which
+    # has to exist first.
+    argocd.argoproj.io/sync-wave: "1"
 # The API server fills this in and keeps it valid. The chart never carries a
-# token, and the datasource reads it from here through valuesFrom, because the
-# operator sends the datasource to Grafana over its API where a ${__file{...}}
-# expression would arrive as a literal string.
+# token: Grafana reads it from here through an environment variable.
 type: kubernetes.io/service-account-token
 ---
 apiVersion: v1
@@ -73,231 +78,300 @@ metadata:
     # ours to point at.
     service.beta.openshift.io/inject-cabundle: "true"
 ---
-{{- if $.Values.defaultGrafana.operator }}
-apiVersion: grafana.integreatly.org/v1beta1
-kind: Grafana
+{{- $editable := .grafana.editable | default false }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: grafana-sa
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    # The account is its own OAuth client, so no client secret and no
+    # Keycloak client is needed, and the proxy sends people back to the route
+    # below after they log in.
+    serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
+      {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana"}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+data:
+  grafana.ini: |
+    [server]
+    # Only the oauth-proxy in this pod reaches Grafana, so nothing else in
+    # the cluster can get past it on 3000.
+    http_addr = 127.0.0.1
+    http_port = 3000
+
+    [paths]
+    data = /var/lib/grafana
+    provisioning = /etc/grafana/provisioning
+
+    [log]
+    mode = console
+
+    [analytics]
+    # No calls out to grafana.com.
+    reporting_enabled = false
+    check_for_updates = false
+    check_for_plugin_updates = false
+
+    [auth]
+    # The oauth-proxy in front is what enforces access, so Grafana itself
+    # does not ask a second time.
+    disable_login_form = true
+
+    [auth.anonymous]
+    enabled = true
+    # Editor only together with the volume, since an Editor saving into
+    # emptyDir loses everything with the next pod. Neither role can change
+    # datasources, that is org admin, so the tenancy stays in the datasource
+    # token and namespace parameter either way.
+    org_role = {{ ternary "Editor" "Viewer" $editable }}
+
+    [users]
+    # Viewers may still open dashboard settings and try things, they just
+    # cannot save. Dashboards belong in git.
+    viewers_can_edit = false
+
+    [unified_alerting]
+    # Alerting belongs to the platform, PrometheusRule and Alertmanager.
+    enabled = false
+
+    [alerting]
+    # Grafana 10 turns its legacy alerting on when unified alerting is off.
+    enabled = false
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: thanos
+        # A fixed uid, so links and dashboards can name it.
+        uid: thanos
+        type: prometheus
+        access: proxy
+        isDefault: true
+        # Port 9092 is the tenancy port, documented as restricted to a given
+        # project and needing only a view binding there. 9091 returns every
+        # namespace on the cluster regardless of who asks.
+        url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9092
+        # Nobody edits this in the UI. It is the only datasource a project
+        # sees, and an edited one would be an unfiltered one.
+        editable: false
+        jsonData:
+          timeInterval: "30s"
+          # The tenancy port checks a POST as "create" on pod metrics, which
+          # the view role does not give, and Grafana 10 sends POST by default.
+          httpMethod: GET
+          # Verify against the cluster's own CA rather than skipping the check.
+          tlsAuthWithCACert: true
+          httpHeaderName1: "Authorization"
+          # prom-label-proxy runs with --error-on-replace, so this value
+          # cannot be overridden by a query. That is what makes the separation
+          # real.
+          customQueryParameters: "namespace=project-{{ .name }}"
+        secureJsonData:
+          # Grafana fills these in from the environment when it reads this
+          # file; the values come from the token secret and the service CA
+          # ConfigMap, through the Deployment. Neither is in this ConfigMap.
+          httpHeaderValue1: "Bearer ${GRAFANA_DATASOURCE_TOKEN}"
+          tlsCACert: "${GRAFANA_DATASOURCE_CA}"
+  # These three are empty, but Grafana logs an error at startup for each of
+  # its provisioning folders that is missing.
+  alerting.yaml: |
+    apiVersion: 1
+  notifiers.yaml: |
+    apiVersion: 1
+  plugins.yaml: |
+    apiVersion: 1
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: project
+        type: file
+        # Dashboards come from git. A saved change to one of these would be
+        # overwritten on the next start anyway.
+        disableDeletion: true
+        allowUiUpdates: false
+        options:
+          path: /var/lib/grafana-dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+data:
+  project-overview.json: |
+    {{- include "user-projects.grafana.overviewDashboard" . | nindent 4 }}
+---
+{{- if $editable }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $.Values.defaultGrafana.storage }}
+---
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-deployment
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+    app: grafana
+spec:
+  replicas: 1
+  {{- if $editable }}
+  # The old pod holds the ReadWriteOnce volume, so a rolling update would
+  # leave the new one waiting for it.
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+      annotations:
+        # Grafana reads its files only at startup, so a changed file has to
+        # restart the pod. The files depend only on these inputs and the chart.
+        checksum/config: {{ printf "%s|%s|%v|%s" $.Chart.Version .name $editable (include "user-projects.grafana.overviewDashboard" .) | sha256sum | trunc 16 | quote }}
+    spec:
+      serviceAccountName: grafana-sa
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: grafana
+          image: {{ required "defaultGrafana.image is required" $.Values.defaultGrafana.image | quote }}
+          env:
+            - name: GRAFANA_DATASOURCE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-sa-token
+                  key: token
+            - name: GRAFANA_DATASOURCE_CA
+              valueFrom:
+                configMapKeyRef:
+                  name: grafana-service-ca
+                  key: service-ca.crt
+          # Grafana is on localhost only, so the kubelet cannot reach it over
+          # HTTP; the check runs inside the container instead.
+          readinessProbe:
+            exec:
+              command: ["curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:3000/api/health"]
+            periodSeconds: 10
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            {{- toYaml $.Values.defaultGrafana.resources | nindent 12 }}
+          volumeMounts:
+            - name: grafana-config
+              mountPath: /etc/grafana/grafana.ini
+              subPath: grafana.ini
+            - name: grafana-provisioning
+              mountPath: /etc/grafana/provisioning
+              readOnly: true
+            - name: grafana-dashboards
+              mountPath: /var/lib/grafana-dashboards
+              readOnly: true
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+        {{- include "user-projects.grafana.proxyContainer" (dict "p" . "root" $) | nindent 8 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: grafana-config
+          configMap:
+            name: grafana-config
+        # The provisioning files in the folders Grafana reads them from.
+        - name: grafana-provisioning
+          configMap:
+            name: grafana-config
+            items:
+              - {key: datasources.yaml, path: datasources/datasources.yaml}
+              - {key: dashboards.yaml, path: dashboards/dashboards.yaml}
+              - {key: alerting.yaml, path: alerting/alerting.yaml}
+              - {key: notifiers.yaml, path: notifiers/notifiers.yaml}
+              - {key: plugins.yaml, path: plugins/plugins.yaml}
+        - name: grafana-dashboards
+          configMap:
+            name: grafana-dashboards
+        - name: grafana-tls
+          secret:
+            secretName: grafana-tls
+        - name: grafana-cookie
+          secret:
+            secretName: grafana-cookie-secret
+        - name: grafana-data
+          {{- if $editable }}
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: "project-{{ .name }}"
+  labels:
+    massopen.cloud/project: "{{ .name }}"
+  annotations:
+    # OpenShift mints the certificate into this secret, which the proxy
+    # mounts.
+    service.beta.openshift.io/serving-cert-secret-name: grafana-tls
+spec:
+  selector:
+    app: grafana
+  ports:
+    # Only the proxy. Nothing outside the pod needs Grafana's own port.
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
 metadata:
   name: grafana
   namespace: "project-{{ .name }}"
   labels:
     massopen.cloud/project: "{{ .name }}"
-    # The operator matches dashboards and datasources to instances by this label.
-    dashboards: "project-{{ .name }}"
-  annotations:
-    # The CRD only exists once the operator from the grafana-operator chart has
-    # installed, which is a different Application, so the first sync would
-    # otherwise fail its dry run.
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    # Applied before the token secret below, because the operator creates the
-    # service account and the docs are explicit that the account has to exist
-    # first: "If you are creating both the ServiceAccount and the Secret
-    # objects, create the ServiceAccount object first."
-    argocd.argoproj.io/sync-wave: "1"
 spec:
-  version: {{ $.Values.defaultGrafana.version | quote }}
-  {{- if .grafana.editable }}
-  # The operator names this claim after the instance, so grafana-pvc below.
-  persistentVolumeClaim:
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: {{ $.Values.defaultGrafana.storage }}
-  {{- end }}
-  route:
-    metadata:
-      name: grafana-route
-    spec:
-      tls:
-        termination: reencrypt
-      to:
-        kind: Service
-        name: grafana-service
-      # Without this the route keeps the operator's default. getRouteSpec sets
-      # targetPort to GetGrafanaPort, which is 3000, and the override is applied
-      # on top with a strategic merge, so a field we do not set stays at the
-      # default. A reencrypt route pointed at Grafana's plain HTTP port does not
-      # work, and it would also leave the proxy out of the path entirely.
-      port:
-        targetPort: https
-  service:
-    metadata:
-      annotations:
-        # OpenShift mints the certificate and puts it in this secret, which is
-        # the one the proxy mounts below. Nothing has to create it by hand.
-        service.beta.openshift.io/serving-cert-secret-name: grafana-tls
-    spec:
-      ports:
-        # 3000 stays on Grafana because the operator has no other way in. It
-        # builds its management address from the instance name and Grafana's own
-        # port, not from this service, so pointing 3000 at the proxy leaves the
-        # operator talking plain HTTP to a TLS listener and no dashboard or
-        # datasource is ever provisioned.
-        #
-        # That does leave Grafana reachable on 3000 from inside the cluster, so
-        # the network policy next to this file is what closes it: only the
-        # operator namespace may reach that port, and the admin policy in
-        # restrict-tenant-networks has to allow it too, since the baseline
-        # policy denies cross-namespace ingress.
-        - name: grafana
-          port: 3000
-          targetPort: 3000
-          protocol: TCP
-        # The port the route uses, and the only way a person reaches Grafana.
-        # Named "https" so the route above can target it by name.
-        - name: https
-          port: 443
-          targetPort: 8443
-          protocol: TCP
-  serviceAccount:
-    metadata:
-      annotations:
-        # The operator creates the service account and owns it, so the chart
-        # cannot create it: it names it after the instance plus "-sa" and then
-        # sets itself as controller, which fails on an account that already
-        # belongs to Argo CD. Everything still refers to grafana-sa because
-        # this instance is called grafana.
-        #
-        # This annotation is the only reason the chart used to create it. It
-        # makes the account its own OAuth client, so no client secret and no
-        # Keycloak client is needed per startup, and the proxy sends users to
-        # the route named below after they log in. "primary" is a name we
-        # picked, the docs describe the annotation generically as
-        # oauth-redirectreference.<some-value>.
-        serviceaccounts.openshift.io/oauth-redirectreference.primary: >-
-          {"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"grafana-route"}}
-  config:
-    auth:
-      # The oauth-proxy in front is what enforces access, so Grafana itself
-      # does not ask a second time.
-      disable_login_form: "true"
-    auth.anonymous:
-      enabled: "true"
-      # Editor only together with the volume, since an Editor saving into
-      # emptyDir loses everything with the next pod. Neither role can change
-      # datasources, that is org admin, so the tenancy stays in the datasource
-      # token and namespace parameter either way.
-      org_role: {{ ternary "Editor" "Viewer" (.grafana.editable | default false) | quote }}
-    users:
-      # Viewers may still open dashboard settings and try things, they just
-      # cannot save. Dashboards belong in git as GrafanaDashboard resources.
-      viewers_can_edit: "false"
-    unified_alerting:
-      # Alerting belongs to the platform, PrometheusRule and Alertmanager.
-      enabled: "false"
-  deployment:
-    spec:
-      {{- if .grafana.editable }}
-      # The old pod holds the ReadWriteOnce volume, so a rolling update would
-      # leave the new one waiting for it.
-      strategy:
-        type: Recreate
-      {{- end }}
-      template:
-        spec:
-          serviceAccountName: grafana-sa
-          containers:
-            # The operator does not read defaultGrafana.resources on its own,
-            # and a container without resources gets the project LimitRange
-            # defaults, 1 CPU and 2Gi. Naming the container here is what makes
-            # the merge land on Grafana itself rather than on a second one.
-            - name: grafana
-              resources:
-                {{- toYaml $.Values.defaultGrafana.resources | nindent 16 }}
-            {{- include "user-projects.grafana.proxyContainer" (dict "p" . "root" $) | nindent 12 }}
-          volumes:
-            - name: grafana-tls
-              secret:
-                secretName: grafana-tls
-            - name: grafana-cookie
-              secret:
-                secretName: grafana-cookie-secret
-            {{- if .grafana.editable }}
-            - name: grafana-data
-              persistentVolumeClaim:
-                claimName: grafana-pvc
-            {{- end }}
+  to:
+    kind: Service
+    name: grafana-service
+  port:
+    targetPort: https
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
 ---
-apiVersion: grafana.integreatly.org/v1beta1
-kind: GrafanaDatasource
-metadata:
-  name: thanos
-  namespace: "project-{{ .name }}"
-  labels:
-    massopen.cloud/project: "{{ .name }}"
-  annotations:
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    # After the Grafana in wave 1, or the operator finds no instance.
-    argocd.argoproj.io/sync-wave: "2"
-spec:
-  instanceSelector:
-    matchLabels:
-      dashboards: "project-{{ .name }}"
-  datasource:
-    name: thanos
-    type: prometheus
-    access: proxy
-    isDefault: true
-    # Port 9092 is the tenancy port, documented as restricted to a given
-    # project and needing only a view binding there. 9091 is documented as
-    # access to all Prometheus endpoints, and it returns every namespace on
-    # this cluster regardless of who asks, which is why Perses shows
-    # everything.
-    url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9092
-    jsonData:
-      timeInterval: "30s"
-      # Verify against the cluster's own CA rather than skipping the check.
-      # The bundle comes from the grafana-service-ca ConfigMap created above
-      # and reaches the datasource through valuesFrom, not through a volume.
-      tlsAuthWithCACert: true
-      httpHeaderName1: "Authorization"
-      # prom-label-proxy runs with --error-on-replace, so this value cannot
-      # be overridden by a query. That is what makes the separation real, and
-      # it is the part the docs do not describe: they document what the two
-      # ports allow, never the proxy chain behind them. Read off the
-      # deployment, so worth re-checking after a monitoring stack upgrade.
-      customQueryParameters: "namespace=project-{{ .name }}"
-    # Nobody edits this in the UI. It is the only datasource a project sees, and
-    # an edited one would be an unfiltered one.
-    editable: false
-    secureJsonData:
-      # ${token} and ${service-ca.crt} are placeholders the operator substitutes
-      # from the references below, named after the key in the secret and the
-      # config map. It replaces the placeholder inside the string, which is why
-      # the Bearer prefix can simply stay here.
-      httpHeaderValue1: "Bearer ${token}"
-      tlsCACert: "${service-ca.crt}"
-  valuesFrom:
-    - targetPath: secureJsonData.httpHeaderValue1
-      valueFrom:
-        secretKeyRef:
-          name: grafana-sa-token
-          key: token
-    - targetPath: secureJsonData.tlsCACert
-      valueFrom:
-        configMapKeyRef:
-          name: grafana-service-ca
-          key: service-ca.crt
----
-apiVersion: grafana.integreatly.org/v1beta1
-kind: GrafanaDashboard
-metadata:
-  name: project-overview
-  namespace: "project-{{ .name }}"
-  labels:
-    massopen.cloud/project: "{{ .name }}"
-  annotations:
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    # After the Grafana in wave 1, or the operator finds no instance.
-    argocd.argoproj.io/sync-wave: "2"
-spec:
-  instanceSelector:
-    matchLabels:
-      dashboards: "project-{{ .name }}"
-  json: |
-    {{- include "user-projects.grafana.overviewDashboard" . | nindent 4 }}
----
-{{- end }}
 {{- end }}
 {{ end }}
