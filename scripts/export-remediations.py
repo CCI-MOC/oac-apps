@@ -23,10 +23,12 @@ With --all, remediations that were not applied are exported too. The
 operator creates a remediation, with its full MachineConfig, for every
 failing check whether or not it is applied, so a scan-only cluster (a
 compliant hub, where nothing is applied) is enough. Remediations that
-cannot be used as they are, with applicationState NeedsReview (a variable
-to set first), MissingDependencies or Error, are skipped with a warning.
-So are remediations that are not MachineConfigs (platform fixes), which
-belong in other charts.
+cannot be used as they are, a variable to set first or a dependency not
+met, are skipped with a warning. The operator only sets NeedsReview or
+MissingDependencies once apply is true, so these are found by the
+has-unset-variable and has-unmet-dependencies labels, which it sets either
+way. Remediations in Error, and ones that are not MachineConfigs (platform
+fixes, which belong in other charts), are skipped too.
 
 Usage:
   KUBECONFIG=... oc get complianceremediation -n openshift-compliance -o json \
@@ -40,6 +42,10 @@ import sys
 import yaml
 
 SKIP_STATES = {"NeedsReview", "MissingDependencies", "Error"}
+SKIP_LABELS = (
+    "compliance.openshift.io/has-unset-variable",
+    "compliance.openshift.io/has-unmet-dependencies",
+)
 
 
 def main():
@@ -58,8 +64,10 @@ def main():
         if not r["spec"].get("apply") and not export_all:
             continue
         state = r.get("status", {}).get("applicationState", "")
-        if export_all and state in SKIP_STATES:
-            print(f"skipped {name}: {state}", file=sys.stderr)
+        labels = r["metadata"].get("labels", {})
+        skip = [l.split("/")[1] for l in SKIP_LABELS if l in labels]
+        if export_all and (state in SKIP_STATES or skip):
+            print(f"skipped {name}: {state if state in SKIP_STATES else skip[0]}", file=sys.stderr)
             continue
         obj = r["spec"]["current"]["object"]
         if obj.get("kind") != "MachineConfig":
