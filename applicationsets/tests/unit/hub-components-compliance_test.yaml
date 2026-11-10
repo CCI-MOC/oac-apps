@@ -1,6 +1,6 @@
-suite: hub-compliance ApplicationSet
+suite: hub-components-compliance ApplicationSet
 templates:
-  - templates/hub/hub-compliance.yaml
+  - templates/hub/hub-components-compliance.yaml
 
 tests:
   - it: should fail closed when hubName is not set
@@ -17,7 +17,7 @@ tests:
       - containsDocument:
           kind: ApplicationSet
           apiVersion: argoproj.io/v1alpha1
-          name: hub-compliance
+          name: hub-components-compliance
       - equal:
           path: spec.generators[0].matrix.generators[0].git.files[0].path
           value: "hosted-clusters/nist-dev-infra/compliance.yaml"
