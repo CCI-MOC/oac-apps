@@ -8,3 +8,6 @@ dependencies:
   - name: operator-library
     version: "0.1.0"
     repository: "file://../operator-library"
+  - name: namespace-guardrails
+    version: "0.1.0"
+    repository: "file://../namespace-guardrails"
