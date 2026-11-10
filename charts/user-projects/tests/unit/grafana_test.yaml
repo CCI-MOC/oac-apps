@@ -158,8 +158,10 @@ tests:
                 name: grafana-sa-token
                 key: token
 
-  # The service account has to exist before the token secret that names it.
-  - it: applies the token secret after the service account
+  # The token secret names the service account, so the account comes first.
+  # The secret stays in the Deployment's wave: Argo starts a wave only once
+  # the one before is healthy, and the Deployment needs the secret to start.
+  - it: applies the token secret with the deployment, after the service account
     set:
       projects:
         - name: aibom
@@ -172,9 +174,8 @@ tests:
       - equal:
           path: metadata.annotations["kubernetes.io/service-account.name"]
           value: grafana-sa
-      - equal:
+      - notExists:
           path: metadata.annotations["argocd.argoproj.io/sync-wave"]
-          value: "1"
 
   # The redirect annotation makes the service account its own OAuth client,
   # and it has to name the route, or the login redirect is refused.
@@ -188,6 +189,9 @@ tests:
       path: kind
       value: ServiceAccount
     asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-1"
       - matchRegex:
           path: metadata.annotations["serviceaccounts.openshift.io/oauth-redirectreference.primary"]
           pattern: '"kind":"Route","name":"grafana"'

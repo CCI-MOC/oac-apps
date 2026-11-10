@@ -57,9 +57,10 @@ metadata:
     massopen.cloud/project: "{{ .name }}"
   annotations:
     kubernetes.io/service-account.name: grafana-sa
-    # After the service account below, which this secret names and which
-    # has to exist first.
-    argocd.argoproj.io/sync-wave: "1"
+    # In the default wave, with the Deployment that mounts it. Argo starts a
+    # wave only once the one before is healthy, and the Deployment cannot be
+    # healthy without this secret. The service account it names comes first,
+    # in wave -1.
 # The API server fills this in and keeps it valid. The chart never carries a
 # token: Grafana reads it from here through an environment variable.
 type: kubernetes.io/service-account-token
@@ -87,6 +88,8 @@ metadata:
   labels:
     massopen.cloud/project: "{{ .name }}"
   annotations:
+    # Before the token secret, which names it.
+    argocd.argoproj.io/sync-wave: "-1"
     # The account is its own OAuth client, so no client secret and no
     # Keycloak client is needed, and the proxy sends people back to the route
     # below after they log in.
