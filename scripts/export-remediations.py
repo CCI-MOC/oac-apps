@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export applied Compliance Operator node remediations into chart files.
+"""Export Compliance Operator node remediations into chart files.
 
 Reads `oc get complianceremediation -n openshift-compliance -o json` on stdin
 and writes one file per rule under charts/compliance-node-hardening/files/:
@@ -15,12 +15,22 @@ The master and worker scans of a node profile normally produce identical
 remediations. This script refuses to write anything if they differ, rather
 than silently picking one.
 
-Only remediations with spec.apply == true are exported: what the cluster
-actually runs, not everything the scanner suggested.
+By default only remediations with spec.apply == true are exported: what a
+cluster that applied them actually runs. This is how the files from jetty
+were made.
+
+With --all, remediations that were not applied are exported too. The
+operator creates a remediation, with its full MachineConfig, for every
+failing check whether or not it is applied, so a scan-only cluster (a
+compliant hub, where nothing is applied) is enough. Remediations that
+cannot be used as they are, with applicationState NeedsReview (a variable
+to set first), MissingDependencies or Error, are skipped with a warning.
+So are remediations that are not MachineConfigs (platform fixes), which
+belong in other charts.
 
 Usage:
   KUBECONFIG=... oc get complianceremediation -n openshift-compliance -o json \
-    | scripts/export-remediations.py charts/compliance-node-hardening/files
+    | scripts/export-remediations.py [--all] charts/compliance-node-hardening/files
 """
 import json
 import os
@@ -29,21 +39,34 @@ import sys
 
 import yaml
 
+SKIP_STATES = {"NeedsReview", "MissingDependencies", "Error"}
+
 
 def main():
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    export_all = "--all" in args
+    args = [a for a in args if a != "--all"]
+    if len(args) != 1 or args[0].startswith("-"):
         sys.exit(__doc__)
-    out = sys.argv[1]
+    out = args[0]
     items = json.load(sys.stdin)["items"]
 
     # scan name -> {rule: spec}
     scans = {}
     for r in items:
-        if not r["spec"].get("apply"):
+        name = r["metadata"]["name"]
+        if not r["spec"].get("apply") and not export_all:
+            continue
+        state = r.get("status", {}).get("applicationState", "")
+        if export_all and state in SKIP_STATES:
+            print(f"skipped {name}: {state}", file=sys.stderr)
             continue
         obj = r["spec"]["current"]["object"]
         if obj.get("kind") != "MachineConfig":
-            sys.exit(f"{r['metadata']['name']}: kind {obj.get('kind')} is not handled")
+            if export_all:
+                print(f"skipped {name}: kind {obj.get('kind')}", file=sys.stderr)
+                continue
+            sys.exit(f"{name}: kind {obj.get('kind')} is not handled")
         scan = r["metadata"]["labels"]["compliance.openshift.io/scan-name"]
         rule = r["metadata"]["name"][len(scan) + 1:]
         scans.setdefault(scan, {})[rule] = obj["spec"]
