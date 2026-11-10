@@ -13,7 +13,9 @@ tests:
       - hasDocuments:
           count: 0
 
-  - it: renders the full set for a project that opts in
+  # Access (two bindings, token secret, service CA), then the service
+  # account, two ConfigMaps, Deployment, Service and Route.
+  - it: renders the full set for a read-only project
     set:
       projects:
         - name: aibom
@@ -21,58 +23,7 @@ tests:
             enabled: true
     asserts:
       - hasDocuments:
-          count: 7
-
-  - it: puts the Grafana instance in the project namespace
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - isKind:
-          of: Grafana
-      - equal:
-          path: metadata.namespace
-          value: project-aibom
-
-  # Port 9092 is the tenancy port. Port 9091 does not filter at all, which is
-  # why the Perses datasource shows every namespace on the cluster. The proxy
-  # chain behind 9092 runs prom-label-proxy with --error-on-replace, so the
-  # namespace cannot be overridden by whoever is querying.
-  - it: points the datasource at the tenancy port with the project namespace
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 5
-    asserts:
-      - isKind:
-          of: GrafanaDatasource
-      - matchRegex:
-          path: spec.datasource.url
-          pattern: ":9092$"
-      - equal:
-          path: spec.datasource.jsonData.customQueryParameters
-          value: namespace=project-aibom
-
-  # The proxy and the datasource both scope to the project namespace, but they
-  # do not check the same permission: the proxy asks for "get services" there,
-  # while port 9092 checks "get pods" in apiGroup metrics.k8s.io. Both happen to
-  # be granted by the view role, which is why it works, not because they match.
-  - it: delegates the access check to the project namespace
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - contains:
-          path: spec.deployment.spec.template.spec.containers[1].args
-          content: '--openshift-delegate-urls={"/": {"namespace": "project-aibom", "resource": "services", "verb": "get"}}'
+          count: 10
 
   - it: renders for each opted-in project independently
     set:
@@ -86,75 +37,160 @@ tests:
             enabled: true
     asserts:
       - hasDocuments:
-          count: 14
+          count: 20
 
-  # OpenShift mints the serving certificate from this annotation, so the secret
-  # the proxy mounts exists without anyone creating it by hand.
-  - it: asks OpenShift for a serving certificate
+  # Nothing to deploy without an image, so fail at render rather than sync.
+  - it: needs an image
     set:
+      defaultGrafana:
+        image: ""
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
     asserts:
-      - isKind:
-          of: Grafana
+      - failedTemplate:
+          errorMessage: defaultGrafana.image is required
+
+  - it: uses the configured image
+    set:
+      defaultGrafana:
+        image: example.com/grafana:test
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
       - equal:
-          path: spec.service.metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
-          value: grafana-tls
+          path: spec.template.spec.containers[0].image
+          value: example.com/grafana:test
 
-  # Helm would generate a different value on every render, so a rendered
-  # secret would churn on every sync and log everyone out. The key comes from
-  # external-secrets instead, mounted at this path.
-  - it: reads the cookie secret from the mounted generated key
+  # Only the proxy in the same pod can reach Grafana.
+  - it: keeps Grafana on localhost
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: metadata.name
+      value: grafana-config
     asserts:
-      - isKind:
-          of: Grafana
-      - contains:
-          path: spec.deployment.spec.template.spec.containers[1].args
-          content: --cookie-secret-file=/etc/grafana-cookie/key
+      - matchRegex:
+          path: data["grafana.ini"]
+          pattern: "http_addr = 127.0.0.1"
 
-  # Verifying against the cluster CA beats skipping verification, and the
-  # bundle is in every namespace already.
+  # Port 9092 is the tenancy port. Port 9091 does not filter at all, which is
+  # why the Perses datasource shows every namespace on the cluster. The proxy
+  # chain behind 9092 runs prom-label-proxy with --error-on-replace, so the
+  # namespace cannot be overridden by whoever is querying.
+  - it: points the datasource at the tenancy port with the project namespace
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: metadata.name
+      value: grafana-config
+    asserts:
+      - matchRegex:
+          path: data["datasources.yaml"]
+          pattern: "thanos-querier.openshift-monitoring.svc.cluster.local:9092"
+      - matchRegex:
+          path: data["datasources.yaml"]
+          pattern: 'customQueryParameters: "namespace=project-aibom"'
+
+  # Verifying against the cluster CA beats skipping verification.
   - it: verifies thanos against the service CA instead of skipping it
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 5
+    documentSelector:
+      path: metadata.name
+      value: grafana-config
     asserts:
-      - isKind:
-          of: GrafanaDatasource
-      - notExists:
-          path: spec.datasource.jsonData.tlsSkipVerify
-      - equal:
-          path: spec.datasource.jsonData.tlsAuthWithCACert
-          value: true
+      - matchRegex:
+          path: data["datasources.yaml"]
+          pattern: "tlsAuthWithCACert: true"
+      - notMatchRegex:
+          path: data["datasources.yaml"]
+          pattern: "tlsSkipVerify"
 
-  # Without editable the anonymous role stays Viewer: an Editor could save, and
-  # nothing saved survives a restart on emptyDir.
-  - it: does not let viewers add their own datasource
+  # Found on jetty: the tenancy port checks a POST as "create" on pod metrics,
+  # which the view role does not give, and Grafana 10 sends POST by default.
+  - it: queries with GET
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: metadata.name
+      value: grafana-config
+    asserts:
+      - matchRegex:
+          path: data["datasources.yaml"]
+          pattern: "httpMethod: GET"
+
+  # The token reaches Grafana from the secret, never through the chart.
+  - it: reads the datasource token from the service account secret
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: GRAFANA_DATASOURCE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: grafana-sa-token
+                key: token
+
+  # The service account has to exist before the token secret that names it.
+  - it: applies the token secret after the service account
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: Secret
     asserts:
       - equal:
-          path: spec.config["auth.anonymous"].org_role
-          value: Viewer
+          path: metadata.annotations["kubernetes.io/service-account.name"]
+          value: grafana-sa
       - equal:
-          path: spec.config.users.viewers_can_edit
-          value: "false"
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "1"
+
+  # The redirect annotation makes the service account its own OAuth client,
+  # and it has to name the route, or the login redirect is refused.
+  - it: makes the service account the oauth client for the route
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: ServiceAccount
+    asserts:
+      - matchRegex:
+          path: metadata.annotations["serviceaccounts.openshift.io/oauth-redirectreference.primary"]
+          pattern: '"kind":"Route","name":"grafana"'
 
   # The proxy performs SubjectAccessReviews, which are cluster scoped. A
   # namespaced view binding does not cover them, so the proxy would be
@@ -165,141 +201,87 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 1
+    documentSelector:
+      path: kind
+      value: ClusterRoleBinding
     asserts:
-      - isKind:
-          of: ClusterRoleBinding
       - equal:
           path: roleRef.name
           value: system:auth-delegator
 
-  # A reencrypt route needs a TLS backend, so 443 goes to the proxy. 3000 stays
-  # on Grafana because the operator manages it over that port and cannot
-  # authenticate to the proxy, so sending it there would break provisioning.
-  # What keeps 3000 closed is the network policy, not this service.
-  - it: keeps the route on the proxy and the operator port on grafana
+  # OpenShift mints the serving certificate from this annotation, so the secret
+  # the proxy mounts exists without anyone creating it by hand.
+  - it: asks OpenShift for a serving certificate
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: kind
+      value: Service
     asserts:
       - equal:
-          path: spec.service.spec.ports[0].name
-          value: grafana
+          path: metadata.annotations["service.beta.openshift.io/serving-cert-secret-name"]
+          value: grafana-tls
+
+  - it: exposes only the proxy port
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: Service
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
       - equal:
-          path: spec.service.spec.ports[0].port
-          value: 3000
-      - equal:
-          path: spec.service.spec.ports[0].targetPort
-          value: 3000
-      - equal:
-          path: spec.service.spec.ports[1].name
-          value: https
-      - equal:
-          path: spec.service.spec.ports[1].targetPort
+          path: spec.ports[0].targetPort
           value: 8443
 
-  # The operator's route reconciler sets targetPort to Grafana's own port and
-  # then merges the override on top, so a route that does not name a port keeps
-  # 3000 and terminates TLS against plain HTTP.
-  - it: points the route at the named https port
+  - it: points the route at the proxy with reencrypt
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: kind
+      value: Route
     asserts:
       - equal:
-          path: spec.route.spec.port.targetPort
+          path: metadata.name
+          value: grafana
+      - equal:
+          path: spec.port.targetPort
           value: https
+      - equal:
+          path: spec.tls.termination
+          value: reencrypt
 
-  # The service account is the OAuth client, which is what --openshift-service-account
-  # does. Without it the proxy wants a separate client secret it does not have.
-  - it: uses the service account as the oauth client
+  # The proxy and the datasource both scope to the project namespace, but they
+  # do not check the same permission: the proxy asks for "get services" there,
+  # while port 9092 checks "get pods" in apiGroup metrics.k8s.io. Both happen to
+  # be granted by the view role, which is why it works, not because they match.
+  - it: delegates the access check to the project namespace
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: kind
+      value: Deployment
     asserts:
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: oauth-proxy
       - contains:
-          path: spec.deployment.spec.template.spec.containers[1].args
-          content: --openshift-service-account=grafana-sa
-
-  # The signing key must not be derivable. It used to be a hash of the project
-  # name, which is public, so the key could be recomputed and a forged cookie
-  # would skip the SAR entirely: that check runs at login, an existing cookie is
-  # only verified against this key.
-  - it: reads the cookie secret from a file, never from the project name
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - equal:
-          path: spec.deployment.spec.template.spec.containers[1].args[6]
-          value: --cookie-secret-file=/etc/grafana-cookie/key
-      - notMatchRegex:
-          path: spec.deployment.spec.template.spec.containers[1].args[6]
-          pattern: '^--cookie-secret='
-
-  - it: mounts the generated cookie secret into the proxy
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - equal:
-          path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].name
-          value: grafana-cookie
-      - equal:
-          path: spec.deployment.spec.template.spec.containers[1].volumeMounts[1].mountPath
-          value: /etc/grafana-cookie
-      - equal:
-          path: spec.deployment.spec.template.spec.volumes[1].secret.secretName
-          value: grafana-cookie-secret
-
-  # The operator sends the datasource to Grafana through its API, so a
-  # ${__file{...}} expression would arrive as a literal string and every query
-  # would fail. valuesFrom is how the operator injects real values.
-  - it: injects the token and the CA through valuesFrom
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 5
-    asserts:
-      - isKind:
-          of: GrafanaDatasource
-      - equal:
-          path: spec.valuesFrom[0].targetPath
-          value: secureJsonData.httpHeaderValue1
-      - equal:
-          path: spec.valuesFrom[1].targetPath
-          value: secureJsonData.tlsCACert
-
-  # Without this the LimitRange defaults the sidecar to 1 CPU and 2Gi, eating
-  # far more of the project quota than the values file claims.
-  - it: sets resources on the proxy sidecar
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - equal:
-          path: spec.deployment.spec.template.spec.containers[1].resources.requests.memory
-          value: 64Mi
+          path: spec.template.spec.containers[1].args
+          content: '--openshift-delegate-urls={"/": {"namespace": "project-aibom", "resource": "services", "verb": "get"}}'
 
   # delegate-urls only covers requests that arrive with a bearer token. A
   # browser session is loaded from its cookie before that check runs, so
@@ -311,46 +293,59 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: kind
+      value: Deployment
     asserts:
       - contains:
-          path: spec.deployment.spec.template.spec.containers[1].args
+          path: spec.template.spec.containers[1].args
           content: '--openshift-sar={"namespace": "project-aibom", "resource": "services", "verb": "get"}'
 
-  # Grafana caps a dashboard uid at 40 characters. "project-<name>-overview"
-  # would pass that with 24 characters of project name, and the failure would
-  # only show up when someone creates a project with a long name.
-  - it: keeps the dashboard uid inside Grafana's limit whatever the name
-    set:
-      projects:
-        - name: a-very-long-project-name-for-testing-purposes
-          grafana:
-            enabled: true
-    documentIndex: 6
-    asserts:
-      - matchRegex:
-          path: spec.json
-          pattern: '"uid": "project-[0-9a-f]{16}-ovw"'
-
-  # A container without resources gets the project LimitRange defaults, 1 CPU
-  # and 2Gi, which is most of a project's quota spent on Grafana itself.
-  - it: gives grafana its own resources, not the LimitRange defaults
+  # The service account is the OAuth client, which is what --openshift-service-account
+  # does. Without it the proxy wants a separate client secret it does not have.
+  - it: uses the service account as the oauth client
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: kind
+      value: Deployment
     asserts:
-      - equal:
-          path: spec.deployment.spec.template.spec.containers[0].name
-          value: grafana
-      - equal:
-          path: spec.deployment.spec.template.spec.containers[0].resources.requests.cpu
-          value: 100m
-      - equal:
-          path: spec.deployment.spec.template.spec.containers[0].resources.requests.memory
-          value: 256Mi
+      - contains:
+          path: spec.template.spec.containers[1].args
+          content: --openshift-service-account=grafana-sa
+
+  # The signing key must not be derivable. It used to be a hash of the project
+  # name, which is public, so the key could be recomputed and a forged cookie
+  # would skip the SAR entirely: that check runs at login, an existing cookie is
+  # only verified against this key.
+  - it: reads the cookie secret from the mounted generated key
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[1].args
+          content: --cookie-secret-file=/etc/grafana-cookie/key
+      - contains:
+          path: spec.template.spec.containers[1].volumeMounts
+          content:
+            name: grafana-cookie
+            mountPath: /etc/grafana-cookie
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grafana-cookie
+            secret:
+              secretName: grafana-cookie-secret
 
   # The SAR only runs when the code is redeemed. A cookie loaded later is just
   # checked against the signing key, so without a refresh interval a revoked
@@ -362,17 +357,82 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: kind
+      value: Deployment
     asserts:
       - contains:
-          path: spec.deployment.spec.template.spec.containers[1].args
+          path: spec.template.spec.containers[1].args
           content: --cookie-expire=30m
       - contains:
-          path: spec.deployment.spec.template.spec.containers[1].args
+          path: spec.template.spec.containers[1].args
           content: --cookie-refresh=10m
       - contains:
-          path: spec.deployment.spec.template.spec.containers[1].args
+          path: spec.template.spec.containers[1].args
           content: --pass-basic-auth=false
+
+  # A container without resources gets the project LimitRange defaults, 1 CPU
+  # and 2Gi, which is most of a project's quota spent on Grafana itself.
+  - it: gives grafana and the proxy their own resources
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.cpu
+          value: 100m
+      - equal:
+          path: spec.template.spec.containers[0].resources.requests.memory
+          value: 256Mi
+      - equal:
+          path: spec.template.spec.containers[1].resources.requests.memory
+          value: 64Mi
+
+  # Grafana logs an error for each provisioning folder that is missing.
+  - it: mounts every provisioning folder Grafana reads
+    set:
+      projects:
+        - name: aibom
+          grafana:
+            enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grafana-provisioning
+            configMap:
+              name: grafana-config
+              items:
+                - {key: datasources.yaml, path: datasources/datasources.yaml}
+                - {key: dashboards.yaml, path: dashboards/dashboards.yaml}
+                - {key: alerting.yaml, path: alerting/alerting.yaml}
+                - {key: notifiers.yaml, path: notifiers/notifiers.yaml}
+                - {key: plugins.yaml, path: plugins/plugins.yaml}
+
+  # Grafana caps a dashboard uid at 40 characters. "project-<name>-overview"
+  # would pass that with 24 characters of project name, and the failure would
+  # only show up when someone creates a project with a long name.
+  - it: keeps the dashboard uid inside Grafana's limit whatever the name
+    set:
+      projects:
+        - name: a-very-long-project-name-for-testing-purposes
+          grafana:
+            enabled: true
+    documentSelector:
+      path: metadata.name
+      value: grafana-dashboards
+    asserts:
+      - matchRegex:
+          path: data["project-overview.json"]
+          pattern: '"uid": "project-[0-9a-f]{16}-ovw"'
 
   # The queries are only safe today because port 9092 injects the namespace.
   # Spelling it out means the dashboard stays scoped if the datasource is ever
@@ -383,166 +443,81 @@ tests:
         - name: aibom
           grafana:
             enabled: true
-    documentIndex: 6
+    documentSelector:
+      path: metadata.name
+      value: grafana-dashboards
     asserts:
       - matchRegex:
-          path: spec.json
+          path: data["project-overview.json"]
           pattern: 'container_cpu_usage_seconds_total\{namespace=..project-aibom'
       - matchRegex:
-          path: spec.json
+          path: data["project-overview.json"]
           pattern: 'container_memory_working_set_bytes\{namespace=..project-aibom'
 
-  # The operator builds the service account name itself, from the instance name
-  # plus "-sa" (resources.go:76 in v5.24.0), and then makes itself its owner.
-  # If the chart creates that name first, the operator cannot take it over and
-  # stops at "stage: service account", so no deployment, route or datasource is
-  # ever created. The chart must therefore not create it.
-  - it: does not create the service account itself
+  # Without editable the anonymous role stays Viewer: an Editor could save, and
+  # nothing saved survives a restart on emptyDir.
+  - it: keeps a project without editable on Viewer and emptyDir
     set:
       projects:
         - name: aibom
-          groups:
-            - name: editors
-              role: edit
           grafana:
             enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
     asserts:
-      # Seven documents now, not eight. The account is gone from the chart,
-      # and the Grafana resource still sits at index 4.
-      - hasDocuments:
-          count: 7
+      - notExists:
+          path: spec.strategy
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grafana-data
+            emptyDir: {}
 
-  # The only reason the chart ever created it was this annotation, which makes
-  # the service account its own OAuth client. It reaches the operator-owned
-  # account through the CR instead: spec.serviceAccount.metadata takes
-  # annotations and labels, and the operator merges them onto the account it
-  # creates.
-  - it: passes the oauth redirect annotation through the Grafana resource
+  - it: does not let viewers edit or alert
     set:
       projects:
         - name: aibom
-          groups:
-            - name: editors
-              role: edit
           grafana:
             enabled: true
-    documentIndex: 4
+    documentSelector:
+      path: metadata.name
+      value: grafana-config
     asserts:
-      - isKind:
-          of: Grafana
       - matchRegex:
-          path: spec.serviceAccount.metadata.annotations["serviceaccounts.openshift.io/oauth-redirectreference.primary"]
-          pattern: '"name":"grafana-route"'
-
-  # The operator creates grafana-sa now, so the Grafana resource has to be
-  # applied before the token secret that names that account. OCP 4.22
-  # "Nodes" is explicit about it: "If you are creating both the ServiceAccount
-  # and the Secret objects, create the ServiceAccount object first." Argo CD
-  # applies lower waves first.
-  - it: creates the Grafana resource before the token secret
-    set:
-      projects:
-        - name: aibom
-          groups:
-            - name: editors
-              role: edit
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - isKind:
-          of: Grafana
-      - equal:
-          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
-          value: "1"
-
-  - it: applies the token secret after the Grafana resource
-    set:
-      projects:
-        - name: aibom
-          groups:
-            - name: editors
-              role: edit
-          grafana:
-            enabled: true
-    documentIndex: 2
-    asserts:
-      - isKind:
-          of: Secret
-      - equal:
-          path: metadata.annotations["kubernetes.io/service-account.name"]
-          value: grafana-sa
-      - equal:
-          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
-          value: "2"
-
-  - it: applies the datasource after the Grafana resource
-    set:
-      projects:
-        - name: aibom
-          groups:
-            - name: editors
-              role: edit
-          grafana:
-            enabled: true
-    documentIndex: 5
-    asserts:
-      - isKind:
-          of: GrafanaDatasource
-      - equal:
-          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
-          value: "2"
-
-  - it: applies the dashboard after the Grafana resource
-    set:
-      projects:
-        - name: aibom
-          groups:
-            - name: editors
-              role: edit
-          grafana:
-            enabled: true
-    documentIndex: 6
-    asserts:
-      - isKind:
-          of: GrafanaDashboard
-      - equal:
-          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
-          value: "2"
+          path: data["grafana.ini"]
+          pattern: "org_role = Viewer"
+      - matchRegex:
+          path: data["grafana.ini"]
+          pattern: "viewers_can_edit = false"
+      - matchRegex:
+          path: data["grafana.ini"]
+          pattern: '\[unified_alerting\]\n(#.*\n)*enabled = false'
 
   # editable is the second switch: Editor and a volume come together, because
   # an Editor saving into emptyDir loses everything with the next pod.
-  - it: gives an editable project the Editor role
+  - it: gives an editable project a volume and the Editor role
     set:
       projects:
         - name: aibom
           grafana:
             enabled: true
             editable: true
-    documentIndex: 4
     asserts:
+      - hasDocuments:
+          count: 11
       - equal:
-          path: spec.config["auth.anonymous"].org_role
-          value: Editor
-
-  - it: gives an editable project a volume for the Grafana data
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-            editable: true
-    documentIndex: 4
-    asserts:
-      - equal:
-          path: spec.persistentVolumeClaim.spec.resources.requests.storage
+          path: spec.resources.requests.storage
           value: 512Mi
-      - contains:
-          path: spec.deployment.spec.template.spec.volumes
-          content:
-            name: grafana-data
-            persistentVolumeClaim:
-              claimName: grafana-pvc
+        documentSelector:
+          path: kind
+          value: PersistentVolumeClaim
+      - matchRegex:
+          path: data["grafana.ini"]
+          pattern: "org_role = Editor"
+        documentSelector:
+          path: metadata.name
+          value: grafana-config
 
   # A ReadWriteOnce volume stays with the old pod during a rolling update, so
   # the new one would wait for it forever.
@@ -553,37 +528,16 @@ tests:
           grafana:
             enabled: true
             editable: true
-    documentIndex: 4
+    documentSelector:
+      path: kind
+      value: Deployment
     asserts:
       - equal:
-          path: spec.deployment.spec.strategy.type
+          path: spec.strategy.type
           value: Recreate
-
-  - it: keeps a project without editable on Viewer and emptyDir
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - equal:
-          path: spec.config["auth.anonymous"].org_role
-          value: Viewer
-      - notExists:
-          path: spec.persistentVolumeClaim
-      - notExists:
-          path: spec.deployment.spec.strategy
-
-  # Alerting belongs to the platform, PrometheusRule and Alertmanager.
-  - it: turns alerting off in every project Grafana
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-    documentIndex: 4
-    asserts:
-      - equal:
-          path: spec.config.unified_alerting.enabled
-          value: "false"
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: grafana-data
+            persistentVolumeClaim:
+              claimName: grafana-pvc

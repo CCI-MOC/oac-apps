@@ -51,7 +51,12 @@ projects: []
 # volume, so what is saved survives the pod. Without it Grafana is read only on
 # emptyDir.
 defaultGrafana:
-  version: "11.3.0"
+  # The Grafana image. This chart deploys Grafana itself and sets it up from
+  # files at startup, so any image with Grafana's usual paths works. This is
+  # the one the grafana-operator used to run. A compliant cluster sets the
+  # UBI image with RHEL's Grafana package instead (FIPS crypto through RHEL's
+  # OpenSSL).
+  image: docker.io/grafana/grafana:11.3.0
   # Only used with grafana.editable. The SQLite file of one project stays in
   # the tens of MiB.
   storage: 512Mi
@@ -61,8 +66,8 @@ defaultGrafana:
   # options.go and providers/openshift/provider.go, are byte identical between
   # the release-4.14 and release-4.21 branches, so the bump changes no behaviour.
   oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.21
-  # Grafana itself. Applied through a named container override in the
-  # template, the operator does not pick these up on its own.
+  # Grafana itself. A container without resources gets the project
+  # LimitRange defaults, 1 CPU and 2Gi.
   resources:
     requests:
       cpu: 100m

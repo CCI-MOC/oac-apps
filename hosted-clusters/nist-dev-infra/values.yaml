@@ -32,9 +32,7 @@ oauth:
 
 imageConfig:
   registrySources:
-    # ghcr.io/grafana: the community grafana-operator's image (oac-apps
-    # grafana-operator chart), and only that repository on ghcr.io.
-    allowedRegistries: [quay.io, registry.redhat.io, registry.connect.redhat.com, registry.access.redhat.com, nvcr.io, ghcr.io/grafana]
+    allowedRegistries: [quay.io, registry.redhat.io, registry.connect.redhat.com, registry.access.redhat.com, nvcr.io]
   # Where ImageStreams may import from (ocp4-moderate
   # ocp-allowed-registries-for-import); as on jetty.
   allowedRegistriesForImport:

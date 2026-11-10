@@ -51,13 +51,13 @@ tests:
           content:
             component: user-workload-monitoring
 
-  # The Grafana operator has to run where the projects are, since that is where
-  # user-projects puts the Grafana resources it reconciles.
-  - it: includes the grafana operator in the component list
+  # user-projects deploys project Grafanas itself, so no cluster runs the
+  # Grafana operator.
+  - it: does not deploy the grafana operator
     set:
       hubName: oac-dev-infra
     asserts:
-      - contains:
+      - notContains:
           path: spec.generators[0].matrix.generators[1].list.elements
           content:
             component: grafana-operator
