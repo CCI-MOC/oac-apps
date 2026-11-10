@@ -1,0 +1,22 @@
+namespace: cluster-admin-grafana
+
+# No access settings here: whoever holds cluster-monitoring-view gets in,
+# which oac-simple-rbac binds to open-accelerator-admins today.
+
+grafana:
+  version: "11.3.0"
+  oauthProxyImage: registry.redhat.io/openshift4/ose-oauth-proxy-rhel9:v4.21
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  proxyResources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
