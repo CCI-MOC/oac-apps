@@ -1,4 +1,4 @@
-{{- $clientID := required "keycloak.aclientID is required" .Values.keycloak.clientID }}
+{{- $clientID := required "keycloak.clientID is required" .Values.keycloak.clientID }}
 apiVersion: config.openshift.io/v1
 kind: OAuth
 metadata:
