@@ -299,7 +299,7 @@ spec:
               readOnly: true
             - name: grafana-data
               mountPath: /var/lib/grafana
-        {{- include "user-projects.grafana.proxyContainer" (dict "p" . "root" $) | nindent 8 }}
+        {{- include "user-projects.grafana.proxyContainer" (dict "project" . "root" $) | nindent 8 }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

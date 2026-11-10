@@ -41,7 +41,7 @@ file.
 {{/*
 The oauth-proxy container in front of each project Grafana, the only way a
 person reaches it. Called with a dict: the project as
-.p and the root context as .root.
+.project and the root context as .root.
 */}}
 {{- define "user-projects.grafana.proxyContainer" -}}
 - name: oauth-proxy
@@ -84,7 +84,7 @@ person reaches it. Called with a dict: the project as
     # the route logs in through OAuth, and the proxy then checks
     # this review before handing out a session cookie. Without it
     # any authenticated cluster user could open this Grafana.
-    - '--openshift-sar={"namespace": "project-{{ .p.name }}", "resource": "services", "verb": "get"}'
+    - '--openshift-sar={"namespace": "project-{{ .project.name }}", "resource": "services", "verb": "get"}'
     # And this one gates requests that arrive with a bearer token
     # instead of a cookie, which the SAR above never sees. Same
     # namespace, so both paths are scoped to this project.
@@ -95,7 +95,7 @@ person reaches it. Called with a dict: the project as
     # one RoleBinding is enough. What 9092 asks for underneath is
     # "get pods" in metrics.k8s.io, read off the kube-rbac-proxy
     # config the monitoring operator ships, not from any doc.
-    - '--openshift-delegate-urls={"/": {"namespace": "project-{{ .p.name }}", "resource": "services", "verb": "get"}}'
+    - '--openshift-delegate-urls={"/": {"namespace": "project-{{ .project.name }}", "resource": "services", "verb": "get"}}'
   resources:
     # Without this the project's own LimitRange defaults the sidecar
     # to 1 CPU and 2Gi, which quietly eats the quota it is meant to
