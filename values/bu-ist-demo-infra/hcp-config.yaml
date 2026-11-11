@@ -1,0 +1,5 @@
+sshKey:
+  aws_secret_name: cluster/bu-ist-demo-infra/sshkey
+
+ingressController:
+  wildcardPolicy: WildcardsAllowed

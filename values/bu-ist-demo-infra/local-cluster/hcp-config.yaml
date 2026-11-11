@@ -1,0 +1,8 @@
+ingressController:
+  enabled: true
+  domain: hcp.bu-ist-demo.int.massopen.cloud
+  addresses:
+    - 10.20.27.10/32
+
+sshKey:
+  aws_secret_name: cluster/bu-ist-demo-infra/sshkey
