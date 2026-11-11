@@ -2,7 +2,8 @@ externaldns:
   - name: aws-route53
     credentials: aws-route53-credentials
     externalSecret:
-      remoteKey: cluster/bu-ist-demo-infra/external-dns/aws-route53-credentials
+      # Written by iam-user module in moc-aws
+      remoteKey: iam-user/bu-ist-demo-infra-external-dns/bu-ist-demo-infra-external-dns
       secretStore: aws-secrets-manager
       secretStoreType: ClusterSecretStore
     domains:
