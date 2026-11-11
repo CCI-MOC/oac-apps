@@ -1,0 +1,5 @@
+keycloak:
+  clientID: bu-ist-demo-infra
+
+externalSecret:
+  remoteKey: cluster/bu-ist-demo-infra/keycloak-oidc
