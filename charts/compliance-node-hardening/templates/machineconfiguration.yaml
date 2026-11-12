@@ -1,0 +1,19 @@
+{{- if and .Values.machineConfigs.enabled .Values.sshdAllowUsers.enabled .Values.nodeDisruptionPolicy.enabled }}
+# Without this, the MCO reboots every node for a change to an sshd drop-in.
+# Sync wave -1 so the policy is in place before the MachineConfigs render.
+apiVersion: operator.openshift.io/v1
+kind: MachineConfiguration
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: ServerSideApply=true,Prune=false
+spec:
+  nodeDisruptionPolicy:
+    files:
+      - path: /etc/ssh/sshd_config.d/{{ .Values.sshdAllowUsers.fileName }}
+        actions:
+          - type: Restart
+            restart:
+              serviceName: sshd.service
+{{- end }}
