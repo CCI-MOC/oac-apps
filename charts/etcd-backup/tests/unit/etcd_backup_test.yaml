@@ -1,0 +1,186 @@
+suite: etcd backup
+templates:
+  - templates/etcd-backup.yaml
+set:
+  image: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+tests:
+  # The release's cli image changes with every release; there is no default.
+  - it: should require the image
+    set:
+      image: ""
+    asserts:
+      - failedTemplate:
+          errorMessage: image is required (oc adm release info --image-for=cli)
+
+  - it: should render the namespace, account, binding, volume and job
+    asserts:
+      - hasDocuments:
+          count: 5
+      - isKind:
+          of: Namespace
+        documentIndex: 0
+      - isKind:
+          of: ServiceAccount
+        documentIndex: 1
+      - isKind:
+          of: RoleBinding
+        documentIndex: 2
+      - isKind:
+          of: PersistentVolumeClaim
+        documentIndex: 3
+      - isKind:
+          of: CronJob
+        documentIndex: 4
+
+  # The job runs privileged on the host, as `oc debug node` does.
+  - it: should allow privileged pods in its namespace only
+    asserts:
+      - equal:
+          path: metadata.labels
+          value:
+            pod-security.kubernetes.io/enforce: privileged
+            pod-security.kubernetes.io/audit: privileged
+            pod-security.kubernetes.io/warn: privileged
+        documentIndex: 0
+      - equal:
+          path: roleRef.name
+          value: system:openshift:scc:privileged
+        documentIndex: 2
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: etcd-backup
+              namespace: etcd-backup
+        documentIndex: 2
+
+  - it: should put everything in the namespace from values
+    set:
+      namespace: backups
+    asserts:
+      - equal:
+          path: metadata.name
+          value: backups
+        documentIndex: 0
+      - equal:
+          path: metadata.namespace
+          value: backups
+        documentIndex: 1
+      - equal:
+          path: metadata.namespace
+          value: backups
+        documentIndex: 2
+      - equal:
+          path: metadata.namespace
+          value: backups
+        documentIndex: 3
+      - equal:
+          path: metadata.namespace
+          value: backups
+        documentIndex: 4
+      - equal:
+          path: subjects[0].namespace
+          value: backups
+        documentIndex: 2
+
+  - it: should use the default storage class unless one is set
+    asserts:
+      - notExists:
+          path: spec.storageClassName
+        documentIndex: 3
+      - equal:
+          path: spec.resources.requests.storage
+          value: 10Gi
+        documentIndex: 3
+
+  - it: should use the storage class and size from values
+    set:
+      storage:
+        storageClassName: nfs-over-tls
+        size: 20Gi
+    asserts:
+      - equal:
+          path: spec.storageClassName
+          value: nfs-over-tls
+        documentIndex: 3
+      - equal:
+          path: spec.resources.requests.storage
+          value: 20Gi
+        documentIndex: 3
+
+  - it: should run nightly, one at a time
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "30 2 * * *"
+        documentIndex: 4
+      - equal:
+          path: spec.concurrencyPolicy
+          value: Forbid
+        documentIndex: 4
+
+  - it: should take the schedule and retention from values
+    set:
+      schedule: "0 4 * * *"
+      retain: 7
+    asserts:
+      - equal:
+          path: spec.schedule
+          value: "0 4 * * *"
+        documentIndex: 4
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          value:
+            - name: RETAIN
+              value: "7"
+        documentIndex: 4
+
+  # The master taint may remain after the label moved to control-plane.
+  - it: should run on a control plane node, tolerating either taint
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.nodeSelector
+          value:
+            node-role.kubernetes.io/control-plane: ""
+        documentIndex: 4
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.tolerations
+          value:
+            - key: node-role.kubernetes.io/master
+              operator: Exists
+              effect: NoSchedule
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
+        documentIndex: 4
+
+  - it: should run the cluster's backup script with the host and the volume mounted
+    asserts:
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].image
+          value: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:0000000000000000000000000000000000000000000000000000000000000000
+        documentIndex: 4
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: chroot /host /usr/local/bin/cluster-backup.sh
+        documentIndex: 4
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes
+          value:
+            - name: host
+              hostPath:
+                path: /
+                type: Directory
+            - name: backup
+              persistentVolumeClaim:
+                claimName: etcd-backup
+        documentIndex: 4
+
+  # A backup holds the encryption key, so it is kept like a Secret.
+  - it: should keep backups readable by root only
+    asserts:
+      - matchRegex:
+          path: spec.jobTemplate.spec.template.spec.containers[0].args[0]
+          pattern: chmod 700 "\$\{dest\}"; chmod 600 "\$\{dest\}"/\*
+        documentIndex: 4
