@@ -1,0 +1,22 @@
+suite: keycloak-oauth chart
+# Note: helm-unittest renders the WHOLE chart for every test; the per-test
+# `templates:` field only filters which rendered documents assertions apply to.
+# So the missing-clientID error surfaces in oauth.yaml (which consumes it via
+# `required`).
+
+tests:
+  - it: should patch the Console resource with the required managed clusterName
+    set:
+      keycloak:
+        clientID: my-test-cluster
+    templates:
+      - templates/console.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: kind
+          value: Console
+      - equal:
+          path: spec.authentication.logoutRedirect
+          value: "https://sso.massopen.cloud/realms/moc/protocol/openid-connect/logout?client_id=my-test-cluster&post_logout_redirect_uri=https%3A%2F%2Fcilogon.org%2Flogout%2F"
