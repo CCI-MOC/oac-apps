@@ -10,13 +10,10 @@ nodes:
   - name: moc-r4pac10u31-s1c
     interface: enp1s0f1
 network:
-  # Use the subnet and a non-overlapping IP range reserved for this workload
-  # cluster, not the infra cluster's storage network.
-  cidr: ""
+  cidr: "10.9.16.0/24"
   range:
-    start: ""
-    end: ""
-  # Add the route to the Pure API using the workload storage gateway.
-  routes: []
-#    - dst: 10.3.11.50/32
-#      gw: <storage-network-gateway>
+    start: "10.9.16.230"
+    end: "10.9.16.254"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.16.1
