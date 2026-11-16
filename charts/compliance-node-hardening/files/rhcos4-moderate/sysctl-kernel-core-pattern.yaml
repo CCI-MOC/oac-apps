@@ -5,8 +5,8 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,kernel.core_pattern%20%3D%20%7C/bin/false%0A
+    - contents: |
+        kernel.core_pattern = |/bin/false
       mode: 420
       overwrite: true
       path: /etc/sysctl.d/75-sysctl_kernel_core_pattern.conf

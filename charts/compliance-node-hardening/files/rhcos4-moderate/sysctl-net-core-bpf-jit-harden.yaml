@@ -5,8 +5,8 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,net.core.bpf_jit_harden%3D2%0A
+    - contents: |
+        net.core.bpf_jit_harden=2
       mode: 420
       overwrite: true
       path: /etc/sysctl.d/75-sysctl_net_core_bpf_jit_harden.conf

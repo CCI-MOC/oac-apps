@@ -5,8 +5,7 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,
+    - contents: ''
       mode: 384
       overwrite: true
       path: /etc/securetty

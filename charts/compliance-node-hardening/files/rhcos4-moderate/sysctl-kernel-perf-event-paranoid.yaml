@@ -5,8 +5,8 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,kernel.perf_event_paranoid%3D2%0A
+    - contents: |
+        kernel.perf_event_paranoid=2
       mode: 420
       overwrite: true
       path: /etc/sysctl.d/75-sysctl_kernel_perf_event_paranoid.conf

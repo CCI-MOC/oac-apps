@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20freevxfs%20/bin/false%0Ablacklist%20freevxfs%0A
+    - contents: |
+        install freevxfs /bin/false
+        blacklist freevxfs
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/freevxfs.conf

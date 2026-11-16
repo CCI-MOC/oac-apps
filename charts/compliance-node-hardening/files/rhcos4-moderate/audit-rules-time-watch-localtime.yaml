@@ -5,8 +5,8 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,-w%20/etc/localtime%20-p%20wa%20-k%20audit_time_rules%0A
+    - contents: |
+        -w /etc/localtime -p wa -k audit_time_rules
       mode: 420
       overwrite: true
       path: /etc/audit/rules.d/75-audit_rules_time_watch_localtime.rules

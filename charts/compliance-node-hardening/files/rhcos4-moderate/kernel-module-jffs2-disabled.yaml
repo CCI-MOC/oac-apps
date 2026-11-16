@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20jffs2%20/bin/false%0Ablacklist%20jffs2%0A
+    - contents: |
+        install jffs2 /bin/false
+        blacklist jffs2
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/jffs2.conf

@@ -1,10 +1,9 @@
 {{/*
-Percent-encode text for an Ignition data: URL. Go's urlquery writes spaces
-as "+", which RFC 2397 data URLs do not decode, so encode by hand. Covers
-the characters sshd drop-ins actually contain.
+Encode text as a base64 Ignition data: URL. Percent-encoding by hand missed
+characters MCO expects escaped, so base64 avoids the mismatch entirely.
 */}}
 {{- define "cnh.dataURL" -}}
-data:,{{ . | replace "%" "%25" | replace " " "%20" | replace "\n" "%0A" | replace "#" "%23" | replace "/" "%2F" | replace "?" "%3F" | replace "," "%2C" | replace "\"" "%22" }}
+data:;base64,{{ . | b64enc }}
 {{- end -}}
 
 {{/* The sshd AllowUsers drop-in as an Ignition file entry (JSON). */}}
@@ -12,6 +11,24 @@ data:,{{ . | replace "%" "%25" | replace " " "%20" | replace "\n" "%0A" | replac
 {{- $s := .Values.sshdAllowUsers -}}
 {{- $body := printf "%s\nAllowUsers %s\n" $s.header (join " " $s.users) -}}
 {{- dict "path" (printf "/etc/ssh/sshd_config.d/%s" $s.fileName) "mode" 384 "overwrite" true "contents" (dict "source" (include "cnh.dataURL" $body)) | toJson -}}
+{{- end -}}
+
+{{/*
+Files under files/ write storage file contents as a literal string, not the
+Ignition {source: data:,...} form, so the rule text is readable instead of
+percent-encoded. Expand any such strings back into that form in place.
+*/}}
+{{- define "cnh.expandFileContents" -}}
+{{- $spec := . -}}
+{{- $storage := ($spec.config).storage -}}
+{{- if $storage -}}
+{{- range $storage.files -}}
+{{- if kindIs "string" .contents -}}
+{{- $_ := set . "contents" (dict "source" (include "cnh.dataURL" .contents)) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $spec | toJson -}}
 {{- end -}}
 
 {{/*
@@ -29,7 +46,8 @@ excludeRules. The NodePool ConfigMap asks for "worker" only.
 {{- $rule := base $path | trimSuffix ".yaml" -}}
 {{- if not (has $rule $root.Values.excludeRules) -}}
 {{- $name := ternary (printf "%s-%s-%s" $p.namePrefix $role $rule) (printf "%s-%s" $p.namePrefix $rule) $p.roleInName -}}
-{{- $out = append $out (dict "name" $name "spec" ($root.Files.Get $path | fromYaml)) -}}
+{{- $spec := include "cnh.expandFileContents" ($root.Files.Get $path | fromYaml) | fromJson -}}
+{{- $out = append $out (dict "name" $name "spec" $spec) -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20bluetooth%20/bin/false%0Ablacklist%20bluetooth%0A
+    - contents: |
+        install bluetooth /bin/false
+        blacklist bluetooth
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/bluetooth.conf

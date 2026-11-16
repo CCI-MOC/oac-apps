@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20iwlwifi%20/bin/false%0Ablacklist%20iwlwifi%0A
+    - contents: |
+        install iwlwifi /bin/false
+        blacklist iwlwifi
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/iwlwifi.conf

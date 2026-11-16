@@ -5,8 +5,7 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,%2A%20%20%20%20%20hard%20%20%20core%20%20%20%200
+    - contents: '*     hard   core    0'
       mode: 420
       overwrite: true
       path: /etc/security/limits.d/75-disable_users_coredumps.conf

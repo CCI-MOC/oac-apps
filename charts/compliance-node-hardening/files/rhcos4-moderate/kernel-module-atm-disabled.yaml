@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20atm%20/bin/false%0Ablacklist%20atm%0A
+    - contents: |
+        install atm /bin/false
+        blacklist atm
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/atm.conf

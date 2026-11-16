@@ -5,8 +5,8 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,-e%202%0A
+    - contents: |
+        -e 2
       mode: 384
       overwrite: true
       path: /etc/audit/rules.d/90-immutable.rules

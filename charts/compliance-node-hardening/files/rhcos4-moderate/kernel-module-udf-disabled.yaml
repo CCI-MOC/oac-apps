@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20udf%20/bin/false%0Ablacklist%20udf%0A
+    - contents: |
+        install udf /bin/false
+        blacklist udf
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/udf.conf

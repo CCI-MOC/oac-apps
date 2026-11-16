@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20iwlmvm%20/bin/false%0Ablacklist%20iwlmvm%0A
+    - contents: |
+        install iwlmvm /bin/false
+        blacklist iwlmvm
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/iwlmvm.conf

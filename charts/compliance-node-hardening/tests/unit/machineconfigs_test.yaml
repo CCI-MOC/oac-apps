@@ -67,7 +67,7 @@ tests:
             mode: 384
             overwrite: true
             contents:
-              source: data:,%23%20Managed%20by%20the%20compliance-node-hardening%20chart%0AAllowUsers%20core%0A
+              source: data:;base64,IyBNYW5hZ2VkIGJ5IHRoZSBjb21wbGlhbmNlLW5vZGUtaGFyZGVuaW5nIGNoYXJ0CkFsbG93VXNlcnMgY29yZQo=
         documentSelector:
           path: metadata.name
           value: 76-worker-sshd-allowusers
@@ -81,9 +81,9 @@ tests:
     set:
       sshdAllowUsers.users: [core, admin]
     asserts:
-      - matchRegex:
+      - equal:
           path: spec.config.storage.files[0].contents.source
-          pattern: AllowUsers%20core%20admin%0A$
+          value: data:;base64,IyBNYW5hZ2VkIGJ5IHRoZSBjb21wbGlhbmNlLW5vZGUtaGFyZGVuaW5nIGNoYXJ0CkFsbG93VXNlcnMgY29yZSBhZG1pbgo=
         documentSelector:
           path: metadata.name
           value: 76-master-sshd-allowusers

@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20mac80211%20/bin/false%0Ablacklist%20mac80211%0A
+    - contents: |
+        install mac80211 /bin/false
+        blacklist mac80211
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/mac80211.conf

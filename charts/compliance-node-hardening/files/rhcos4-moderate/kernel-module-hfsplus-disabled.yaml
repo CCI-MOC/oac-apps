@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,install%20hfsplus%20/bin/false%0Ablacklist%20hfsplus%0A
+    - contents: |
+        install hfsplus /bin/false
+        blacklist hfsplus
       mode: 420
       overwrite: true
       path: /etc/modprobe.d/hfsplus.conf

@@ -5,8 +5,9 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,%0Aallow%20with-interface%20match-all%20%7B%2003:%2A:%2A%2009:00:%2A%20%7D
+    - contents: |2-
+
+        allow with-interface match-all { 03:*:* 09:00:* }
       mode: 384
       overwrite: true
       path: /etc/usbguard/rules.d/75-hid-and-hub.conf

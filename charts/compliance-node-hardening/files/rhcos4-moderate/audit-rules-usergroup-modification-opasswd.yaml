@@ -5,8 +5,8 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,-w%20/etc/security/opasswd%20-p%20wa%20-k%20audit_rules_usergroup_modification%0A
+    - contents: |
+        -w /etc/security/opasswd -p wa -k audit_rules_usergroup_modification
       mode: 420
       overwrite: true
       path: /etc/audit/rules.d/75-audit_rules_usergroup_modification_opasswd.rules

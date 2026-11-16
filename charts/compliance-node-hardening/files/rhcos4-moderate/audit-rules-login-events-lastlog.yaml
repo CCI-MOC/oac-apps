@@ -5,8 +5,8 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,-w%20/var/log/lastlog%20-p%20wa%20-k%20logins%0A
+    - contents: |
+        -w /var/log/lastlog -p wa -k logins
       mode: 420
       overwrite: true
       path: /etc/audit/rules.d/75-audit_rules_login_events_lastlog.rules

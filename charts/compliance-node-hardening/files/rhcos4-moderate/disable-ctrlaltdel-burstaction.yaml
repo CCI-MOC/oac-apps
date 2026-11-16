@@ -5,8 +5,7 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,CtrlAltDelBurstAction%3Dnone
+    - contents: CtrlAltDelBurstAction=none
       mode: 420
       overwrite: true
       path: /etc/systemd/system.conf.d/disable_ctrlaltdelete_burstaction.conf

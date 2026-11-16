@@ -5,8 +5,7 @@ config:
     version: 3.1.0
   storage:
     files:
-    - contents:
-        source: data:,ClientAliveInterval%20300
+    - contents: ClientAliveInterval 300
       mode: 384
       overwrite: true
       path: /etc/ssh/sshd_config.d/00-complianceascode-sshd_set_idle_timeout.conf
