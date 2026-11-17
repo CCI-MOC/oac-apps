@@ -458,9 +458,9 @@ tests:
           path: data["project-overview.json"]
           pattern: 'container_memory_working_set_bytes\{namespace=..project-aibom'
 
-  # Without editable the anonymous role stays Viewer: an Editor could save, and
-  # nothing saved survives a restart on emptyDir.
-  - it: keeps a project without editable on Viewer and emptyDir
+  # No volume and no rollout strategy: dashboards come from git, so nothing in
+  # this Grafana needs to survive a restart.
+  - it: runs the Grafana on emptyDir with no strategy
     set:
       projects:
         - name: aibom
@@ -497,51 +497,3 @@ tests:
       - matchRegex:
           path: data["grafana.ini"]
           pattern: '\[unified_alerting\]\n(#.*\n)*enabled = false'
-
-  # editable is the second switch: Editor and a volume come together, because
-  # an Editor saving into emptyDir loses everything with the next pod.
-  - it: gives an editable project a volume and the Editor role
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-            editable: true
-    asserts:
-      - hasDocuments:
-          count: 11
-      - equal:
-          path: spec.resources.requests.storage
-          value: 512Mi
-        documentSelector:
-          path: kind
-          value: PersistentVolumeClaim
-      - matchRegex:
-          path: data["grafana.ini"]
-          pattern: "org_role = Editor"
-        documentSelector:
-          path: metadata.name
-          value: grafana-config
-
-  # A ReadWriteOnce volume stays with the old pod during a rolling update, so
-  # the new one would wait for it forever.
-  - it: replaces the pod instead of rolling it when there is a volume
-    set:
-      projects:
-        - name: aibom
-          grafana:
-            enabled: true
-            editable: true
-    documentSelector:
-      path: kind
-      value: Deployment
-    asserts:
-      - equal:
-          path: spec.strategy.type
-          value: Recreate
-      - contains:
-          path: spec.template.spec.volumes
-          content:
-            name: grafana-data
-            persistentVolumeClaim:
-              claimName: grafana-pvc

@@ -47,9 +47,8 @@ projects: []
 # retention. Its panels render even where that is the age of the pod, so check
 # platform.enabled before promising anyone fifteen days.
 #
-# grafana.editable on a project adds Explore and saving: the Editor role plus a
-# volume, so what is saved survives the pod. Without it Grafana is read only on
-# emptyDir.
+# Dashboards are read only here and come from git. Editing them in the GUI was
+# dropped in MOC-issues#685, so there is no volume and no Editor role.
 defaultGrafana:
   # The Grafana image. This chart deploys Grafana itself and sets it up from
   # files at startup, so any image with Grafana's usual paths works. This is
@@ -57,9 +56,6 @@ defaultGrafana:
   # UBI image with RHEL's Grafana package instead (FIPS crypto through RHEL's
   # OpenSSL).
   image: docker.io/grafana/grafana:11.3.0
-  # Only used with grafana.editable. The SQLite file of one project stays in
-  # the tens of MiB.
-  storage: 512Mi
   # The image the console itself uses for authenticating routes. Matches the
   # cluster version rather than trailing it: v4.14 was in here by mistake and
   # nothing depended on it. The three files this chart relies on, oauthproxy.go,

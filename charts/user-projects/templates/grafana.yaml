@@ -79,7 +79,6 @@ metadata:
     # ours to point at.
     service.beta.openshift.io/inject-cabundle: "true"
 ---
-{{- $editable := .grafana.editable | default false }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -131,11 +130,9 @@ data:
 
     [auth.anonymous]
     enabled = true
-    # Editor only together with the volume, since an Editor saving into
-    # emptyDir loses everything with the next pod. Neither role can change
-    # datasources, that is org admin, so the tenancy stays in the datasource
-    # token and namespace parameter either way.
-    org_role = {{ ternary "Editor" "Viewer" $editable }}
+    # Viewer, not Editor. Dashboards come from git, so nobody edits here, and
+    # an Editor could add a datasource on port 9091 that sees every namespace.
+    org_role = Viewer
 
     [users]
     # Viewers may still open dashboard settings and try things, they just
@@ -214,22 +211,6 @@ data:
   project-overview.json: |
     {{- include "user-projects.grafana.overviewDashboard" . | nindent 4 }}
 ---
-{{- if $editable }}
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: grafana-pvc
-  namespace: "project-{{ .name }}"
-  labels:
-    massopen.cloud/project: "{{ .name }}"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ $.Values.defaultGrafana.storage }}
----
-{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -240,12 +221,6 @@ metadata:
     app: grafana
 spec:
   replicas: 1
-  {{- if $editable }}
-  # The old pod holds the ReadWriteOnce volume, so a rolling update would
-  # leave the new one waiting for it.
-  strategy:
-    type: Recreate
-  {{- end }}
   selector:
     matchLabels:
       app: grafana
@@ -256,7 +231,7 @@ spec:
       annotations:
         # Grafana reads its files only at startup, so a changed file has to
         # restart the pod. The files depend only on these inputs and the chart.
-        checksum/config: {{ printf "%s|%s|%v|%s" $.Chart.Version .name $editable (include "user-projects.grafana.overviewDashboard" .) | sha256sum | trunc 16 | quote }}
+        checksum/config: {{ printf "%s|%s|%s" $.Chart.Version .name (include "user-projects.grafana.overviewDashboard" .) | sha256sum | trunc 16 | quote }}
     spec:
       serviceAccountName: grafana-sa
       securityContext:
@@ -331,12 +306,7 @@ spec:
           secret:
             secretName: grafana-cookie-secret
         - name: grafana-data
-          {{- if $editable }}
-          persistentVolumeClaim:
-            claimName: grafana-pvc
-          {{- else }}
           emptyDir: {}
-          {{- end }}
 ---
 apiVersion: v1
 kind: Service
