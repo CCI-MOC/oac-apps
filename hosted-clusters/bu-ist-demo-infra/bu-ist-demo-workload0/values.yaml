@@ -63,3 +63,6 @@ monitoring:
   metricsSet: SRE
   metricsForwarding:
     mode: Forward
+
+etcd:
+  storageClassName: pure-fb-nfsv4
