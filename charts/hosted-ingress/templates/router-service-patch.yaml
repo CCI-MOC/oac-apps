@@ -15,5 +15,6 @@ metadata:
   namespace: openshift-ingress
   annotations:
     argocd.argoproj.io/sync-options: ServerSideApply=true
+    argocd.argoproj.io/sync-wave: "3"
     metallb.io/address-pool: default-ingress
 {{- end }}
