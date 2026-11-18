@@ -1,0 +1,6 @@
+# No MCO here: the capacity dashboards would stay empty.
+capacityDashboard:
+  perses:
+    enabled: false
+  console:
+    enabled: false
