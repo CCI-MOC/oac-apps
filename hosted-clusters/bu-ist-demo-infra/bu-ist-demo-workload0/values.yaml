@@ -9,7 +9,7 @@ release:
 
 oauth:
   mocsso:
-    enabled: false
+    enabled: true
 
 services:
   APIServer:
