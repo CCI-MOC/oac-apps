@@ -1,0 +1,83 @@
+clusterName: compliant-dev-workload0
+release:
+  channel: stable-4.22
+  image: quay.io/openshift-release-dev/ocp-release:4.22.22-multi
+
+# The GPU hypervisor for compliant-dev-infra (MOC-issues #787): an Agent
+# cluster on the two Lenovo SD665-N V3s that were jetty's (4 x H100 each),
+# running OpenShift Virtualization. KubeVirt hosted clusters with GPU VMs
+# (andalusia, #788) run their workers on it, as oac-dev-workload2 does on
+# oac-dev-workload1. The hub is standard (three workers), so the control
+# plane keeps the chart default, HighlyAvailable.
+
+# Log in through MOC SSO. The Keycloak client comes from moc-keycloak, which
+# writes its secret to cluster/compliant-dev-infra/hostedcluster/
+# compliant-dev-workload0/keycloak-oidc. HyperShift removes kubeadmin once an
+# identity provider is set.
+oauth:
+  mocsso:
+    enabled: true
+
+services:
+  APIServer:
+    # Pinned internal LoadBalancer IP from the hub's MetalLB pool. Becomes
+    # api-internal-compliant-dev-workload0.hcp-int.nist.int.massopen.cloud.
+    ipAddress: 10.20.19.13
+
+ingress:
+  # Internal only: the guest ingress wildcard
+  # (*.apps.compliant-dev-workload0.hcp.nist.int.massopen.cloud) points here.
+  ipAddress: 10.20.20.10
+  # The guest router's LoadBalancer IP, pinned by MetalLB on the hosted
+  # cluster (hosted-ingress app). On the workers' network (VLAN 220,
+  # 10.20.20.0/23), outside its DHCP range.
+  poolAddress: 10.20.20.10/32
+
+dns:
+  enabled: true
+  autoGenerate: true
+
+nodePools:
+  - name: hypervisor
+    replicas: 2
+    agentLabelSelector:
+      openstack/resource-class: lenovo-sd665nv3-h100
+      massopen.cloud/cluster: compliant-dev-workload0
+    machineConfigs:
+      # Two ports are linked: enp195s0np0 on the workers' network and
+      # enp163s0np0 on the storage network. As on nist-dev-workload0 (eno2,
+      # 2026-10-22), the storage port keeps its address and subnet route but
+      # takes no default route or DNS from DHCP, so br-ex is always built on
+      # the workers' network.
+      - name: 80-enp163s0np0-never-default
+        files:
+          - path: /etc/NetworkManager/system-connections/enp163s0np0.nmconnection
+            mode: 0600
+            contents: |
+              [connection]
+              id=enp163s0np0
+              type=ethernet
+              interface-name=enp163s0np0
+              autoconnect-priority=10
+
+              [ipv4]
+              method=auto
+              never-default=true
+              ignore-auto-dns=true
+
+              [ipv6]
+              method=auto
+              never-default=true
+              ignore-auto-dns=true
+
+# Follow-ups, as on nist-dev-workload0:
+# - Portworx: its values need the nodes' names, known once the Agents boot.
+# - GPU passthrough: the GPU operator in sandbox mode (vm-passthrough) and
+#   KubeVirt's permittedHostDevices, as set up on jetty by #212 and #219.
+#   Untested on an Agent hosted cluster. feature-gpu stays off until then:
+#   it deploys the operator for containers, which would claim the GPUs.
+# - hypervisor-cluster.yaml, listing andalusia, when it is rebuilt (#788).
+clusterLabels:
+  massopen.cloud/feature-metallb: "true"
+  massopen.cloud/feature-virtualization: "true"
+  massopen.cloud/feature-hypervisor: "true"
