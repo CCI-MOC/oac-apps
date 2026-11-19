@@ -11,7 +11,7 @@ description: Install Portworx CSI driver on OpenShift
 # a dependency of application charts to inject those utilities and functions into the rendering
 # pipeline. Library charts do not define any templates and therefore cannot be deployed.
 type: application
-version: 0.1.4
+version: 0.1.5
 appVersion: "26.2"
 dependencies:
   - name: operator-library
