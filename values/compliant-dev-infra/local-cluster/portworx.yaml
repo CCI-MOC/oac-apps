@@ -12,13 +12,15 @@ externalSecret:
   secretStore: aws-secrets-manager
   remoteKey: "cluster/compliant-dev-infra/portworx"
 
+# The workers only: the masters run no workloads (mastersSchedulable false)
+# and mount nothing.
 nodes:
-  - name: moc-r4pac10u13-s1
-    interface: enp73s0f1np1
-  - name: moc-r4pac10u15-s1
-    interface: enp73s0f1np1
-  - name: moc-r4pac10u17-s3
-    interface: enp7s0f1np1
+  - name: moc-r4pac10u31-s1d
+    interface: eno2
+  - name: moc-r4pac10u31-s3a
+    interface: eno2
+  - name: moc-r4pac10u31-s3b
+    interface: eno2
 
 network:
   cidr: "10.9.7.0/24"
