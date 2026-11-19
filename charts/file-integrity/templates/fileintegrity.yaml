@@ -1,0 +1,18 @@
+{{- with .Values.fileIntegrity }}
+apiVersion: fileintegrity.openshift.io/v1alpha1
+kind: FileIntegrity
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  nodeSelector:
+    {{- toYaml .nodeSelector | nindent 4 }}
+  tolerations:
+    {{- toYaml .tolerations | nindent 4 }}
+  config:
+    gracePeriod: {{ .gracePeriod }}
+    maxBackups: {{ .maxBackups }}
+{{- end }}

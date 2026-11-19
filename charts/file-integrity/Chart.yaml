@@ -1,0 +1,9 @@
+apiVersion: v2
+name: file-integrity
+description: File Integrity Operator (AIDE) on every node
+version: 0.1.0
+type: application
+dependencies:
+  - name: operator-library
+    version: "0.1.0"
+    repository: "file://../operator-library"
