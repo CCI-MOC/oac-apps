@@ -1,0 +1,7 @@
+# compliant-dev-infra runs LVM Storage on its workers (lvmcluster.yaml),
+# which rewrites its volume group's metadata archive and backup each time
+# it makes a volume. Each hosted cluster's etcd is such a volume.
+fileIntegrity:
+  extraExcludes:
+    - /hostroot/etc/lvm/archive
+    - /hostroot/etc/lvm/backup
