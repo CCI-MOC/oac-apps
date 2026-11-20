@@ -10,73 +10,44 @@ tests:
       - hasDocuments:
           count: 0
 
-  - it: should render RBAC and a Patch CR for a selector rule
+  - it: should render one enforced ConfigurationPolicy per rule
     set:
       rules:
         - name: gpu-workers
           matchLabels:
             node-role.kubernetes.io/worker: ""
           labels:
-            nvidia.com/gpu.deploy.operands: "true"
+            example.com/x: "y"
+        - name: storage-box
+          nodeNames:
+            - worker-1
+          labels:
+            openshift.moc/storage: "true"
     asserts:
       - hasDocuments:
-          count: 5
+          count: 2
       - containsDocument:
-          kind: Namespace
-          apiVersion: v1
-          name: node-labels
-          any: true
+          kind: ConfigurationPolicy
+          apiVersion: policy.open-cluster-management.io/v1
+          name: node-labels-gpu-workers
+          namespace: local-cluster
+        documentIndex: 0
       - containsDocument:
-          kind: ServiceAccount
-          apiVersion: v1
-          name: node-labels-patch-operator
-          any: true
-      - containsDocument:
-          kind: ClusterRole
-          apiVersion: rbac.authorization.k8s.io/v1
-          name: node-labels-patch-operator
-          any: true
-      - containsDocument:
-          kind: ClusterRoleBinding
-          apiVersion: rbac.authorization.k8s.io/v1
-          name: node-labels-patch-operator
-          any: true
-      - containsDocument:
-          kind: Patch
-          apiVersion: redhatcop.redhat.io/v1alpha1
-          name: gpu-workers
-          any: true
+          kind: ConfigurationPolicy
+          apiVersion: policy.open-cluster-management.io/v1
+          name: node-labels-storage-box
+          namespace: local-cluster
+        documentIndex: 1
+      - equal:
+          path: spec.remediationAction
+          value: enforce
+      - matchRegex:
+          path: spec["object-templates-raw"]
+          pattern: "complianceType: musthave"
 
-  - it: should grant only get/list/patch on nodes
+  - it: should put the policies in policyNamespace
     set:
-      rules:
-        - name: gpu-workers
-          matchLabels:
-            node-role.kubernetes.io/worker: ""
-          labels:
-            example.com/x: "y"
-    asserts:
-      - equal:
-          path: rules[0].apiGroups
-          value: [""]
-        documentSelector:
-          path: kind
-          value: ClusterRole
-      - equal:
-          path: rules[0].resources
-          value: ["nodes"]
-        documentSelector:
-          path: kind
-          value: ClusterRole
-      - equal:
-          path: rules[0].verbs
-          value: ["get", "list", "patch"]
-        documentSelector:
-          path: kind
-          value: ClusterRole
-
-  - it: should place the Patch and ServiceAccount in the node-labels namespace
-    set:
+      policyNamespace: jetty
       rules:
         - name: gpu-workers
           matchLabels:
@@ -86,83 +57,9 @@ tests:
     asserts:
       - equal:
           path: metadata.namespace
-          value: node-labels
-        documentSelector:
-          path: kind
-          value: ServiceAccount
-      - equal:
-          path: metadata.namespace
-          value: node-labels
-        documentSelector:
-          path: kind
-          value: Patch
+          value: jetty
 
-  - it: should target nodes by labelSelector for a selector rule
-    set:
-      rules:
-        - name: gpu-workers
-          matchLabels:
-            node-role.kubernetes.io/worker: ""
-          labels:
-            nvidia.com/gpu.deploy.operands: "true"
-    asserts:
-      - equal:
-          path: spec.patches.gpu-workers.targetObjectRef.kind
-          value: Node
-        documentSelector:
-          path: kind
-          value: Patch
-      - notExists:
-          path: spec.patches.gpu-workers.targetObjectRef.name
-        documentSelector:
-          path: kind
-          value: Patch
-      - equal:
-          path: spec.patches.gpu-workers.targetObjectRef.labelSelector.matchLabels["node-role.kubernetes.io/worker"]
-          value: ""
-        documentSelector:
-          path: kind
-          value: Patch
-
-  - it: should use a strategic merge patch that sets the requested labels
-    set:
-      rules:
-        - name: gpu-workers
-          matchLabels:
-            node-role.kubernetes.io/worker: ""
-          labels:
-            nvidia.com/gpu.deploy.operands: "true"
-    asserts:
-      - equal:
-          path: spec.patches.gpu-workers.patchType
-          value: application/strategic-merge-patch+json
-        documentSelector:
-          path: kind
-          value: Patch
-      - matchRegex:
-          path: spec.patches.gpu-workers.patchTemplate
-          pattern: 'nvidia.com/gpu.deploy.operands: "true"'
-        documentSelector:
-          path: kind
-          value: Patch
-
-  - it: should quote label values so they are always strings
-    set:
-      rules:
-        - name: gpu-workers
-          matchLabels:
-            node-role.kubernetes.io/worker: ""
-          labels:
-            example.com/enabled: true
-    asserts:
-      - matchRegex:
-          path: spec.patches.gpu-workers.patchTemplate
-          pattern: 'example.com/enabled: "true"'
-        documentSelector:
-          path: kind
-          value: Patch
-
-  - it: should set the SkipDryRunOnMissingResource sync option on the Patch
+  - it: should set the SkipDryRunOnMissingResource sync option
     set:
       rules:
         - name: gpu-workers
@@ -174,34 +71,78 @@ tests:
       - equal:
           path: metadata.annotations["argocd.argoproj.io/sync-options"]
           value: SkipDryRunOnMissingResource=true
-        documentSelector:
-          path: kind
-          value: Patch
 
-  - it: should emit labelTemplates verbatim for per-node values
+  - it: should range over the nodes that match matchLabels
     set:
       rules:
-        - name: topology-zone
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            nvidia.com/gpu.deploy.operands: "true"
+    asserts:
+      - matchRegex:
+          path: spec["object-templates-raw"]
+          pattern: '\{\{- range \(lookup "v1" "Node" "" "" "node-role.kubernetes.io/worker="\).items \}\}'
+      - matchRegex:
+          path: spec["object-templates-raw"]
+          pattern: 'name: \{\{ .metadata.name \}\}'
+      - matchRegex:
+          path: spec["object-templates-raw"]
+          pattern: 'nvidia.com/gpu.deploy.operands: "true"'
+
+  - it: should turn matchExpressions into a label selector string
+    set:
+      rules:
+        - name: exprs
+          matchLabels:
+            a: b
           matchExpressions:
             - key: kubernetes.io/hostname
               operator: Exists
-          labelTemplates:
-            topology.kubernetes.io/zone: "{{ (index . 0).metadata.name }}"
+            - key: example.com/skip
+              operator: DoesNotExist
+            - key: example.com/rack
+              operator: In
+              values: [r1, r2]
+            - key: example.com/zone
+              operator: NotIn
+              values: [z9]
+          labels:
+            example.com/x: "y"
     asserts:
-      - equal:
-          path: spec.patches.topology-zone.targetObjectRef.labelSelector.matchExpressions[0].operator
-          value: Exists
-        documentSelector:
-          path: kind
-          value: Patch
       - matchRegex:
-          path: spec.patches.topology-zone.patchTemplate
-          pattern: 'topology.kubernetes.io/zone: "\{\{ \(index . 0\).metadata.name \}\}"'
-        documentSelector:
-          path: kind
-          value: Patch
+          path: spec["object-templates-raw"]
+          pattern: '"a=b,kubernetes.io/hostname,!example.com/skip,example.com/rack in \(r1,r2\),example.com/zone notin \(z9\)"'
 
-  - it: should allow both labels and labelTemplates on one rule
+  - it: should fail on an unsupported matchExpressions operator
+    set:
+      rules:
+        - name: bad
+          matchExpressions:
+            - key: a
+              operator: Gt
+              values: ["1"]
+          labels:
+            example.com/x: "y"
+    asserts:
+      - failedTemplate:
+          errorMessage: 'node-labels: matchExpressions operator "Gt" is not supported'
+
+  - it: should quote label values so they are always strings
+    set:
+      rules:
+        - name: gpu-workers
+          matchLabels:
+            node-role.kubernetes.io/worker: ""
+          labels:
+            example.com/enabled: true
+    asserts:
+      - matchRegex:
+          path: spec["object-templates-raw"]
+          pattern: 'example.com/enabled: "true"'
+
+  - it: should emit labelTemplates verbatim for per-node values
     set:
       rules:
         - name: mixed
@@ -210,22 +151,16 @@ tests:
           labels:
             example.com/static: "yes"
           labelTemplates:
-            example.com/node: "{{ (index . 0).metadata.name }}"
+            topology.kubernetes.io/zone: "{{ .metadata.name }}"
     asserts:
       - matchRegex:
-          path: spec.patches.mixed.patchTemplate
+          path: spec["object-templates-raw"]
           pattern: 'example.com/static: "yes"'
-        documentSelector:
-          path: kind
-          value: Patch
       - matchRegex:
-          path: spec.patches.mixed.patchTemplate
-          pattern: 'example.com/node: "\{\{ \(index . 0\).metadata.name \}\}"'
-        documentSelector:
-          path: kind
-          value: Patch
+          path: spec["object-templates-raw"]
+          pattern: 'topology.kubernetes.io/zone: "\{\{ .metadata.name \}\}"'
 
-  - it: should target nodes by name for a nodeNames rule
+  - it: should label named nodes only if they exist, never create them
     set:
       rules:
         - name: storage-box
@@ -235,50 +170,15 @@ tests:
           labels:
             openshift.moc/storage: "true"
     asserts:
-      - containsDocument:
-          kind: Patch
-          apiVersion: redhatcop.redhat.io/v1alpha1
-          name: storage-box
-          any: true
-      - equal:
-          path: spec.patches.worker-1.targetObjectRef.name
-          value: worker-1
-        documentSelector:
-          path: kind
-          value: Patch
-      - equal:
-          path: spec.patches.worker-2.targetObjectRef.name
-          value: worker-2
-        documentSelector:
-          path: kind
-          value: Patch
-
-  - it: should render one Patch CR per rule
-    set:
-      rules:
-        - name: gpu-workers
-          matchLabels:
-            node-role.kubernetes.io/worker: ""
-          labels:
-            example.com/x: "y"
-        - name: storage-box
-          nodeNames:
-            - worker-1
-          labels:
-            openshift.moc/storage: "true"
-    asserts:
-      - hasDocuments:
-          count: 6
-      - containsDocument:
-          kind: Patch
-          apiVersion: redhatcop.redhat.io/v1alpha1
-          name: gpu-workers
-          any: true
-      - containsDocument:
-          kind: Patch
-          apiVersion: redhatcop.redhat.io/v1alpha1
-          name: storage-box
-          any: true
+      - matchRegex:
+          path: spec["object-templates-raw"]
+          pattern: '\{\{- with \(lookup "v1" "Node" "" "worker-1"\) \}\}\{\{- if .metadata \}\}'
+      - matchRegex:
+          path: spec["object-templates-raw"]
+          pattern: '\{\{- with \(lookup "v1" "Node" "" "worker-2"\) \}\}\{\{- if .metadata \}\}'
+      - notMatchRegex:
+          path: spec["object-templates-raw"]
+          pattern: "range"
 
   - it: should fail closed when a rule sets both a selector and nodeNames
     set:

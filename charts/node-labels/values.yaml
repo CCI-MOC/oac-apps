@@ -1,19 +1,20 @@
-# Namespace that holds the ServiceAccount, RBAC, and Patch resources.
-namespace: node-labels
+# Namespace of the ConfigurationPolicies: the cluster's own namespace, where
+# ACM's config-policy-controller reads them. On a hub that is local-cluster.
+policyNamespace: local-cluster
 
-# List of node-label rules. Each rule renders one patch-operator Patch CR that
-# strategic-merges the given labels onto the matching nodes. A strategic merge
-# only sets the listed keys, so labels applied by the installer or by operators
-# are left untouched, and patch-operator continuously re-applies them on drift.
+# List of node-label rules. Each rule renders one ACM ConfigurationPolicy that
+# merges the given labels onto the matching nodes. It sets only the listed
+# keys, so labels applied by the installer or by operators are left untouched,
+# and the policy controller puts them back if they drift.
 #
 # Each rule targets nodes EITHER by selector (matchLabels / matchExpressions)
 # OR by explicit nodeNames -- exactly one mode, never both. Every rule must set
 # a name and at least one of labels / labelTemplates; the template fails closed
 # otherwise.
 #
-# labels are literal key/value pairs. labelTemplates are patch-operator Go
-# templates evaluated per matched node at apply time, with the target node
-# available as (index . 0) -- use this for per-node values.
+# labels are literal key/value pairs. labelTemplates are ACM templates
+# evaluated per matched node, with the node as "." -- use this for per-node
+# values.
 rules:
   - name: local-storage
     matchLabels:
@@ -23,17 +24,17 @@ rules:
 
   # HCP requires each management-cluster node to carry a UNIQUE
   # topology.kubernetes.io/zone, or all hosted control-plane pods land on one
-  # node (single point of failure). patch-operator evaluates the template once
+  # node (single point of failure). The policy evaluates the template once
   # per node, so each node's zone is set to its own name automatically.
   - name: topology-zone
     matchLabels:
       node-role.kubernetes.io/worker: ""
     labelTemplates:
-      topology.kubernetes.io/zone: "{{ (index . 0).metadata.name }}"
+      topology.kubernetes.io/zone: "{{ .metadata.name }}"
 
 # Examples:
 #
-# - name: gpu-workers                       # names the Patch CR (required)
+# - name: gpu-workers                       # names the policy (required)
 #   matchLabels:                            # selector branch
 #     node-role.kubernetes.io/worker: ""
 #   labels:                                 # literal labels
