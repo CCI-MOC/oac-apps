@@ -48,3 +48,17 @@ image: ""
 storage:
   storageClassName: ""
   size: 10Gi
+
+# Hosted clusters whose etcd this hub runs (pods etcd-0..2 in the namespace
+# clusters-<name>), each backed up by its own CronJob, etcd-backup-<name>,
+# to its own volume. The job runs etcdctl snapshot save inside a ready etcd
+# pod and streams the file out, so it needs no privileges, only exec in
+# that namespace, and API access (the namespace's egress policy must allow
+# it). A hosted cluster's Secrets are encrypted with a key kept on the hub
+# (<name>-etcd-encryption-key in the HostedCluster's namespace), which the
+# hub's own backup holds: a restore needs both.
+#   hostedClusters:
+#     - name: compliant-dev-workload0
+hostedClusters: []
+# 30 minutes after the hub's own backup.
+hostedSchedule: "0 3 * * *"

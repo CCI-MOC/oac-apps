@@ -1,0 +1,132 @@
+{{- range .Values.hostedClusters }}
+{{- $hcp := printf "clusters-%s" .name }}
+{{- $job := printf "etcd-backup-%s" .name }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $job }}
+  namespace: {{ $.Values.namespace }}
+---
+# Only what the job does: find a ready etcd pod and exec in it.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $job }}
+  namespace: {{ $hcp }}
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $job }}
+  namespace: {{ $hcp }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $job }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $job }}
+    namespace: {{ $.Values.namespace }}
+---
+# About 140 MB per snapshot (compliant-dev-workload0, 2026-11-20). As with
+# the hub's volume, set Retain and record the volume's name (values.yaml,
+# under storage).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $job }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with $.Values.storage.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $.Values.storage.size }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $job }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  schedule: {{ $.Values.hostedSchedule | quote }}
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          serviceAccountName: {{ $job }}
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: backup
+              image: {{ required "image is required (oc adm release info --image-for=cli)" $.Values.image }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: [ALL]}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {cpu: 500m, memory: 512Mi}
+              env:
+                - name: NS
+                  value: {{ $hcp }}
+                - name: RETAIN
+                  value: {{ $.Values.retain | quote }}
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  umask 077
+                  ts=$(date -u +%Y-%m-%dT%H%M%SZ)
+                  pod=$(oc get pods -n "$NS" -l app=etcd -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.conditions[?(@.type=="Ready")].status}{"\n"}{end}' | awk '$2=="True"{print $1; exit}')
+                  [ -n "$pod" ] || { echo "no ready etcd pod in $NS" >&2; exit 1; }
+                  snap=/tmp/etcd-backup-${ts}.db   # the pod's emptyDir, not etcd's volume
+                  ex() { oc exec -n "$NS" "$pod" -c etcd -- "$@"; }
+                  trap 'ex rm -f "$snap" || true' EXIT
+
+                  echo "== snapshot of $NS/$pod at $ts"
+                  ex env ETCDCTL_API=3 etcdctl --endpoints=https://localhost:2379 \
+                    --cacert=/etc/etcd/tls/etcd-ca/ca.crt \
+                    --cert=/etc/etcd/tls/client/etcd-client.crt \
+                    --key=/etc/etcd/tls/client/etcd-client.key \
+                    snapshot save "$snap"
+                  ex etcdutl snapshot status "$snap" -w table
+                  want=$(ex sha256sum "$snap" | awk '{print $1}')
+
+                  dest=/backup/$ts
+                  mkdir -p "$dest"
+                  ex cat "$snap" > "$dest/snapshot.db"
+                  got=$(sha256sum "$dest/snapshot.db" | awk '{print $1}')
+                  # Integrity: the copy must match the file etcdutl checked.
+                  [ "$got" = "$want" ] || { echo "copy hash $got != $want" >&2; rm -rf "$dest"; exit 1; }
+                  echo "$got  snapshot.db" > "$dest/SHA256SUMS"
+                  printf '%s %s\n' "$ts" "$pod" > /backup/LATEST
+
+                  ls -1d /backup/20*/ | sort | head -n -"$RETAIN" | xargs -r rm -rf
+                  echo "== kept: $(ls -1d /backup/20*/ | wc -l) backups"
+                  du -sh "$dest"
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: {{ $job }}
+{{- end }}
