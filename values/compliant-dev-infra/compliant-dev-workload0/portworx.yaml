@@ -1,0 +1,32 @@
+# compliant-dev-workload0: FlashBlade realm compliant-dev-workload0
+# (VIP 10.9.12.10, VLAN 2318, everpure-moc realms.yaml; MOC-issues #789).
+portworx:
+  # As on the hub: Thanos cannot start with a read-only .snapshot directory.
+  snapshot_directory: "false"
+  # A compliant cluster: NFS over TLS only (tlshd on every node, from the
+  # nfs-tls chart), and the realm's TLS export policy.
+  tls: true
+
+externalSecret:
+  secretStore: aws-secrets-manager
+  remoteKey: "cluster/compliant-dev-workload0/portworx"
+
+# The storage port of each SD665 (the NodePool keeps it off the default
+# route and DNS; this chart now does the same, #261).
+nodes:
+  - name: a0-88-c2-27-c0-d4
+    interface: enp163s0np0
+  - name: a0-88-c2-27-c2-d4
+    interface: enp163s0np0
+
+# DHCP hands out .20-.130 (naved, 2026-11-20). Portworx and
+# object-storage-proxy share .131-.250: whereabouts keeps one pool per
+# subnet, so the two never get the same address (as on oac-prod-workload0).
+network:
+  cidr: "10.9.12.0/24"
+  range:
+    start: "10.9.12.131"
+    end: "10.9.12.250"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.12.1
