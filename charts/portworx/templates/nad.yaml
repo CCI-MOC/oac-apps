@@ -13,6 +13,7 @@ spec:
       "name": "br-storage",
       "type": "bridge",
       "bridge": "br-storage",
+      "mtu": 9000,
       "ipam": {
         "type": "whereabouts",
         "range": "{{ $cidr }}",
