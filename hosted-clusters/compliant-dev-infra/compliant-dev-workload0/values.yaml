@@ -39,11 +39,7 @@ dns:
 
 nodePools:
   - name: hypervisor
-    # 0 while the root disk encryption below is added: an InPlace pool
-    # cannot change a running node's disks, so both nodes are released
-    # and reinstalled. Back to 2 in a follow-up, once both Agents are back
-    # in discovery (MOC-issues #787).
-    replicas: 0
+    replicas: 2
     agentLabelSelector:
       openstack/resource-class: lenovo-sd665nv3-h100
       massopen.cloud/cluster: compliant-dev-workload0
