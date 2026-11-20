@@ -1,0 +1,11 @@
+# GPU passthrough (MOC-issues #787): workload0's H100s, bound to vfio-pci
+# and advertised by the GPU Operator's sandbox device plugin. Set by hand
+# on 2026-11-20, when a test VM ran CUDA on one; this takes it over.
+permittedHostDevices:
+  pciHostDevices:
+    - pciDeviceSelector: "10DE:2330"
+      resourceName: nvidia.com/GH100_H100_SXM5_80GB
+      externalResourceProvider: true
+# andalusia's GPU workers are 64 vCPUs: over 63, HCO's default ratio of 4
+# gives a VM a virtual IOMMU and QEMU refuses it the GPUs.
+maxHotplugRatio: 1

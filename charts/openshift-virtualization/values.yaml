@@ -16,5 +16,22 @@ workloadTolerations:
   - operator: Exists
     effect: NoSchedule
 
+# Host PCI devices VMs may request, rendered verbatim into
+# spec.permittedHostDevices. For GPU passthrough with the NVIDIA GPU
+# Operator in vm-passthrough mode, its sandbox device plugin advertises the
+# GPUs, so KubeVirt must not run its own (externalResourceProvider):
+#   permittedHostDevices:
+#     pciHostDevices:
+#       - pciDeviceSelector: "10DE:2330"
+#         resourceName: nvidia.com/GH100_H100_SXM5_80GB
+#         externalResourceProvider: true
+permittedHostDevices: {}
+
+# spec.liveUpdateConfiguration.maxHotplugRatio; unset keeps HCO's default
+# (4). Set 1 on GPU hypervisors: at 4, a VM over 63 vCPUs gets a virtual
+# IOMMU and QEMU refuses to pass it host devices. 1 turns CPU and memory
+# hotplug off for every VM on the cluster.
+maxHotplugRatio: null
+
 storageProfilePatch:
   storageClassName: pure-fb-nfsv4
