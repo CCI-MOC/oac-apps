@@ -87,3 +87,11 @@ tests:
       - contains:
           path: spec.template.spec.syncPolicy.syncOptions
           content: RespectIgnoreDifferences=true
+
+  - it: should name each Helm release after its component, within Helm's 53 characters
+    set:
+      hubName: compliant-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.spec.source.helm.releaseName
+          value: "{{component}}"
