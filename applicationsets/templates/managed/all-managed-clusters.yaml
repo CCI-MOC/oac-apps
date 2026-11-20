@@ -39,6 +39,11 @@ spec:
         targetRevision: main
         path: "charts/{{`{{component}}`}}"
         helm:
+          # Helm caps release names at 53 characters, and the default (the
+          # Application name, <cluster>-<component>) passes it for long
+          # cluster names (compliant-dev-workload0-cluster-observability-
+          # operator is 54). No chart here uses .Release.Name.
+          releaseName: "{{`{{component}}`}}"
           ignoreMissingValueFiles: true
           valueFiles:
             - "/values/{{ $hub }}/{{`{{component}}`}}.yaml"
