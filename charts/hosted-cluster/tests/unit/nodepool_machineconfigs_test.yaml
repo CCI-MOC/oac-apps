@@ -85,3 +85,40 @@ tests:
       - matchRegex:
           path: data.config
           pattern: "kernelArguments:\\n\\s*- nosmt"
+
+  - it: should pass luks and filesystems through to Ignition storage
+    set:
+      nodePools:
+        - name: hypervisor
+          replicas: 2
+          agentLabelSelector: {role: worker}
+          machineConfigs:
+            - name: 98-root-luks-tang
+              kernelArguments: [rd.neednet=1]
+              luks:
+                - name: root
+                  device: /dev/disk/by-partlabel/root
+                  clevis:
+                    tang:
+                      - url: http://tang.example:80
+                        thumbprint: abc
+              filesystems:
+                - device: /dev/mapper/root
+                  format: xfs
+                  label: root
+    asserts:
+      - matchRegex:
+          path: data.config
+          pattern: "luks:\\n\\s+- clevis:\\n\\s+tang:"
+      - matchRegex:
+          path: data.config
+          pattern: "url: http://tang.example:80"
+      - matchRegex:
+          path: data.config
+          pattern: "device: /dev/mapper/root"
+      - matchRegex:
+          path: data.config
+          pattern: "- rd.neednet=1"
+      - matchRegex:
+          path: data.config
+          pattern: "files: \\[\\]"

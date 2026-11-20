@@ -115,7 +115,11 @@ pushSecrets:
 #           mode: 0600
 #           contents: |
 #             ...
-# An entry may set `kernelArguments` instead of, or as well as, `files`.
+# An entry may set `kernelArguments` instead of, or as well as, `files`,
+# and `luks` and `filesystems` (Ignition's storage.luks and
+# storage.filesystems, verbatim) to encrypt the root disk. Those apply only
+# at a node's first boot: add them to a pool with no nodes, or replace the
+# nodes, since an InPlace pool cannot change a disk.
 #
 # KubeVirt pools take these too, for GPU VMs (all optional):
 #   nodeSelector: {kubernetes.io/hostname: <node>}  # where the VMs may run
