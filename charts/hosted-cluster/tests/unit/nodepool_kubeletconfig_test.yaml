@@ -1,0 +1,55 @@
+suite: NodePool kubeletConfig
+templates:
+  - templates/nodepool-kubeletconfig.yaml
+  - templates/nodepool.yaml
+set:
+  clusterName: test-cluster
+  baseDomain: apps.infra.oac.int.massopen.cloud
+  managementCluster: test-hub
+  hcpInternalDomain: hcp.infra.oac.int.massopen.cloud
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:4.21.0-multi
+
+tests:
+  - it: should render no KubeletConfig without kubeletConfig
+    template: templates/nodepool-kubeletconfig.yaml
+    set:
+      nodePools:
+        - {name: compute, replicas: 1, agentLabelSelector: {role: worker}}
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should wrap the fields in a KubeletConfig in a ConfigMap
+    template: templates/nodepool-kubeletconfig.yaml
+    set:
+      nodePools:
+        - name: hypervisor
+          replicas: 2
+          agentLabelSelector: {role: worker}
+          kubeletConfig:
+            podPidsLimit: 32768
+    asserts:
+      - equal:
+          path: metadata.name
+          value: test-cluster-hypervisor-kubelet
+      - matchRegex:
+          path: data.config
+          pattern: "kind: KubeletConfig"
+      - matchRegex:
+          path: data.config
+          pattern: "kubeletConfig:\\n\\s+podPidsLimit: 32768"
+
+  - it: should add it to the pool's config
+    template: templates/nodepool.yaml
+    set:
+      nodePools:
+        - name: hypervisor
+          replicas: 2
+          agentLabelSelector: {role: worker}
+          kubeletConfig:
+            podPidsLimit: 32768
+    asserts:
+      - contains:
+          path: spec.config
+          content: {name: test-cluster-hypervisor-kubelet}
