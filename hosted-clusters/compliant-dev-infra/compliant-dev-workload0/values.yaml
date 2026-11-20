@@ -39,7 +39,11 @@ dns:
 
 nodePools:
   - name: hypervisor
-    replicas: 2
+    # 0 while the root disk encryption below is added: an InPlace pool
+    # cannot change a running node's disks, so both nodes are released
+    # and reinstalled. Back to 2 in a follow-up, once both Agents are back
+    # in discovery (MOC-issues #787).
+    replicas: 0
     agentLabelSelector:
       openstack/resource-class: lenovo-sd665nv3-h100
       massopen.cloud/cluster: compliant-dev-workload0
@@ -69,6 +73,28 @@ nodePools:
               method=auto
               never-default=true
               ignore-auto-dns=true
+      # Root disk encryption (800-171 3.13.16), as on the hub: LUKS2 over
+      # RHCOS's root partition, unlocked at boot through Tang (naved's
+      # server; this network reaches it since 2026-11-20, #810). By name
+      # (moc-dns #41), so a move only copies the keys. pbkdf2:
+      # argon2 is not allowed in FIPS mode. Applies at first boot only.
+      - name: 98-root-luks-tang
+        kernelArguments: [rd.neednet=1]
+        luks:
+          - name: root
+            device: /dev/disk/by-partlabel/root
+            label: luks-root
+            wipeVolume: true
+            options: [--cipher, aes-xts-plain64, --pbkdf, pbkdf2]
+            clevis:
+              tang:
+                - url: http://tang.massopen.cloud:80
+                  thumbprint: bE20pSI2fW6K6DjHtBwjFosH9XgBV0VsA11247u-qfI
+        filesystems:
+          - device: /dev/mapper/root
+            format: xfs
+            label: root
+            wipeFilesystem: true
 
 # Follow-ups, as on nist-dev-workload0:
 # - Portworx: its values need the nodes' names, known once the Agents boot.
