@@ -12,12 +12,22 @@ metadata:
     # them. SkipDryRun is still needed because the CRD is absent on a first sync.
     argocd.argoproj.io/sync-wave: "1"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-{{- with .Values.workloadTolerations }}
+{{- if or .Values.workloadTolerations .Values.permittedHostDevices .Values.maxHotplugRatio }}
 spec:
+  {{- with .Values.workloadTolerations }}
   workloads:
     nodePlacement:
       tolerations:
         {{- toYaml . | nindent 8 }}
+  {{- end }}
+  {{- with .Values.permittedHostDevices }}
+  permittedHostDevices:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.maxHotplugRatio }}
+  liveUpdateConfiguration:
+    maxHotplugRatio: {{ . }}
+  {{- end }}
 {{- else }}
 # An empty spec is what the operator's own catalog example ships: HCO then
 # applies the full set of defaults for the version actually installed.
