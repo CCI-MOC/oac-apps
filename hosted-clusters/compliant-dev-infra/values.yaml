@@ -32,7 +32,18 @@ oauth:
 
 imageConfig:
   registrySources:
-    allowedRegistries: [quay.io, registry.redhat.io, registry.connect.redhat.com, registry.access.redhat.com, nvcr.io]
+    allowedRegistries:
+      - quay.io
+      - registry.redhat.io
+      - registry.connect.redhat.com
+      - registry.access.redhat.com
+      - nvcr.io
+      # Storage, as on the hub: CSI sidecars, the Portworx CSI driver and
+      # attacher, object-storage-proxy, and tlshd (nfs-tls).
+      - registry.k8s.io/sig-storage
+      - docker.io/portworx
+      - docker.io/library/haproxy
+      - ghcr.io/eldritchjs
   # Where ImageStreams may import from (ocp4-moderate
   # ocp-allowed-registries-for-import); as on jetty.
   allowedRegistriesForImport:

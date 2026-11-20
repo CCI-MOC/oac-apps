@@ -93,7 +93,6 @@ nodePools:
             wipeFilesystem: true
 
 # Follow-ups, as on nist-dev-workload0:
-# - Portworx: its values need the nodes' names, known once the Agents boot.
 # - GPU passthrough: the GPU operator in sandbox mode (vm-passthrough) and
 #   KubeVirt's permittedHostDevices, as set up on jetty by #212 and #219.
 #   Untested on an Agent hosted cluster. feature-gpu stays off until then:
@@ -103,3 +102,4 @@ clusterLabels:
   massopen.cloud/feature-metallb: "true"
   massopen.cloud/feature-virtualization: "true"
   massopen.cloud/feature-hypervisor: "true"
+  massopen.cloud/feature-portworx: "true"

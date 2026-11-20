@@ -1,0 +1,46 @@
+# compliant-dev-workload0's S3 endpoint, in front of its FlashBlade realm.
+backend:
+  address: 10.9.12.10
+  verify: false
+  # The realm's self-signed certificate (compliant-dev-workload0::realm-cert,
+  # made by everpure-moc's flashblade_realm role, 2026-11-18).
+  cacert: |
+    -----BEGIN CERTIFICATE-----
+    MIIEYjCCAsqgAwIBAgIUMEDWx+oLmNoIlDFXiDKntuzJGocwDQYJKoZIhvcNAQEL
+    BQAwFTETMBEGA1UEAwwKMTAuOS4xMi4xMDAeFw0yNjExMTkxNjU5MjNaFw0yODEx
+    MTgxNjU5MjNaMBUxEzARBgNVBAMMCjEwLjkuMTIuMTAwggGiMA0GCSqGSIb3DQEB
+    AQUAA4IBjwAwggGKAoIBgQCGTGfNgP6PqyoiVhKz1NkO2U4rfXXhYWlu5rFZMAZl
+    g9TxQ2hdjTjAK0Eoy/fwxTORabFIKrlp/zvwObsiLPExMrAqEUyTIw2bRkiC9t+4
+    ySH4OuAI98YSUhaIZZZpvUbka9nr4kxZj0LcylOxXP6FospLfRuohakjAYpZiuDC
+    lVM36kBesFWlObTAVXNjjMM9iQHjzzj2kTXsnh4BP87doBDTQWmQmwjaSSAvNBsY
+    HN4bBWE2Kq3UwvgoKQE4YjzYtf4gKpdH3gN5d2Gy3rSNimHpiXnSd/jvpgx8Qott
+    5VtMHMhu+0s/DOqha1uWaZONQsoy+H6Vxoo9EaQ+E1m1osWiq8UC3rveJk+HLaj0
+    40O6n6nnwOGIOFemNoATjVIN0va/Zbwws5r9obFlpxILpZY04qdXwMRRKTrVRzrB
+    HHyYFSXS1rfy6HNfdMmEx4NhW5ZMOLlmFuzkgFfBS8vkfyT1kclAo8qdOLgbs/HU
+    wh+hJG+EHTp90v5cSDz7rPECAwEAAaOBqTCBpjAdBgNVHQ4EFgQUDGl2b2fritWK
+    Nn0g+Ap2PYmlEN0wHwYDVR0jBBgwFoAUDGl2b2fritWKNn0g+Ap2PYmlEN0wEgYD
+    VR0TAQH/BAgwBgEB/wIBADAOBgNVHQ8BAf8EBAMCAqQwEwYDVR0lBAwwCgYIKwYB
+    BQUHAwEwDwYDVR0RBAgwBocECgkMCjAaBgNVHR4BAf8EEDAOoAwwCocICgkMCv//
+    //8wDQYJKoZIhvcNAQELBQADggGBAH9JqPGr4DGuJDIdW72YZQJnogm0Txd9P+ZB
+    cfOCTCE03U6h5cjT3SN5n7L/PN7H627aokZkpzmwq3Qf2Ifgs5fZ5jg3CjMLZrqD
+    LjJlW17gb+YoxkE/t5bPq4liGDMAEBdDTdAn3XVlWK8UUbqzsJBeDY7Du2+7cAws
+    6Km+5+MBFZ8SNNpGAhLL1+eSCsjH/H6/jvYJzyjM6CtgTYHV//mW+cf/0YKtKmmh
+    FCey0BuPTHlA7v4toiFASHz+e3MWtlde5VTMrkR6wTd/CygtoejgsY1Amz+Bi4jV
+    XcTbx1kKc0GXLejeeWHP9hO1IHfgYLm2SlkKH8JRZicD7PooNUyaoEnYIsZCKitd
+    L8jmnUbstL+DFZD7n6i27ehLhBJCXGo+gA5agzeW2JOBsJwN9qtR1TjL32vbovqC
+    +2yFXgpLiIQzc9cAL3VDvG26ml5BVlldXMJQ9Ie+Lky6BtegnIDFdQdcI1dqMqLL
+    SQpYQxZpMYkicvEe9WMGQlNX4paAEQ==
+    -----END CERTIFICATE-----
+certificate:
+  dnsName: "s3.compliant-dev-workload0.hcp.nist.int.massopen.cloud"
+
+# DHCP hands out .20-.130 (naved, 2026-11-20); .131-.250 is shared with
+# Portworx (one whereabouts pool per subnet).
+network:
+  cidr: "10.9.12.0/24"
+  range:
+    start: "10.9.12.131"
+    end: "10.9.12.250"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.12.1
