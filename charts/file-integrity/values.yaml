@@ -27,3 +27,8 @@ fileIntegrity:
     - {key: node-role.kubernetes.io/control-plane, operator: Exists, effect: NoSchedule}
   gracePeriod: 900
   maxBackups: 5
+  # Paths AIDE should not watch, added to the operator's default config
+  # (files/aide.conf) as "!<path>" lines. Each is a regular expression on
+  # the host path with the /hostroot prefix the AIDE pod sees, for example
+  # /hostroot/etc/lvm/archive. Empty: the operator's own default is used.
+  extraExcludes: []

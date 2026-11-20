@@ -15,4 +15,26 @@ spec:
   config:
     gracePeriod: {{ .gracePeriod }}
     maxBackups: {{ .maxBackups }}
+    {{- if .extraExcludes }}
+    name: {{ .name }}-aide-conf
+    namespace: {{ $.Values.namespace }}
+    key: aide.conf
+    {{- end }}
+{{- if .extraExcludes }}
+---
+# The operator's default config with this cluster's exclusions appended.
+# An AIDE "!" line drops matching paths wherever it stands in the file.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-aide-conf
+  namespace: {{ $.Values.namespace }}
+data:
+  aide.conf: |
+    {{- $.Files.Get "files/aide.conf" | nindent 4 }}
+    # Added by the file-integrity chart (fileIntegrity.extraExcludes):
+    {{- range .extraExcludes }}
+    !{{ . }}
+    {{- end }}
+{{- end }}
 {{- end }}
