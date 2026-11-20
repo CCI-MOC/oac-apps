@@ -69,6 +69,17 @@ nodePools:
               method=auto
               never-default=true
               ignore-auto-dns=true
+      # GPU passthrough (MOC-issues #787): the IOMMU backend VFIO needs.
+      # The GPU Operator's VFIO manager loads vfio-pci but not this, and
+      # without it every GPU VM fails with "No available IOMMU models"
+      # (jetty, 2026-10-20). Loaded by hand on both nodes on 2026-11-20,
+      # which a reboot undoes.
+      - name: 90-vfio-iommu-type1
+        files:
+          - path: /etc/modules-load.d/vfio-iommu-type1.conf
+            mode: 0644
+            contents: |
+              vfio_iommu_type1
       # Root disk encryption (800-171 3.13.16), as on the hub: LUKS2 over
       # RHCOS's root partition, unlocked at boot through Tang (naved's
       # server; this network reaches it since 2026-11-20, #810). By name
@@ -94,9 +105,10 @@ nodePools:
 
 # Follow-ups, as on nist-dev-workload0:
 # - GPU passthrough: the GPU operator in sandbox mode (vm-passthrough) and
-#   KubeVirt's permittedHostDevices, as set up on jetty by #212 and #219.
-#   Untested on an Agent hosted cluster. feature-gpu stays off until then:
-#   it deploys the operator for containers, which would claim the GPUs.
+#   KubeVirt's permittedHostDevices. Tested on 2026-11-20 (a VM ran CUDA
+#   on a passed-through H100), with both set up from a test branch for
+#   now. feature-gpu stays off: it deploys the operator for containers,
+#   which would claim the GPUs.
 # - hypervisor-cluster.yaml, listing andalusia, when it is rebuilt (#788).
 clusterLabels:
   massopen.cloud/feature-metallb: "true"
