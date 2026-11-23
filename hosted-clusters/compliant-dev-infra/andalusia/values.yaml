@@ -1,0 +1,71 @@
+# Test cluster for GPU VMs (MOC-issues #788): one worker VM with four H100s
+# passed through, on compliant-dev-workload0, the hub's GPU hypervisor. Same
+# layout as oac-dev-workload2 on oac-dev-workload1. It replaces the andalusia
+# that ran on jetty under oac-dev-infra; a HostedCluster cannot change hubs,
+# so this is a new cluster with the old name.
+clusterName: andalusia
+release:
+  channel: stable-4.22
+  image: quay.io/openshift-release-dev/ocp-release:4.22.22-multi
+
+platform:
+  type: KubeVirt
+  kubevirt:
+    # From the hub's hcp-config (hypervisorClusters).
+    infraKubeConfigSecretName: compliant-dev-workload0-kubeconfig
+
+# kubeadmin only for now: a test cluster with no other users. MOC SSO needs
+# a moc-keycloak client first, as compliant-dev-workload0 has.
+
+services:
+  APIServer:
+    # Pinned internal LoadBalancer IP from the hub's MetalLB pool. Without
+    # it the worker VM's API hostname falls through to the hub router's
+    # wildcard, which does not serve :6443, and no node ever joins.
+    ipAddress: 10.20.19.14
+
+ingress:
+  # The guest router's LoadBalancer is mirrored onto compliant-dev-workload0,
+  # whose MetalLB pins it here (values/compliant-dev-infra/
+  # compliant-dev-workload0/metallb.yaml). The chart publishes
+  # *.apps.andalusia.hcp.nist.int.massopen.cloud to it.
+  ipAddress: 10.20.20.11
+
+dns:
+  enabled: true
+  autoGenerate: true
+
+# machineNetwork is compliant-dev-workload0's pod network (the chart
+# default), where the worker VM lives. The cluster and service networks
+# must not overlap the hypervisor's.
+networking:
+  clusterNetwork:
+    - cidr: 10.140.0.0/14
+  machineNetwork:
+    - cidr: 10.132.0.0/14
+  serviceNetwork:
+    - cidr: 172.33.0.0/16
+
+# Hosted etcd keeps the hub's default, lvms-vg0. The VM's disk is on the
+# hypervisor's FlashBlade class, NFS over TLS, encrypted at rest by the
+# FlashBlade; the guest does not encrypt it.
+nodePools:
+  - name: gpu
+    replicas: 1
+    cpu: 64
+    memory: 128Gi   # as in the GPU VM benchmarks, with a 300Gi disk
+    disk:
+      size: 300Gi
+      storageClass: pure-fb-nfsv4
+    # Either SD665 has four free H100s.
+    hostDevices:
+      - deviceName: nvidia.com/GH100_H100_SXM5_80GB
+        count: 4
+    # No qosClass yet: Guaranteed gives the VM dedicated host CPUs, which
+    # needs the static CPU manager on the hypervisor (oac-apps #268).
+    # The replacement VM can't start while the old one holds the GPUs.
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    # One node: the drain can't finish, so stop waiting after 10 minutes.
+    nodeDrainTimeout: 10m

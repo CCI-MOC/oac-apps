@@ -1,0 +1,6 @@
+# KubeVirt hosted clusters whose worker VMs run on compliant-dev-workload0.
+# Each also needs this cluster under hypervisorClusters in the hub's
+# hcp-config. A GPU VM over 63 vCPUs needs HyperConverged's maxHotplugRatio
+# at 1: at the default 4 it gets a virtual IOMMU and QEMU refuses it GPUs.
+hostedClusters:
+  - andalusia

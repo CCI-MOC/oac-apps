@@ -10,3 +10,10 @@ ingressController:
 sshKey:
   # publicKey: the same ECDSA key as acm.yaml's cim.sshAuthorizedKey.
   aws_secret_name: cluster/compliant-dev-infra/sshkey
+
+# The KubeVirt hypervisors: an ExternalSecret writes
+# <name>-kubeconfig in the clusters namespace from the hosted cluster's
+# kubeconfig, which its PushSecret keeps in Secrets Manager.
+hypervisorClusters:
+  - name: compliant-dev-workload0
+    awsSecretKey: cluster/compliant-dev-infra/hostedcluster/compliant-dev-workload0/kubeadmin

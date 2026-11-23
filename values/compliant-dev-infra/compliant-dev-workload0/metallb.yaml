@@ -1,0 +1,11 @@
+# The KubeVirt guests' ingress. A guest router's LoadBalancer is mirrored
+# into clusters-<guest> here; one address per guest, pinned by namespace,
+# on the workers' network (VLAN 220) next to this cluster's own router
+# (10.20.20.10, the hosted-ingress app's pool, which advertises itself).
+addressPools:
+  - name: andalusia-ingress
+    addresses:
+      - 10.20.20.11/32
+    serviceAllocation:
+      namespaces:
+        - clusters-andalusia
