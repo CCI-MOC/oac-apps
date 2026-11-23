@@ -102,6 +102,14 @@ nodePools:
             format: xfs
             label: root
             wipeFilesystem: true
+    # A pod may run 4096 processes by default. These nodes have 512 CPUs,
+    # and each Go CNI plugin multus runs starts a thread per CPU: after a
+    # reboot about 70 pods ask for a network at once and multus passes the
+    # limit ("pthread_create failed"), so no new pod on that node starts
+    # and the other node cannot drain. Happened on 2026-11-20 and again in
+    # the 2026-11-23 roll; both times unblocked by hand at this value.
+    kubeletConfig:
+      podPidsLimit: 65536
 
 # Follow-ups, as on nist-dev-workload0:
 # - GPU passthrough: the GPU operator in sandbox mode (vm-passthrough) and
