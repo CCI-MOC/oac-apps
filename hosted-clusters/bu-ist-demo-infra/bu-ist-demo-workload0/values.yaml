@@ -42,7 +42,7 @@ nodePools:
       openstack/resource-class: fc430
       massopen.cloud/cluster: bu-ist-demo-workload0
   - name: gpu
-    replicas: 1
+    replicas: 2
     agentLabelSelector:
       openstack/resource-class: lenovo-sd665nv3-h100
       massopen.cloud/cluster: bu-ist-demo-workload0
