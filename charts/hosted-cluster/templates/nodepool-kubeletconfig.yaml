@@ -1,0 +1,23 @@
+{{- $clusterName := required "clusterName is required" .Values.clusterName }}
+{{- range $pool := .Values.nodePools }}
+{{- with .kubeletConfig }}
+{{- $kc := dict
+      "apiVersion" "machineconfiguration.openshift.io/v1"
+      "kind" "KubeletConfig"
+      "metadata" (dict "name" (printf "%s-kubelet" $pool.name))
+      "spec" (dict "kubeletConfig" .) }}
+---
+# HyperShift applies a KubeletConfig found in a NodePool's config to that
+# pool's nodes; no machineConfigPoolSelector is needed.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ printf "%s-%s-kubelet" $clusterName $pool.name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+data:
+  config: |
+    {{- toYaml $kc | nindent 4 }}
+{{- end }}
+{{- end }}

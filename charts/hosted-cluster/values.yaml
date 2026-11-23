@@ -115,6 +115,12 @@ pushSecrets:
 #           mode: 0600
 #           contents: |
 #             ...
+# A pool may also set `kubeletConfig`: KubeletConfig.spec.kubeletConfig
+# fields for its nodes, for example
+#   kubeletConfig:
+#     podPidsLimit: 32768
+# Changing it rolls the pool's nodes, like a machineConfigs entry.
+#
 # An entry may set `kernelArguments` instead of, or as well as, `files`,
 # and `luks` and `filesystems` (Ignition's storage.luks and
 # storage.filesystems, verbatim) to encrypt the root disk. Those apply only
