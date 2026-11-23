@@ -1,0 +1,23 @@
+suite: nvidia-gpu-operator sandbox workloads
+templates:
+  - templates/clusterpolicy.yaml
+
+tests:
+  - it: should default GPU nodes to container workloads
+    asserts:
+      - equal:
+          path: spec.sandboxWorkloads.defaultWorkload
+          value: container
+
+  - it: should let a cluster whose GPUs go to VMs default to passthrough
+    set:
+      clusterPolicy:
+        sandboxWorkloads:
+          enabled: true
+          defaultWorkload: vm-passthrough
+    asserts:
+      - equal:
+          path: spec.sandboxWorkloads
+          value:
+            enabled: true
+            defaultWorkload: vm-passthrough
