@@ -11,6 +11,8 @@ nodes:
     interface: enp1s0f1
   - name: moc-r4pcc02u37
     interface: enp163s0np0
+  - name: moc-r4pcc02u10
+    interface: enp163s0np0
 
 network:
   cidr: "10.9.16.0/24"
