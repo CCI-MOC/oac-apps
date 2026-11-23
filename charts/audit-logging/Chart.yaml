@@ -1,0 +1,5 @@
+apiVersion: v2
+name: audit-logging
+description: Keep API audit logs off the masters, in a LokiStack on S3 (NIST 800-53 AU-4, AU-9, AU-11)
+version: 0.1.0
+type: application

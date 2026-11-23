@@ -1,0 +1,176 @@
+suite: audit-logging
+set:
+  loki:
+    storageClassName: test-class
+tests:
+  - it: should build Loki's S3 secret from the COSI bucket's credentials
+    template: templates/bucket.yaml
+    asserts:
+      - equal:
+          path: spec.bucketClassName
+          value: fb-bucket
+        documentIndex: 0
+      - equal:
+          path: spec.credentialsSecretName
+          value: bucketclaim-logging-loki
+        documentIndex: 1
+      - equal:
+          path: spec.data[0].remoteRef
+          value: {key: bucketclaim-logging-loki, property: BucketInfo}
+        documentIndex: 6
+      - equal:
+          path: spec.target.template.data.endpoint
+          value: "https://{{ (.bucketInfo | fromJson).spec.secretS3.endpoint }}"
+        documentIndex: 6
+      - equal:
+          path: spec.target.template.data.forcepathstyle
+          value: "true"
+        documentIndex: 6
+
+  - it: should keep logs for 90 days on S3
+    template: templates/lokistack.yaml
+    asserts:
+      - isKind:
+          of: LokiStack
+      - equal:
+          path: spec.storage.secret
+          value: {name: logging-loki-s3, type: s3}
+      - equal:
+          path: spec.limits.global.retention.days
+          value: 90
+      - notExists:
+          path: spec.storage.tls
+
+  - it: should forward only the cluster's audit logs by default
+    template: templates/forwarder.yaml
+    asserts:
+      - hasDocuments:
+          count: 4
+      - equal:
+          path: spec.pipelines
+          value:
+            - {name: cluster-audit, inputRefs: [audit], outputRefs: [loki]}
+        documentIndex: 3
+      - notExists:
+          path: spec.inputs
+        documentIndex: 3
+
+  - it: should collect the hosted API servers' audit sidecars on a hub
+    template: templates/forwarder.yaml
+    set:
+      forwarder:
+        hostedControlPlanes: true
+    asserts:
+      - hasDocuments:
+          count: 5
+      - equal:
+          path: spec.inputs[0].application.includes
+          value:
+            - {namespace: "clusters-*", container: audit-logs}
+        documentIndex: 4
+      - contains:
+          path: spec.pipelines
+          content: {name: hosted-api-audit, inputRefs: [hosted-api-audit], outputRefs: [loki]}
+        documentIndex: 4
+
+  - it: should buffer on disk rather than drop logs Loki cannot take
+    template: templates/forwarder.yaml
+    asserts:
+      - equal:
+          path: spec.outputs[0].lokiStack.tuning.deliveryMode
+          value: AtLeastOnce
+        documentIndex: 3
+
+  - it: should forward to the hub's LokiStack, and install no Loki, on a managed cluster
+    set:
+      loki:
+        enabled: false
+      forwarder:
+        remote:
+          url: https://hub.example/api/logs/v1/audit
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/lokistack.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/bucket.yaml
+      - hasDocuments:
+          count: 3
+        template: templates/operators.yaml
+      - equal:
+          path: spec.outputs[0]
+          value:
+            name: loki
+            type: loki
+            loki:
+              url: https://hub.example/api/logs/v1/audit
+              authentication:
+                token:
+                  from: secret
+                  secret: {name: hub-loki-audit-writer, key: token}
+              tuning: {deliveryMode: AtLeastOnce}
+            tls:
+              ca: {secretName: hub-loki-audit-writer, key: ca-bundle.crt}
+        template: templates/forwarder.yaml
+        documentIndex: 3
+
+  - it: should require the hub's URL on a managed cluster
+    template: templates/forwarder.yaml
+    set:
+      loki:
+        enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: forwarder.remote.url is required when loki.enabled is false
+
+  - it: should give each listed cluster an audit-only writer, and copy its token with a policy
+    template: templates/audit-writers.yaml
+    set:
+      auditWriters:
+        clusters: [workload-a]
+    asserts:
+      - equal:
+          path: roleRef.name
+          value: cluster-logging-write-audit-logs
+        documentIndex: 2
+      - equal:
+          path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[0].values
+          value: [workload-a]
+        documentIndex: 9
+      - equal:
+          path: spec.hubTemplateOptions.serviceAccountName
+          value: audit-writers-policy
+        documentIndex: 11
+      - equal:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates[0].objectDefinition.data.token
+          value: '{{hub fromSecret "openshift-logging" (printf "audit-writer-%s-token" .ManagedClusterName) "token" hub}}'
+        documentIndex: 11
+
+  - it: should make no writers by default
+    template: templates/audit-writers.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should pass per-tenant limits through to the LokiStack
+    template: templates/lokistack.yaml
+    set:
+      loki:
+        tenantLimits:
+          application:
+            ingestion: {maxLineSize: 2097152}
+    asserts:
+      - equal:
+          path: spec.limits.tenants.application.ingestion.maxLineSize
+          value: 2097152
+
+  - it: should leave the hub's CA out when hubIngressCA is off
+    template: templates/forwarder.yaml
+    set:
+      loki.enabled: false
+      forwarder.remote.url: https://hub.example/api/logs/v1/audit
+      forwarder.remote.hubIngressCA: false
+    asserts:
+      - notExists:
+          path: spec.outputs[0].tls
