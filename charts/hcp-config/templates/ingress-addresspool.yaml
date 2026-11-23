@@ -7,6 +7,9 @@
 # unit of hosted-cluster ingress configuration. It is a distinct object (its
 # own IPAddressPool and L2Advertisement names) from the metallb chart's default
 # pool/advertisement, so the two Applications never co-own a resource.
+# Wave 0, before the IngressController (wave 1): if the router's Service is
+# created first, MetalLB gives it an address from the default pool and never
+# moves it (compliant-dev-infra's bootstrap, 2026-11-19).
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -14,7 +17,7 @@ metadata:
   namespace: metallb-system
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   addresses:
 {{ required "ingressController.addresses is required when ingressController.enabled" .Values.ingressController.addresses | toYaml | indent 4 }}
@@ -33,7 +36,7 @@ metadata:
   namespace: metallb-system
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   ipAddressPools:
     - hosted-clusters-ingress
