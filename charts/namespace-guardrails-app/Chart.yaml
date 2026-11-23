@@ -1,0 +1,12 @@
+apiVersion: v2
+name: namespace-guardrails-app
+description: >-
+  Default-deny NetworkPolicies and object-count quotas for namespaces that no
+  chart in this repository owns (vendor operators and agents), using the
+  namespace-guardrails library
+type: application
+version: 0.1.0
+dependencies:
+  - name: namespace-guardrails
+    version: "0.1.0"
+    repository: "file://../namespace-guardrails"

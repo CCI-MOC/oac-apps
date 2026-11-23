@@ -1,0 +1,63 @@
+suite: namespace-guardrails-app
+templates:
+  - templates/guardrails.yaml
+
+tests:
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render a quota, default denies and the API/DNS allow
+    set:
+      guardrails:
+        example-operator:
+          quota:
+            pods: "10"
+          ingress: {}
+          egress:
+            apiAndDns: true
+    asserts:
+      - hasDocuments:
+          count: 4
+      - isKind:
+          of: ResourceQuota
+        documentSelector:
+          path: metadata.name
+          value: oac-objects
+      - equal:
+          path: metadata.namespace
+          value: example-operator
+        documentSelector:
+          path: metadata.name
+          value: allow-egress-api-dns
+
+  # Any egress policy isolates the namespace, so the API/DNS allow must land
+  # before the other policies (oac-apps #282).
+  - it: should put the API/DNS allow in sync wave -1
+    set:
+      guardrails:
+        example-operator:
+          egress:
+            apiAndDns: true
+    asserts:
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "-1"
+        documentSelector:
+          path: metadata.name
+          value: allow-egress-api-dns
+
+  - it: should skip a namespace set to null
+    set:
+      guardrails:
+        present:
+          quota:
+            pods: "10"
+        absent: null
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.namespace
+          value: present
