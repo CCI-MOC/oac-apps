@@ -111,13 +111,14 @@ nodePools:
     kubeletConfig:
       podPidsLimit: 65536
 
-# Follow-ups, as on nist-dev-workload0:
-# - GPU passthrough: the GPU operator in sandbox mode (vm-passthrough) and
-#   KubeVirt's permittedHostDevices. Tested on 2026-11-20 (a VM ran CUDA
-#   on a passed-through H100), with both set up from a test branch for
-#   now. feature-gpu stays off: it deploys the operator for containers,
-#   which would claim the GPUs.
-# - hypervisor-cluster.yaml, listing andalusia, when it is rebuilt (#788).
+# GPU passthrough (MOC-issues #787): the module above, and KubeVirt's
+# permitted devices in values/compliant-dev-infra/compliant-dev-workload0/
+# openshift-virtualization.yaml. NFD and the GPU Operator in sandbox mode
+# (vm-passthrough) still come from a test branch, with the rest of the
+# compliance stages (MOC-issues #736). feature-gpu stays off: it deploys the
+# operator for containers, which would claim the GPUs. andalusia's VM runs
+# here (values/compliant-dev-infra/compliant-dev-workload0/
+# hypervisor-cluster.yaml, MOC-issues #788).
 clusterLabels:
   massopen.cloud/feature-metallb: "true"
   massopen.cloud/feature-virtualization: "true"
