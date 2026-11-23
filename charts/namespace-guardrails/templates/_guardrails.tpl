@@ -135,6 +135,12 @@ kind: NetworkPolicy
 metadata:
   name: allow-egress-api-dns
   namespace: {{ $ns }}
+  annotations:
+    # Before every other policy (wave -1). Any Egress policy isolates the
+    # namespace's pods, so an extra egress allow applied first cuts them off
+    # from the API server and DNS; on a managed cluster that includes ACM's
+    # cluster-proxy agent, Argo's only way in, and the sync cannot finish.
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   podSelector: {}
   policyTypes: [Egress]
