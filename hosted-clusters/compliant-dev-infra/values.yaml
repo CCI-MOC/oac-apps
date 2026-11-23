@@ -44,6 +44,10 @@ imageConfig:
       - docker.io/portworx
       - docker.io/library/haproxy
       - ghcr.io/eldritchjs
+      # pure-cosi's FIPS images (oac-apps #279).
+      - ghcr.io/cci-moc
+      # llm-d's vLLM images, for the AI UAT Harness GPU tests.
+      - ghcr.io/llm-d
   # Where ImageStreams may import from (ocp4-moderate
   # ocp-allowed-registries-for-import); as on jetty.
   allowedRegistriesForImport:
