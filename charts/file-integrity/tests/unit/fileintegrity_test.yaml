@@ -45,3 +45,45 @@ tests:
           value:
             gracePeriod: 300
             maxBackups: 2
+
+  - it: should use the operator's own config when nothing is excluded
+    asserts:
+      - hasDocuments:
+          count: 1
+      - notExists:
+          path: spec.config.name
+
+  # LVM Storage rewrites /etc/lvm/archive and /etc/lvm/backup each time it
+  # makes a volume, which fails AIDE on every node it uses.
+  - it: should add extraExcludes to the default config and point at it
+    set:
+      fileIntegrity.extraExcludes:
+        - /hostroot/etc/lvm/archive
+        - /hostroot/etc/lvm/backup
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: spec.config
+          value:
+            gracePeriod: 900
+            maxBackups: 5
+            name: all-nodes-aide-conf
+            namespace: openshift-file-integrity
+            key: aide.conf
+        documentIndex: 0
+      - isKind:
+          of: ConfigMap
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: all-nodes-aide-conf
+        documentIndex: 1
+      - matchRegex:
+          path: data["aide.conf"]
+          pattern: "(?m)^/hostroot/etc/    CONTENT_EX$"
+        documentIndex: 1
+      - matchRegex:
+          path: data["aide.conf"]
+          pattern: "(?m)^!/hostroot/etc/lvm/archive\\n!/hostroot/etc/lvm/backup\\n?$"
+        documentIndex: 1
