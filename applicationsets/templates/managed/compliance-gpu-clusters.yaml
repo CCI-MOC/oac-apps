@@ -18,15 +18,31 @@ spec:
   syncPolicy:
     preserveResourcesOnDeletion: true
   generators:
+    # The marker and the components, then each managed cluster that has
+    # GPU Operator values. The inner matrix passes the cluster's name from
+    # ACM's placement to the git generator's path, so a cluster is picked
+    # by its values file and deployed to through the server ACM gives it.
     - matrix:
         generators:
-          - git:
-              repoURL: https://github.com/CCI-MOC/oac-apps.git
-              revision: main
-              files:
-                - path: "hosted-clusters/{{ $hub }}/compliance.yaml"
           - matrix:
               generators:
+                - git:
+                    repoURL: https://github.com/CCI-MOC/oac-apps.git
+                    revision: main
+                    files:
+                      - path: "hosted-clusters/{{ $hub }}/compliance.yaml"
+                - list:
+                    elements:
+                      - component: nfd-operator
+                      - component: nvidia-gpu-operator
+          - matrix:
+              generators:
+                - clusterDecisionResource:
+                    configMapRef: acm-placement
+                    labelSelector:
+                      matchLabels:
+                        cluster.open-cluster-management.io/placement: all-managed-clusters
+                    requeueAfterSeconds: 180
                 # Both git generators set path; the prefix keeps the
                 # cluster's apart from the marker's.
                 - git:
@@ -34,14 +50,10 @@ spec:
                     revision: main
                     pathParamPrefix: cluster
                     files:
-                      - path: "values/{{ $hub }}/*/nvidia-gpu-operator.yaml"
-                - list:
-                    elements:
-                      - component: nfd-operator
-                      - component: nvidia-gpu-operator
+                      - path: "values/{{ $hub }}/{{`{{name}}`}}/nvidia-gpu-operator.yaml"
   template:
     metadata:
-      name: "{{`{{cluster.path.basename}}`}}-{{`{{component}}`}}"
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
     spec:
       project: default
       source:
@@ -53,9 +65,9 @@ spec:
           ignoreMissingValueFiles: true
           valueFiles:
             - "/values/{{ $hub }}/hosted-clusters/{{`{{component}}`}}.yaml"
-            - "/values/{{ $hub }}/{{`{{cluster.path.basename}}`}}/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
       destination:
-        server: "https://cluster-proxy-addon-user.multicluster-engine.svc.cluster.local:9092/{{`{{cluster.path.basename}}`}}"
+        server: "{{`{{server}}`}}"
       syncPolicy:
         automated:
           prune: true
