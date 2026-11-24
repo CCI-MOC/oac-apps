@@ -54,6 +54,10 @@ nodePools:
     replicas: 1
     cpu: 64
     memory: 128Gi   # as in the GPU VM benchmarks, with a 300Gi disk
+    # From compliant-dev-workload0's 91-hugepages-1g. Without them the VM
+    # starts too slowly for virt-handler, and disk hot-plug fails
+    # (MOC-issues #788).
+    hugepages: 1Gi
     disk:
       size: 300Gi
       storageClass: pure-fb-nfsv4

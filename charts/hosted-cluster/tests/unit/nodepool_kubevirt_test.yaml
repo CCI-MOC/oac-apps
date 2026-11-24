@@ -226,3 +226,31 @@ tests:
       - equal:
           path: spec.nodeDrainTimeout
           value: 10m
+
+  - it: should patch the VM for hugepages when a pool sets them
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          cpu: 64
+          memory: 128Gi
+          hugepages: 1Gi
+          disk:
+            size: 300Gi
+    asserts:
+      - equal:
+          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
+          value: '[{"op":"add","path":"/spec/template/spec/domain/memory/hugepages","value":{"pageSize":"1Gi"}}]'
+
+  - it: should not patch the VM when a pool sets no hugepages
+    set:
+      nodePools:
+        - name: compute
+          replicas: 1
+          cpu: 4
+          memory: 8Gi
+          disk:
+            size: 120Gi
+    asserts:
+      - notExists:
+          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
