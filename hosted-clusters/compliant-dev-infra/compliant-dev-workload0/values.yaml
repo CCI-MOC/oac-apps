@@ -80,6 +80,16 @@ nodePools:
             mode: 0644
             contents: |
               vfio_iommu_type1
+      # 1Gi hugepages for andalusia's VM (MOC-issues #788). Without them
+      # QEMU takes about 19 s to pin the VM's 128Gi for VFIO, virt-handler's
+      # SyncVMI call times out, and its retry deletes the just-started
+      # libvirt domain: the VM runs on as a transient domain and every disk
+      # hot-plug fails. With hugepages it starts in about 5 s (2026-11-24).
+      # 136 per node (split across both NUMA nodes) leaves room for one
+      # such VM on either node. Set by hand at runtime on both nodes on
+      # 2026-11-24, which a reboot undoes.
+      - name: 91-hugepages-1g
+        kernelArguments: [hugepagesz=1G, hugepages=136]
       # Root disk encryption (800-171 3.13.16), as on the hub: LUKS2 over
       # RHCOS's root partition, unlocked at boot through Tang (naved's
       # server; this network reaches it since 2026-11-20, #810). By name

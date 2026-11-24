@@ -9,6 +9,10 @@ metadata:
   namespace: {{ $.Values.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    {{- if and (ne $platformType "Agent") .hugepages }}
+    {{- $patch := list (dict "op" "add" "path" "/spec/template/spec/domain/memory/hugepages" "value" (dict "pageSize" .hugepages)) }}
+    hypershift.openshift.io/kubevirt-vm-jsonpatch: {{ toJson $patch | quote }}
+    {{- end }}
 spec:
   clusterName: {{ $clusterName }}
   {{- /* A pool's own entries may be names or HyperShift's {name: ...} form. */}}
