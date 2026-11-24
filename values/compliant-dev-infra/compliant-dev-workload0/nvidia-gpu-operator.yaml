@@ -1,0 +1,11 @@
+# compliant-dev-workload0 is a KubeVirt hypervisor (MOC-issues #787): its
+# H100s go to VMs, never to pods. With sandbox workloads on and VM
+# passthrough as the default, the operator binds every GPU to vfio-pci and
+# runs its sandbox device plugin, which advertises them as
+# nvidia.com/GH100_H100_SXM5_80GB for HyperConverged's permittedHostDevices.
+# No node gets the container driver unless it is labelled
+# nvidia.com/gpu.workload.config=container.
+clusterPolicy:
+  sandboxWorkloads:
+    enabled: true
+    defaultWorkload: vm-passthrough
