@@ -29,6 +29,10 @@ tests:
           path: spec.policy-templates[0].objectDefinition.spec.customMessage.noncompliant
           pattern: 'eq \.compliant "NonCompliant"'
         documentIndex: 0
+      - matchRegex:
+          path: spec.policy-templates[0].objectDefinition.spec.customMessage.noncompliant
+          pattern: 'else if gt \(len \.DefaultMessage\) 900 \}\}\{\{ printf "%\.900s" \.DefaultMessage \}\}\.\.\. \{\{- else \}\}\{\{ \.DefaultMessage \}\}'
+        documentIndex: 0
       - equal:
           path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[0].values
           value: [local-cluster]

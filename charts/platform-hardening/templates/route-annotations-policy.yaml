@@ -46,14 +46,18 @@ spec:
           # ACM's default message names every route it matched; on a hub
           # with hosted clusters that is over the 1024 characters an event
           # allows, so the compliance events were rejected. Count routes
-          # when compliant; name only the failing ones when not.
+          # when compliant; name only the failing ones when not. When no
+          # route is at fault (an API error, say), use ACM's own message,
+          # cut to fit an event.
           customMessage:
             compliant: >-
               {{`{{ len .Policy.status.relatedObjects }}`}} routes outside
               openshift-* and kube-* have {{ .what }}
             noncompliant: >-
-              routes without {{ .what }}:{{`{{ range .Policy.status.relatedObjects }}{{ if eq .compliant "NonCompliant" }}
-              {{ .object.metadata.namespace }}/{{ .object.metadata.name }}{{ end }}{{ end }}`}}
+              {{`{{- $bad := "" }}{{ range .Policy.status.relatedObjects }}{{ if eq .compliant "NonCompliant" }}{{ $bad = printf "%s %s/%s" $bad .object.metadata.namespace .object.metadata.name }}{{ end }}{{ end }}`}}
+              {{`{{- if $bad }}`}}routes without {{ .what }}:{{`{{ $bad }}`}}
+              {{`{{- else if gt (len .DefaultMessage) 900 }}{{ printf "%.900s" .DefaultMessage }}...`}}
+              {{`{{- else }}{{ .DefaultMessage }}{{ end }}`}}
           object-templates-raw: |
             {{`{{- range (lookup "route.openshift.io/v1" "Route" "" "").items }}`}}
             {{`{{- if not (or (hasPrefix "openshift" .metadata.namespace) (hasPrefix "kube-" .metadata.namespace)) }}`}}
