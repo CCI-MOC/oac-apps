@@ -1,0 +1,7 @@
+guardrails:
+  example-operator:
+    quota:
+      pods: "10"
+    ingress: {}
+    egress:
+      apiAndDns: true

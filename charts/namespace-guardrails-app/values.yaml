@@ -1,0 +1,10 @@
+# Guardrails for namespaces no chart here owns: vendor operators and agents
+# (GPU, storage, ACS, ACM add-ons). A chart that owns its namespace includes
+# the namespace-guardrails library itself instead.
+#
+# A map of namespace to settings, as described in
+# charts/namespace-guardrails/templates/_guardrails.tpl. A namespace set to
+# null renders nothing, so a cluster's values can drop one that a shared
+# values file lists but that cluster lacks: a quota for a missing namespace
+# fails the whole first sync wave.
+guardrails: {}

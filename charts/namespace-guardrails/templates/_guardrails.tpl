@@ -11,7 +11,8 @@ not to satisfy the check.
 
 A chart lists this one as a dependency, includes "namespace-guardrails.render"
 with its root context, and takes .Values.guardrails: a map of namespace to
-settings, empty by default. Per namespace, every key is optional:
+settings, empty by default; a namespace set to null renders nothing.
+Per namespace, every key is optional:
   quota:    ResourceQuota spec.hard. Object counts and storage only: a
             cpu/memory quota rejects pods that set no requests, which
             vendor operator pods often do.
@@ -28,6 +29,8 @@ an operator already ships ingress policies).
 */}}
 {{- define "namespace-guardrails.render" -}}
 {{- range $ns, $c := .Values.guardrails }}
+{{- /* A namespace set to null renders nothing. */}}
+{{- if $c }}
 {{- with $c.quota }}
 ---
 apiVersion: v1
@@ -171,6 +174,7 @@ metadata:
   namespace: {{ $ns }}
 spec:
   {{- toYaml .spec | nindent 2 }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end -}}
