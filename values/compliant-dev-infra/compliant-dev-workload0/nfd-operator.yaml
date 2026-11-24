@@ -1,0 +1,6 @@
+# Every node on compliant-dev-workload0 is a GPU node. With NFD's taints on,
+# both would carry nvidia.com/gpu.product:NoSchedule and every platform pod
+# without that toleration would stay Pending (seen on andalusia,
+# 2026-11-04). The GPU Operator finds its nodes by NFD's labels, not taints.
+nodeFeatureDiscovery:
+  enableTaints: false

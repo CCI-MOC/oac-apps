@@ -1,0 +1,45 @@
+suite: compliance-gpu-clusters ApplicationSet
+templates:
+  - templates/managed/compliance-gpu-clusters.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should be gated on the hub's compliance marker
+    set:
+      hubName: compliant-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].matrix.generators[0].git.files[0].path
+          value: "hosted-clusters/compliant-dev-infra/compliance.yaml"
+
+  - it: should pick clusters by their GPU Operator values
+    set:
+      hubName: compliant-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].matrix.generators[1].matrix.generators[0].git.files[0].path
+          value: "values/compliant-dev-infra/*/nvidia-gpu-operator.yaml"
+      - equal:
+          path: spec.generators[0].matrix.generators[1].matrix.generators[0].git.pathParamPrefix
+          value: cluster
+      - lengthEqual:
+          path: spec.generators[0].matrix.generators[1].matrix.generators[1].list.elements
+          count: 2
+
+  - it: should deploy through the cluster proxy and keep resources on deletion
+    set:
+      hubName: compliant-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.spec.destination.server
+          value: "https://cluster-proxy-addon-user.multicluster-engine.svc.cluster.local:9092/{{cluster.path.basename}}"
+      - equal:
+          path: spec.syncPolicy.preserveResourcesOnDeletion
+          value: true
+      - equal:
+          path: spec.template.spec.source.helm.releaseName
+          value: "{{component}}"

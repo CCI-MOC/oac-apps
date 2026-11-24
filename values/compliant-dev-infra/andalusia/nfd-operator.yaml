@@ -1,0 +1,5 @@
+# andalusia's one worker is a GPU VM. With NFD's taints on it would carry
+# nvidia.com/gpu.product:NoSchedule and every platform pod without that
+# toleration would stay Pending (seen on the old andalusia, 2026-11-04).
+nodeFeatureDiscovery:
+  enableTaints: false
