@@ -39,12 +39,11 @@ imageConfig:
       - registry.access.redhat.com
       - nvcr.io
       # Storage, as on the hub: CSI sidecars, the Portworx CSI driver and
-      # attacher, object-storage-proxy, and tlshd (nfs-tls).
+      # attacher, and object-storage-proxy.
       - registry.k8s.io/sig-storage
       - docker.io/portworx
       - docker.io/library/haproxy
-      - ghcr.io/eldritchjs
-      # pure-cosi's FIPS images (oac-apps #279).
+      # pure-cosi's FIPS images (oac-apps #279) and tlshd (nfs-tls).
       - ghcr.io/cci-moc
       # llm-d's vLLM images, for the AI UAT Harness GPU tests.
       - ghcr.io/llm-d

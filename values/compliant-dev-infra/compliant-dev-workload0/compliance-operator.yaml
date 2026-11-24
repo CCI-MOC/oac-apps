@@ -1,0 +1,4 @@
+# compliant-dev-workload0. Everything comes from
+# values/compliant-dev-infra/hosted-clusters/compliance-operator.yaml, which
+# every hosted cluster on the hub shares. Exceptions for this cluster
+# only would go here, each with a reason.

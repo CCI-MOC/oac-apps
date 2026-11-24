@@ -1,0 +1,13 @@
+# Every hosted cluster on compliant-dev-infra (test hub). Its API servers' audit
+# logs already reach the hub's LokiStack: they run on the hub, and the
+# hub's forwarder collects them (local-cluster/audit-logging.yaml). This
+# forwards what only the cluster has, its workers' auditd and OVN audit
+# logs, to the same LokiStack through its gateway route. The cluster must
+# be listed in the hub's auditWriters.clusters, which gives it a token.
+loki:
+  enabled: false
+forwarder:
+  remote:
+    url: https://logging-loki-openshift-logging.apps.compliant-dev-infra.nist.int.massopen.cloud/api/logs/v1/audit
+    # The hub's apps certificate is from Let's Encrypt (oac-apps #184).
+    hubIngressCA: false

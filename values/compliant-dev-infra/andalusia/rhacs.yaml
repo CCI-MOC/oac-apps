@@ -1,0 +1,6 @@
+# andalusia. The rest comes from
+# values/compliant-dev-infra/hosted-clusters/rhacs.yaml. Its one worker is
+# a 64-vCPU VM, so the collector's default limits do (unlike workload0's
+# 512-CPU SD665s).
+securedCluster:
+  clusterName: andalusia

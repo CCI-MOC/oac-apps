@@ -1,0 +1,10 @@
+# compliant-dev-workload0 (test). tlshd as on the hub; its image needs
+# ghcr.io/cci-moc in the hosted clusters' allowed registries.
+image:
+  repository: ghcr.io/cci-moc/tlshd
+  digest: sha256:be323e30cdd912c12dd15373b004a793486a576e6e3459c29549f086f9838f41
+ca:
+  externalSecret:
+    # The realm certificate (generated 2026-11-19, imported on the
+    # FlashBlade). Replacing it means updating this secret.
+    remoteKey: cluster/compliant-dev-workload0/nfs-tls-ca

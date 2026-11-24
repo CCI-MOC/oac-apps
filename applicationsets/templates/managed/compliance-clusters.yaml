@@ -1,0 +1,93 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+# Compliance components for every hosted cluster of a compliant hub. As with
+# hosted-cluster-compliance and hub-components-compliance, the hub is
+# compliant when hosted-clusters/<hub>/compliance.yaml exists; without it
+# this generates nothing. That one marker covers the hub and all its
+# clusters: a compliant hub hosts only compliant clusters.
+#
+# Values: values/<hub>/hosted-clusters/<component>.yaml for every hosted
+# cluster (not values/<hub>/<component>.yaml, which the hub's own
+# components read), then values/<hub>/<cluster>/<component>.yaml.
+#
+# releaseName is the component, so object names don't depend on the
+# cluster. preserveResourcesOnDeletion keeps a cluster's compliance objects
+# if this ApplicationSet or the marker goes away; removing them is a
+# deliberate step.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: compliance-clusters
+  namespace: openshift-gitops
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/CCI-MOC/oac-apps.git
+              revision: main
+              files:
+                - path: "hosted-clusters/{{ $hub }}/compliance.yaml"
+          - matrix:
+              generators:
+                - clusterDecisionResource:
+                    configMapRef: acm-placement
+                    labelSelector:
+                      matchLabels:
+                        cluster.open-cluster-management.io/placement: all-managed-clusters
+                    requeueAfterSeconds: 180
+                - list:
+                    elements:
+                      - component: compliance-operator
+                      - component: file-integrity
+                      - component: platform-hardening
+                      - component: rhacs
+                      - component: audit-logging
+                      - component: namespace-guardrails-app
+    # NFS over TLS only where Portworx serves NFS.
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/CCI-MOC/oac-apps.git
+              revision: main
+              files:
+                - path: "hosted-clusters/{{ $hub }}/compliance.yaml"
+          - matrix:
+              generators:
+                - clusterDecisionResource:
+                    configMapRef: acm-placement
+                    labelSelector:
+                      matchLabels:
+                        cluster.open-cluster-management.io/placement: portworx-clusters
+                    requeueAfterSeconds: 180
+                - list:
+                    elements:
+                      - component: nfs-tls
+  template:
+    metadata:
+      name: "{{`{{name}}`}}-{{`{{component}}`}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{`{{component}}`}}"
+        helm:
+          releaseName: "{{`{{component}}`}}"
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - "/values/{{ $hub }}/hosted-clusters/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{name}}`}}/{{`{{component}}`}}.yaml"
+      destination:
+        server: "{{`{{server}}`}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m

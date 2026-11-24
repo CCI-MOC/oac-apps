@@ -1,0 +1,54 @@
+suite: compliance-clusters ApplicationSet
+templates:
+  - templates/managed/compliance-clusters.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should be gated on the hub's compliance marker in both generators
+    set:
+      hubName: compliant-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].matrix.generators[0].git.files[0].path
+          value: "hosted-clusters/compliant-dev-infra/compliance.yaml"
+      - equal:
+          path: spec.generators[1].matrix.generators[0].git.files[0].path
+          value: "hosted-clusters/compliant-dev-infra/compliance.yaml"
+
+  - it: should send six components to every managed cluster and nfs-tls to Portworx clusters
+    set:
+      hubName: compliant-dev-infra
+    asserts:
+      - equal:
+          path: spec.generators[0].matrix.generators[1].matrix.generators[0].clusterDecisionResource.labelSelector.matchLabels["cluster.open-cluster-management.io/placement"]
+          value: all-managed-clusters
+      - lengthEqual:
+          path: spec.generators[0].matrix.generators[1].matrix.generators[1].list.elements
+          count: 6
+      - equal:
+          path: spec.generators[1].matrix.generators[1].matrix.generators[0].clusterDecisionResource.labelSelector.matchLabels["cluster.open-cluster-management.io/placement"]
+          value: portworx-clusters
+      - equal:
+          path: spec.generators[1].matrix.generators[1].matrix.generators[1].list.elements[0].component
+          value: nfs-tls
+
+  - it: should keep resources on deletion and name releases by component
+    set:
+      hubName: compliant-dev-infra
+    asserts:
+      - equal:
+          path: spec.syncPolicy.preserveResourcesOnDeletion
+          value: true
+      - equal:
+          path: spec.template.spec.source.helm.releaseName
+          value: "{{component}}"
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[0]
+          value: "/values/compliant-dev-infra/hosted-clusters/{{component}}.yaml"
+      - equal:
+          path: spec.template.spec.destination.server
+          value: "{{server}}"

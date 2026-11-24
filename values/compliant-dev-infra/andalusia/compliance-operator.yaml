@@ -1,0 +1,7 @@
+# andalusia is a KubeVirt hosted cluster: it has no pure-fb-nfsv4. Its
+# default class (kubevirt-csi) puts each volume on workload0's default,
+# pure-fb-nfsv4, so the raw results still land on the FlashBlade over NFS
+# with TLS, through workload0. The rest comes from hosted-clusters/.
+scanSetting:
+  rawResultStorage:
+    storageClassName: kubevirt-csi-infra-default
