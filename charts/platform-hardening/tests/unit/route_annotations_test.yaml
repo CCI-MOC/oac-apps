@@ -1,0 +1,55 @@
+suite: route annotations policies
+templates:
+  - templates/route-annotations-policy.yaml
+tests:
+  - it: renders nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: renders a rate-limit policy, placement and binding
+    set:
+      routeAnnotations.enabled: true
+      routeAnnotations.rateLimit.clusters: [local-cluster]
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: metadata.name
+          value: route-rate-limits
+        documentIndex: 0
+      - matchRegex:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates-raw
+          pattern: 'rate-limit-connections.concurrent-tcp: "100"'
+        documentIndex: 0
+      - equal:
+          path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[0].values
+          value: [local-cluster]
+        documentIndex: 1
+  - it: renders one allowlist policy per group
+    set:
+      routeAnnotations.enabled: true
+      routeAnnotations.ipAllowlists:
+        vpn:
+          clusters: [w0]
+          cidrs: 10.20.0.0/16
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: metadata.name
+          value: route-allowlist-vpn
+        documentIndex: 0
+      - matchRegex:
+          path: spec.policy-templates[0].objectDefinition.spec.object-templates-raw
+          pattern: 'ip_whitelist: "10.20.0.0/16"'
+        documentIndex: 0
+  - it: fails when namespace plus policy name is over 62 characters
+    set:
+      routeAnnotations.enabled: true
+      routeAnnotations.ipAllowlists:
+        a-group-name-that-is-far-too-long:
+          clusters: [w0]
+          cidrs: 10.20.0.0/16
+    asserts:
+      - failedTemplate:
+          errorPattern: "over ACM's 62 characters"

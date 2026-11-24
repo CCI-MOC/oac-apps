@@ -1,0 +1,10 @@
+# compliant-dev-infra (test hub). The cli image of the installed release,
+# 4.22.22 (`oc adm release info --image-for=cli`). Update it on upgrade.
+image: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:dd774d7a11bb59a6500e5f24130cb3fe8e2fa6f15c85b9a44d52e1635b015699
+storage:
+  # "" = the default StorageClass; set when the hub has one.
+  storageClassName: ""
+# Hosted clusters' etcd runs on this hub: back each one up (MOC-issues #787).
+hostedClusters:
+  - name: compliant-dev-workload0
+  - name: andalusia

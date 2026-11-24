@@ -1,0 +1,71 @@
+# compliant-dev-infra (test hub). The notice text is a placeholder for testing;
+# a compliant hub uses text approved by the legal or compliance office.
+systemUseNotice:
+  enabled: true
+  banner: "TEST SYSTEM (compliant-dev-infra): authorized use only. Approved notice text pending."
+  motd: |
+    TEST SYSTEM (compliant-dev-infra)
+
+    This is a development cluster for compliance testing. Use is limited to
+    authorized users. The approved system use notice is pending.
+
+# From an inventory of every image reference on the hub (2026-10-24):
+# running and scaled-down workloads, Jobs and CronJobs, CatalogSources, CSV
+# related images and ImageStreams. Narrowed to repositories where only one
+# is used. A registry missing here stops new pods from pulling; running
+# pods are unaffected. Changing the list reloads CRI-O on each node (no
+# drain or reboot).
+imageConfig:
+  enabled: true
+  allowedRegistries:
+    - registry.redhat.io
+    - registry.access.redhat.com
+    # Portworx operator (certified).
+    - registry.connect.redhat.com
+    # The release payload: the hub's platform and hosted control planes.
+    - quay.io/openshift-release-dev
+    # patch-operator (community).
+    - quay.io/redhat-cop
+    - quay.io/community-operator-pipeline-prod
+    # CSI sidecars (Portworx, snapshots, COSI).
+    - registry.k8s.io/sig-storage
+    # Portworx CSI driver and attacher.
+    - docker.io/portworx
+    # object-storage-proxy (docker.io/haproxy).
+    - docker.io/library/haproxy
+    # pure-cosi driver.
+    - ghcr.io/cci-moc
+    # tlshd (nfs-tls).
+    - ghcr.io/eldritchjs
+    # COSI controller, from the upstream pure-cosi manifests: a staging
+    # registry and a release-candidate build. A supply-chain gap to record
+    # until a released image replaces it.
+    - gcr.io/k8s-staging-sig-storage
+  allowedRegistriesForImport:
+    - domainName: registry.redhat.io
+    - domainName: registry.access.redhat.com
+    - domainName: quay.io
+  # Every sample imagestream is from registry.redhat.io or
+  # registry.access.redhat.com (2026-10-26); the operator moves the second
+  # to the first. Clears openshift-samples Degraded since 2026-10-24.
+  samplesRegistry: registry.redhat.io
+
+# Nothing else renders the APIServer here: cluster-certificates has
+# certificates.api disabled on this hub (oac-apps #184).
+apiServerAudit:
+  enabled: true
+
+# Route rate limits on the hub and workload0 (replaces route-rate-limits.sh;
+# the hub's clusters-andalusia routes from 2026-11-23 had none). The hub
+# tailors route-ip-whitelist out (compliance-operator values, routeNetwork);
+# workload0 keeps it, and its only route outside openshift-* is HyperShift's
+# wildcard passthrough route for andalusia, which its router does not admit,
+# so the allowlist is the VPN-reachable 10.20.0.0/16.
+routeAnnotations:
+  enabled: true
+  rateLimit:
+    clusters: [local-cluster, compliant-dev-workload0]
+  ipAllowlists:
+    vpn:
+      clusters: [compliant-dev-workload0]
+      cidrs: 10.20.0.0/16
