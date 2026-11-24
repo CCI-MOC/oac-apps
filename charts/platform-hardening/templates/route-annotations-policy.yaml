@@ -10,10 +10,10 @@
 */}}
 {{- $policies := list }}
 {{- if $ra.rateLimit.clusters }}
-{{- $policies = append $policies (dict "name" "route-rate-limits" "clusters" $ra.rateLimit.clusters "annotations" (dict "haproxy.router.openshift.io/rate-limit-connections" "true" "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" (toString $ra.rateLimit.concurrentTcp) "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" (toString $ra.rateLimit.rateTcp)) "control" "SC-5") }}
+{{- $policies = append $policies (dict "name" "route-rate-limits" "clusters" $ra.rateLimit.clusters "annotations" (dict "haproxy.router.openshift.io/rate-limit-connections" "true" "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp" (toString $ra.rateLimit.concurrentTcp) "haproxy.router.openshift.io/rate-limit-connections.rate-tcp" (toString $ra.rateLimit.rateTcp)) "control" "SC-5" "what" "the rate-limit annotations") }}
 {{- end }}
 {{- range $group, $a := $ra.ipAllowlists }}
-{{- $policies = append $policies (dict "name" (printf "route-allowlist-%s" $group) "clusters" $a.clusters "annotations" (dict "haproxy.router.openshift.io/ip_whitelist" $a.cidrs) "control" "SC-7") }}
+{{- $policies = append $policies (dict "name" (printf "route-allowlist-%s" $group) "clusters" $a.clusters "annotations" (dict "haproxy.router.openshift.io/ip_whitelist" $a.cidrs) "control" "SC-7" "what" (printf "the %s IP allowlist" $group)) }}
 {{- end }}
 {{- range $policies }}
 {{- if gt (add (len $ns) (len .name)) 62 }}
@@ -43,6 +43,17 @@ spec:
         spec:
           remediationAction: enforce
           severity: medium
+          # ACM's default message names every route it matched; on a hub
+          # with hosted clusters that is over the 1024 characters an event
+          # allows, so the compliance events were rejected. Count routes
+          # when compliant; name only the failing ones when not.
+          customMessage:
+            compliant: >-
+              {{`{{ len .Policy.status.relatedObjects }}`}} routes outside
+              openshift-* and kube-* have {{ .what }}
+            noncompliant: >-
+              routes without {{ .what }}:{{`{{ range .Policy.status.relatedObjects }}{{ if eq .compliant "NonCompliant" }}
+              {{ .object.metadata.namespace }}/{{ .object.metadata.name }}{{ end }}{{ end }}`}}
           object-templates-raw: |
             {{`{{- range (lookup "route.openshift.io/v1" "Route" "" "").items }}`}}
             {{`{{- if not (or (hasPrefix "openshift" .metadata.namespace) (hasPrefix "kube-" .metadata.namespace)) }}`}}

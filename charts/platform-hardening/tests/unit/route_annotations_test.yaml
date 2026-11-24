@@ -21,6 +21,14 @@ tests:
           path: spec.policy-templates[0].objectDefinition.spec.object-templates-raw
           pattern: 'rate-limit-connections.concurrent-tcp: "100"'
         documentIndex: 0
+      - matchRegex:
+          path: spec.policy-templates[0].objectDefinition.spec.customMessage.compliant
+          pattern: '^\{\{ len \.Policy\.status\.relatedObjects \}\} routes .* have the rate-limit annotations$'
+        documentIndex: 0
+      - matchRegex:
+          path: spec.policy-templates[0].objectDefinition.spec.customMessage.noncompliant
+          pattern: 'eq \.compliant "NonCompliant"'
+        documentIndex: 0
       - equal:
           path: spec.predicates[0].requiredClusterSelector.labelSelector.matchExpressions[0].values
           value: [local-cluster]
