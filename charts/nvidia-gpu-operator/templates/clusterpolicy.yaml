@@ -12,7 +12,7 @@ spec:
     initContainer: {}
   sandboxWorkloads:
     enabled: {{ .Values.clusterPolicy.sandboxWorkloads.enabled }}
-    defaultWorkload: container
+    defaultWorkload: {{ .Values.clusterPolicy.sandboxWorkloads.defaultWorkload | default "container" }}
   driver:
     enabled: {{ .Values.clusterPolicy.driver.enabled }}
     useNvidiaDriverCRD: false
