@@ -145,6 +145,15 @@ pushSecrets:
 #                        # Set through HyperShift's kubevirt-vm-jsonpatch
 #                        # annotation, as NodePool has no field for it.
 #                        # Changing it replaces the VMs.
+#   evictionStrategy: None # what a drain of the hypervisor node does to the
+#                        # VM. HyperShift sets External, which leaves the
+#                        # eviction to CAPK; for a VM that can't live-migrate
+#                        # (GPUs passed through) on a separate infra cluster
+#                        # CAPK fails and the drain never ends (MOC-issues
+#                        # #826). None lets the drain shut the VM down, and
+#                        # KubeVirt starts it again on another node. Set
+#                        # through the same annotation; changing it replaces
+#                        # the VMs.
 # On jetty's H100s (2026-11-02), pods in a Guaranteed VM matched bare metal.
 # The hypervisor needs KubeVirt's maxHotplugRatio at 1 for VMs over 63 vCPUs:
 # at the default 4, QEMU refuses to pass GPUs to them.
