@@ -323,6 +323,36 @@ guardrails:
       services: '5'
       services.nodeports: '0'
       services.loadbalancers: '0'
+  # andalusia (2026-11-24): its ManagedCluster and klusterlet namespaces, as
+  # for compliant-dev-workload0. Its control plane namespace too: the
+  # hosted-cluster chart's machine-limit quota, which covers
+  # clusters-compliant-dev-workload0, is for agent clusters only, and
+  # andalusia is KubeVirt. Sized from 65 pods, 25 services (one
+  # LoadBalancer) and three 8Gi etcd volumes, with room for a roll.
+  andalusia:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  klusterlet-andalusia:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  clusters-andalusia:
+    quota:
+      pods: '130'
+      persistentvolumeclaims: '6'
+      requests.storage: 50Gi
+      services: '50'
+      services.nodeports: '2'
+      services.loadbalancers: '2'
   object-storage-proxy:
     quota:
       pods: '10'
