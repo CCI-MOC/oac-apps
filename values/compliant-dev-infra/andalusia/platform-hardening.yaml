@@ -1,0 +1,12 @@
+# andalusia (test). The notice text is a placeholder for testing;
+# a compliant cluster uses text approved by the legal or compliance office.
+systemUseNotice:
+  enabled: true
+  banner: "TEST SYSTEM (andalusia): authorized use only. Approved notice text pending."
+  motd: |
+    TEST SYSTEM (andalusia)
+    This is a development cluster for compliance testing. Use is limited to
+    authorized users. The approved system use notice is pending.
+# Image registries come from the hub, in the HostedCluster's image config.
+imageConfig:
+  enabled: false

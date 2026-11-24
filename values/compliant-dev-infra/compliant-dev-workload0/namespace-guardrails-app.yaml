@@ -1,0 +1,115 @@
+# compliant-dev-workload0's own namespaces; the shared ones are in
+# hosted-clusters/namespace-guardrails.yaml.
+_quota: &smallQuota
+  pods: '10'
+  services: '5'
+  persistentvolumeclaims: '2'
+  requests.storage: 20Gi
+  services.nodeports: '0'
+  services.loadbalancers: '0'
+
+guardrails:
+  compliant-dev-workload0:
+    ingress: {}
+    egress: {}
+    quota: *smallQuota
+  open-cluster-management-compliant-dev-workload0:
+    ingress: {}
+    egress: {}
+    quota: *smallQuota
+  # As on the hub: the operator's webhook on 9443, which the API server
+  # reaches through the konnectivity agent on the host network.
+  patch-operator:
+    ingress:
+      hostNetworkPorts: [9443]
+    egress:
+      apiAndDns: true
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  # HyperShift runs the NodePool's in-place upgrade pods in
+  # compliant-dev-workload0-hypervisor-upgrade during a rollout, and the
+  # namespace exists only then. Not listed until one has run: a policy
+  # for a missing namespace fails the whole sync. On nist-dev-workload0
+  # (NodePool "compute") it took ingress {} and smallQuota.
+  # Storage (oac-apps #269), sized as on the hub. tlshd is host-network,
+  # so default-deny both ways costs it nothing. portworx and
+  # object-storage-proxy get quota only until their traffic is measured.
+  nfs-tls:
+    ingress: {}
+    egress: {}
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  portworx:
+    quota:
+      pods: '15'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  object-storage-proxy:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  # Made by HyperShift and the Agent reclaim during the 2026-11-20 scale-down
+  # and reinstall: the in-place upgrade namespace and the reclaim config.
+  # Quota only; the in-place upgrade's pods run here during a NodePool roll.
+  compliant-dev-workload0-hypervisor-upgrade:
+    quota: *smallQuota
+  assisted-installer:
+    quota: *smallQuota
+  # GPU passthrough (MOC-issues #787): NFD and the GPU Operator. Quota only
+  # until their traffic is measured, as for storage. 7 and 5 pods on two
+  # nodes (2026-11-20); room for four nodes.
+  nvidia-gpu-operator:
+    quota:
+      pods: '20'
+      persistentvolumeclaims: '0'
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  openshift-nfd:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '0'
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  # andalusia's VM (MOC-issues #788). HyperShift and kubevirt-csi make
+  # everything here: the VM's launcher and hot-plug pods, its root disk,
+  # one PVC per guest PVC (10 on 2026-11-24, about 790Gi), and the mirrored
+  # guest-router LoadBalancer, whose two node ports count against the quota.
+  # HyperShift's virt-launcher NetworkPolicy is already here, so quota only.
+  # Room for a Replace roll (two launchers) and the guest's PVCs to grow.
+  clusters-andalusia:
+    quota:
+      pods: '20'
+      persistentvolumeclaims: '50'
+      requests.storage: 4Ti
+      services: '5'
+      services.nodeports: '4'
+      services.loadbalancers: '2'
+  # The COSI controller (pure-cosi, 2026-11-23), sized as on the hub: one
+  # pod, no services or volumes of its own. Quota only, as on the hub.
+  container-object-storage-system:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'

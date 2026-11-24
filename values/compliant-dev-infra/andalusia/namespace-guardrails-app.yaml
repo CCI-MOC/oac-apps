@@ -1,0 +1,39 @@
+# andalusia's own namespaces (as compliant-dev-workload0's); the shared ones
+# are in hosted-clusters/namespace-guardrails-app.yaml.
+_quota: &smallQuota
+  pods: '10'
+  services: '5'
+  persistentvolumeclaims: '2'
+  requests.storage: 20Gi
+  services.nodeports: '0'
+  services.loadbalancers: '0'
+
+guardrails:
+  # No MetalLB here: andalusia's ingress address is on workload0. A quota
+  # for a missing namespace fails the sync's first wave, so the default-deny
+  # policies in the next wave never apply.
+  metallb-system: null
+  andalusia:
+    ingress: {}
+    egress: {}
+    quota: *smallQuota
+  open-cluster-management-andalusia:
+    ingress: {}
+    egress: {}
+    quota: *smallQuota
+  # The GPU Operator in container mode (one node): quotas only, no
+  # NetworkPolicies until its traffic is measured, as on workload0.
+  nvidia-gpu-operator:
+    quota:
+      pods: '20'
+      persistentvolumeclaims: '0'
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  openshift-nfd:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '0'
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'

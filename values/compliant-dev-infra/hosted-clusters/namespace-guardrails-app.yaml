@@ -1,0 +1,207 @@
+# Every hosted cluster on compliant-dev-infra: the namespaces that oac-apps and
+# the compliance charts put on a managed cluster.
+#
+# Measured on nist-dev-workload0, 2026-10-22: ACS's observed network flows
+# for the cluster (since 15:30 EDT), each add-on's hub kubeconfig, and the
+# webhook configurations. On a hosted cluster the API server calls webhooks
+# through the konnectivity agents, which are host-network pods, so
+# hostNetworkPorts admits them as on a standalone cluster. The API server is
+# the kubernetes Service's endpoint, 172.20.0.1:6443, so apiServerPort stays
+# 6443. Kubelet probes are not affected by these policies.
+#
+# Quotas: object counts and storage only, sized as on the hub (twice the
+# count, rounded up to 5; at least 10 pods and 5 services; no NodePort or
+# LoadBalancer services). stackrox's pods grow with the node count
+# (collectors), and has room for four nodes.
+
+_quota: &smallQuota
+  pods: '10'
+  services: '5'
+  persistentvolumeclaims: '2'
+  requests.storage: 20Gi
+  services.nodeports: '0'
+  services.loadbalancers: '0'
+
+guardrails:
+  cert-manager:
+    # The webhook (10250, from the API server) and metrics (9402). The
+    # controller needs ACME and Route 53 over HTTPS, and public name servers
+    # for its DNS-01 self-check.
+    ingress:
+      hostNetworkPorts: [10250]
+      monitoringPorts: [9402]
+    egress:
+      apiAndDns: true
+    extraPolicies:
+      - name: allow-egress-acme-dns01
+        spec:
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: controller
+          policyTypes: [Egress]
+          egress:
+            - ports:
+                - {protocol: TCP, port: 443}
+            - ports:
+                - {protocol: UDP, port: 53}
+                - {protocol: TCP, port: 53}
+    quota: *smallQuota
+  cert-manager-operator:
+    ingress:
+      monitoringPorts: [8443]
+    egress:
+      apiAndDns: true
+    quota: *smallQuota
+  rhacs-operator:
+    ingress:
+      monitoringPorts: [8443]
+    egress:
+      apiAndDns: true
+    quota: *smallQuota
+  stackrox:
+    # The operator ships the ingress policies; egress as on the hub, plus
+    # the hub's Central (route on the hub's apps address).
+    egress:
+      apiAndDns: true
+      sameNamespace: true
+    extraPolicies:
+      - name: allow-egress-central
+        spec:
+          podSelector:
+            matchLabels:
+              app: sensor
+          policyTypes: [Egress]
+          egress:
+            - to:
+                - ipBlock: {cidr: 10.20.19.12/32}
+              ports:
+                - {protocol: TCP, port: 443}
+    quota:
+      pods: '15'
+      services: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-agent-addon:
+    # Add-ons call the hub's API (6443, covered by apiAndDns) and its
+    # routes on the apps address (cluster-proxy's tunnel, search); the
+    # cluster's Prometheus scrapes them; work-manager queries Prometheus.
+    # cluster-proxy's agent serves its proxy and health ports to the
+    # tunnel's local side.
+    ingress:
+      monitoringPorts: [8443, 5010]
+    egress:
+      apiAndDns: true
+      sameNamespace: true
+    extraPolicies:
+      - name: allow-egress-hub-routes
+        spec:
+          podSelector: {}
+          policyTypes: [Egress]
+          egress:
+            - to:
+                - ipBlock: {cidr: 10.20.19.12/32}
+              ports:
+                - {protocol: TCP, port: 443}
+      - name: allow-egress-prometheus
+        spec:
+          podSelector: {}
+          policyTypes: [Egress]
+          egress:
+            - to:
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: openshift-monitoring
+              ports:
+                - {protocol: TCP, port: 9091}
+      - name: allow-ingress-cluster-proxy
+        spec:
+          podSelector:
+            matchLabels:
+              open-cluster-management.io/addon: cluster-proxy
+          policyTypes: [Ingress]
+          ingress:
+            - ports:
+                - {protocol: TCP, port: 8888}
+                - {protocol: TCP, port: 8000}
+    quota:
+      pods: '20'
+      services: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-addon-observability:
+    # ACM observability: collectors read the cluster's Prometheus and
+    # Thanos querier (9091) and push to the hub's metrics endpoint on its
+    # apps address; Prometheus scrapes them on 8080. Measured 2026-10-22.
+    ingress:
+      monitoringPorts: [8080]
+    egress:
+      apiAndDns: true
+    extraPolicies:
+      - name: allow-egress-monitoring-and-hub
+        spec:
+          podSelector: {}
+          policyTypes: [Egress]
+          egress:
+            - to:
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: openshift-monitoring
+              ports:
+                - {protocol: TCP, port: 9091}
+            - to:
+                - ipBlock: {cidr: 10.20.19.12/32}
+              ports:
+                - {protocol: TCP, port: 443}
+    quota: *smallQuota
+  # External Secrets ships its own NetworkPolicies (deny all, then the API
+  # server, DNS and the operator's egress); quota only. Four pods, four
+  # services, no volumes (2026-10-23).
+  external-secrets:
+    quota: *smallQuota
+  # MetalLB ships its own NetworkPolicy; quota only, as on the hub.
+  metallb-system:
+    quota:
+      pods: '15'
+      services: '15'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  # No ordinary pods: service accounts only. (grafana-operator was here
+  # on nist-dev-workload0; the Grafana operator was replaced, MOC-issues
+  # #742, and is not on compliant-dev-infra's clusters.)
+  moc-metrics-collector:
+    ingress: {}
+    egress: {}
+    quota: *smallQuota
+  open-cluster-management-policies:
+    ingress: {}
+    egress: {}
+    quota: *smallQuota
+  openshift-logging:
+    # audit-logging in forwarding mode (2026-10-23): the collectors read
+    # the workers' audit logs from host paths and send them to the hub's
+    # LokiStack route on the hub's apps address. The cluster's Prometheus
+    # scrapes the collectors (24231) and the operator (8443). No webhooks.
+    # The collectors are one pod per worker, so pods has room for eight.
+    ingress:
+      monitoringPorts: [24231, 8443]
+    egress:
+      apiAndDns: true
+    extraPolicies:
+      - name: allow-egress-hub-loki
+        spec:
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: collector
+          policyTypes: [Egress]
+          egress:
+            - to:
+                - ipBlock: {cidr: 10.20.19.12/32}
+              ports:
+                - {protocol: TCP, port: 443}
+    quota: *smallQuota

@@ -1,0 +1,183 @@
+# Every hosted cluster on compliant-dev-infra (test hub). The cluster's own
+# values/compliant-dev-infra/<cluster>/compliance-operator.yaml comes after this.
+#
+# A hosted cluster's control plane (kube-apiserver, etcd, the controller
+# managers) runs on the hub, in the namespace clusters-<cluster>. Many
+# platform rules read that configuration from objects the hosted cluster
+# does not have, so they fail inside it however the hub is set. The
+# tailored profiles below disable only those, and only where the setting
+# was checked on the hub (for nist-dev-workload0, 2026-10-22). Every
+# other failure stays. The API servers' audit log rotation is the one
+# exception that is not a visibility problem: HyperShift keeps one 10 MB
+# file, and the rules are disabled because the hub's LokiStack is the
+# record (rationale auditRetention, with its residual risk).
+subscription:
+  # Red Hat's install settings for hosted control planes: the operator and
+  # its scanners run on the workers, and know the platform is HyperShift.
+  config:
+    nodeSelector:
+      node-role.kubernetes.io/worker: ""
+    env:
+      - name: PLATFORM
+        value: HyperShift
+# The operator does not set up its own monitoring on a hosted cluster.
+monitoring:
+  enabled: true
+scanSetting:
+  # No masters: the control plane is on the hub.
+  roles: [worker]
+  # Raw ARF results are the evidence archive (T-04), on the FlashBlade
+  # over NFS with TLS (oac-apps #269), as on the hub.
+  rawResultStorage:
+    enabled: true
+    storageClassName: pure-fb-nfsv4
+    # The operator's default puts the result server on a master, and a
+    # hosted cluster has none.
+    nodeSelector:
+      node-role.kubernetes.io/master: null
+      node-role.kubernetes.io/worker: ""
+    tolerations: []
+
+_rationale:
+  kas: &kas "Hosted control plane: the kube-apiserver runs on the hub, and its configuration is not visible in the cluster. Checked on the hub (kas-config and the kube-apiserver deployment in clusters-<cluster>, 2026-10-22): admission plugins NamespaceLifecycle, NodeRestriction, ServiceAccount and the SCC plugins enabled; authorization-mode includes RBAC and Node; serving on 0.0.0.0:6443 with its own certificate and key; client CA, etcd CA and client certificate, kubelet CA and client certificate set; service-account lookup on and public key file set; min-request-timeout 3600; secrets encrypted with aescbc."
+  auditPath: &auditPath "Hosted control plane: the API servers run on the hub. Checked there (2026-10-22): kube-apiserver writes /var/log/kube-apiserver/audit.log and openshift-apiserver /var/log/openshift-apiserver/audit.log."
+  kcm: &kcm "Hosted control plane: the kube-controller-manager runs on the hub. Checked there (2026-10-22): service-account private key and root CA set, use-service-account-credentials true, secure port 10257, no insecure port."
+  etcd: &etcd "Hosted control plane: etcd runs on the hub. Checked there (2026-10-22): server and peer certificates and keys set, client-cert-auth and peer-client-cert-auth true, auto-tls and peer-auto-tls off."
+  kubelet: &kubelet "Reads kubelet configuration objects a hosted cluster does not have. The workers' kubelet.conf matches the hub's masters, which pass (serverTLSBootstrap and rotateCertificates true), and no read-only port is listening (checked 2026-10-22)."
+  auditAlert: &auditAlert "The API servers run on the hub, and their metrics are scraped there (user workload monitoring), not in the cluster. The AuditLogError alert is on the hub, in clusters-<cluster> (hosted-cluster chart, auditErrorAlert)."
+  vendorLimits: &vendorLimits "Every Deployment and DaemonSet without requests or limits belongs to an operator or add-on that owns its spec and would revert an edit: cert-manager, External Secrets and MetalLB (Red Hat operators), the ACM add-ons, which the hub deploys (listed 2026-10-23), Portworx (Pure's operator owns the CSI pods; exempt on the hub too, 2026-11-20), the NVIDIA GPU Operator (its ClusterPolicy owns every DaemonSet in nvidia-gpu-operator; compliant-dev-workload0, 2026-11-20), and patch-operator, whose kube-rbac-proxy sidecar has no CPU limit (OLM operator; also exempt on the hub; seen on compliant-dev-workload0, 2026-11-20). Each namespace has a ResourceQuota (namespace-guardrails), which bounds what it can use. The rule stays on for every other namespace."
+  auditRetention: &auditRetention "Hosted control plane: HyperShift runs kube-apiserver and openshift-apiserver with audit-log-maxbackup 1 and audit-log-maxsize 10 (kas-config and openshift-apiserver ConfigMaps in clusters-<cluster>, checked 2026-10-23), so the hub's disk holds at most 20 MB of each. The record is the hub's LokiStack: the hub's forwarder reads the API servers' audit-logs sidecars with AtLeastOnce delivery (buffered on disk while Loki is unreachable) and Loki keeps 90 days (audit-logging chart, local-cluster values; flowing about 60 lines/s on 2026-10-23). Residual risk: a line the collector has not yet read exists only in that file, so a collector outage long enough for the API servers to write 20 MB loses records."
+  oauthIdp: &oauthIdp "Hosted control plane: the OAuth server runs on the hub and takes its identity providers from HostedCluster.spec.configuration.oauth, which HyperShift does not copy to the cluster's oauth/cluster object the rule reads. Checked on the hub (2026-10-23): HostedCluster compliant-dev-workload0 has the mocsso OpenID provider (MOC Keycloak), and kubeadmin-removed passes in the cluster."
+  oauthTokens: &oauthTokens "Hosted control plane: the OAuth server runs on the hub and takes its token settings from HostedCluster.spec.configuration.oauth.tokenConfig, which HyperShift does not copy to the cluster's oauth/cluster object the rule reads. Checked on the hub (2026-10-23): HostedCluster compliant-dev-workload0 and the running OAuth server's config (the oauth-openshift ConfigMap in clusters-<cluster>) have accessTokenInactivityTimeout 10m and accessTokenMaxAgeSeconds 86400, from the hub-wide hosted-cluster values."
+  ingressCert: &ingressCert "The rule takes a trusted CA bundle in proxy/cluster (spec.trustedCA) as the sign that the default ingress certificate was replaced. Every hosted cluster on this hub replaces it with a Let's Encrypt wildcard certificate (cluster-certificates, cert-manager DNS-01), which chains to a public root already in the system trust, so no custom bundle is needed. Checked on nist-dev-workload0 (2026-10-23): the IngressController's default certificate is that Certificate, and the router serves it (issuer Let's Encrypt YR1, *.apps.<cluster domain>)."
+  kubevirtScc: &kubevirtScc "The stock list of SCCs allowed to grant capabilities, plus kubevirt-controller, which OpenShift Virtualization creates and owns (SYS_NICE and NET_BIND_SERVICE, for its virt-controller and VM launcher pods); its operator would revert an edit. Only on clusters with OpenShift Virtualization; tests/verify.sh T-11 lists it as a known exception (compliant-dev-workload0, 2026-11-20). The nvidia-* SCCs (nine, all capabilities) are created and reconciled by the NVIDIA GPU Operator for its own service accounts only: its driver, VFIO manager, validators and device plugins load kernel modules and bind GPUs to vfio-pci, the same access as the stock privileged SCC already on this list (GPU passthrough on compliant-dev-workload0, 2026-11-20)."
+  fips: &fips "Reads MachineConfigs, which a hosted cluster does not have. HostedCluster.spec.fips is true (hub-wide hosted-cluster values), and rhcos4-moderate enable-fips-mode passes on every worker."
+
+tailoredProfiles:
+  - name: hosted-ocp4-cis
+    spec:
+      extends: ocp4-cis
+      title: CIS (hosted clusters on compliant-dev-infra)
+      description: Stock ocp4-cis without the rules that read control-plane configuration a hosted cluster cannot see. Each was checked on the hub.
+      disableRules:
+        - {name: ocp4-api-server-admission-control-plugin-namespacelifecycle, rationale: *kas}
+        - {name: ocp4-api-server-admission-control-plugin-noderestriction, rationale: *kas}
+        - {name: ocp4-api-server-admission-control-plugin-scc, rationale: *kas}
+        - {name: ocp4-api-server-admission-control-plugin-service-account, rationale: *kas}
+        - {name: ocp4-api-server-audit-log-path, rationale: *auditPath}
+        - {name: ocp4-api-server-audit-log-maxbackup, rationale: *auditRetention}
+        - {name: ocp4-api-server-audit-log-maxsize, rationale: *auditRetention}
+        - {name: ocp4-ocp-api-server-audit-log-maxbackup, rationale: *auditRetention}
+        - {name: ocp4-ocp-api-server-audit-log-maxsize, rationale: *auditRetention}
+        - {name: ocp4-api-server-auth-mode-rbac, rationale: *kas}
+        - {name: ocp4-api-server-bind-address, rationale: *kas}
+        - {name: ocp4-api-server-client-ca, rationale: *kas}
+        - {name: ocp4-api-server-encryption-provider-cipher, rationale: *kas}
+        - {name: ocp4-api-server-etcd-ca, rationale: *kas}
+        - {name: ocp4-api-server-etcd-cert, rationale: *kas}
+        - {name: ocp4-api-server-etcd-key, rationale: *kas}
+        - {name: ocp4-api-server-kubelet-certificate-authority, rationale: *kas}
+        - {name: ocp4-api-server-kubelet-client-cert, rationale: *kas}
+        - {name: ocp4-api-server-kubelet-client-key, rationale: *kas}
+        - {name: ocp4-api-server-request-timeout, rationale: *kas}
+        - {name: ocp4-api-server-service-account-lookup, rationale: *kas}
+        - {name: ocp4-api-server-service-account-public-key, rationale: *kas}
+        - {name: ocp4-api-server-tls-cert, rationale: *kas}
+        - {name: ocp4-api-server-tls-private-key, rationale: *kas}
+        - {name: ocp4-openshift-api-server-audit-log-path, rationale: *auditPath}
+        - {name: ocp4-idp-is-configured, rationale: *oauthIdp}
+        - {name: ocp4-controller-service-account-ca, rationale: *kcm}
+        - {name: ocp4-controller-service-account-private-key, rationale: *kcm}
+        - {name: ocp4-controller-use-service-account, rationale: *kcm}
+        - {name: ocp4-etcd-auto-tls, rationale: *etcd}
+        - {name: ocp4-etcd-cert-file, rationale: *etcd}
+        - {name: ocp4-etcd-client-cert-auth, rationale: *etcd}
+        - {name: ocp4-etcd-key-file, rationale: *etcd}
+        - {name: ocp4-etcd-peer-auto-tls, rationale: *etcd}
+        - {name: ocp4-etcd-peer-cert-file, rationale: *etcd}
+        - {name: ocp4-etcd-peer-client-cert-auth, rationale: *etcd}
+        - {name: ocp4-etcd-peer-key-file, rationale: *etcd}
+        - {name: ocp4-kubelet-configure-tls-cert, rationale: *kubelet}
+        - {name: ocp4-kubelet-configure-tls-key, rationale: *kubelet}
+        - {name: ocp4-kubelet-disable-readonly-port, rationale: *kubelet}
+      setValues:
+        - name: ocp4-var-sccs-with-allowed-capabilities-regex
+          value: "^privileged$|^hostnetwork-v2$|^restricted-v2$|^restricted-v3$|^nonroot-v2$|^insights-runtime-extractor-scc|^nested-container$|^kubevirt-controller$|^nvidia-"
+          rationale: *kubevirtScc
+  - name: hosted-ocp4-moderate
+    spec:
+      extends: ocp4-moderate
+      title: NIST 800-53 Moderate (hosted clusters on compliant-dev-infra)
+      description: Stock ocp4-moderate without the rules that read control-plane configuration a hosted cluster cannot see. Each was checked on the hub.
+      disableRules:
+        - {name: ocp4-api-server-admission-control-plugin-namespacelifecycle, rationale: *kas}
+        - {name: ocp4-api-server-admission-control-plugin-noderestriction, rationale: *kas}
+        - {name: ocp4-api-server-admission-control-plugin-scc, rationale: *kas}
+        - {name: ocp4-api-server-admission-control-plugin-service-account, rationale: *kas}
+        - {name: ocp4-api-server-audit-log-path, rationale: *auditPath}
+        - {name: ocp4-api-server-audit-log-maxbackup, rationale: *auditRetention}
+        - {name: ocp4-api-server-audit-log-maxsize, rationale: *auditRetention}
+        - {name: ocp4-ocp-api-server-audit-log-maxbackup, rationale: *auditRetention}
+        - {name: ocp4-ocp-api-server-audit-log-maxsize, rationale: *auditRetention}
+        - {name: ocp4-api-server-auth-mode-node, rationale: *kas}
+        - {name: ocp4-api-server-auth-mode-rbac, rationale: *kas}
+        - {name: ocp4-api-server-bind-address, rationale: *kas}
+        - {name: ocp4-api-server-client-ca, rationale: *kas}
+        - {name: ocp4-api-server-encryption-provider-cipher, rationale: *kas}
+        - {name: ocp4-api-server-etcd-ca, rationale: *kas}
+        - {name: ocp4-api-server-etcd-cert, rationale: *kas}
+        - {name: ocp4-api-server-etcd-key, rationale: *kas}
+        - {name: ocp4-api-server-kubelet-certificate-authority, rationale: *kas}
+        - {name: ocp4-api-server-kubelet-client-cert, rationale: *kas}
+        - {name: ocp4-api-server-kubelet-client-key, rationale: *kas}
+        - {name: ocp4-api-server-request-timeout, rationale: *kas}
+        - {name: ocp4-api-server-service-account-lookup, rationale: *kas}
+        - {name: ocp4-api-server-service-account-public-key, rationale: *kas}
+        - {name: ocp4-api-server-tls-cert, rationale: *kas}
+        - {name: ocp4-api-server-tls-private-key, rationale: *kas}
+        - {name: ocp4-openshift-api-server-audit-log-path, rationale: *auditPath}
+        - {name: ocp4-idp-is-configured, rationale: *oauthIdp}
+        - {name: ocp4-oauth-or-oauthclient-inactivity-timeout, rationale: *oauthTokens}
+        - {name: ocp4-oauth-or-oauthclient-token-maxage, rationale: *oauthTokens}
+        - {name: ocp4-default-ingress-ca-replaced, rationale: *ingressCert}
+        - {name: ocp4-controller-insecure-port-disabled, rationale: *kcm}
+        - {name: ocp4-controller-secure-port, rationale: *kcm}
+        - {name: ocp4-controller-service-account-ca, rationale: *kcm}
+        - {name: ocp4-controller-service-account-private-key, rationale: *kcm}
+        - {name: ocp4-controller-use-service-account, rationale: *kcm}
+        - {name: ocp4-etcd-auto-tls, rationale: *etcd}
+        - {name: ocp4-etcd-cert-file, rationale: *etcd}
+        - {name: ocp4-etcd-client-cert-auth, rationale: *etcd}
+        - {name: ocp4-etcd-key-file, rationale: *etcd}
+        - {name: ocp4-etcd-peer-auto-tls, rationale: *etcd}
+        - {name: ocp4-etcd-peer-cert-file, rationale: *etcd}
+        - {name: ocp4-etcd-peer-client-cert-auth, rationale: *etcd}
+        - {name: ocp4-etcd-peer-key-file, rationale: *etcd}
+        - {name: ocp4-kubelet-configure-tls-cert, rationale: *kubelet}
+        - {name: ocp4-kubelet-configure-tls-key, rationale: *kubelet}
+        - {name: ocp4-kubelet-disable-readonly-port, rationale: *kubelet}
+        - {name: ocp4-fips-mode-enabled-on-all-nodes, rationale: *fips}
+        - {name: ocp4-audit-error-alert-exists, rationale: *auditAlert}
+      setValues:
+        - name: ocp4-var-deployment-limit-namespaces-exempt-regex
+          value: "^(cert-manager|cert-manager-operator|external-secrets|metallb-system|open-cluster-management-agent-addon|open-cluster-management-addon-observability|patch-operator|portworx)$"
+          rationale: *vendorLimits
+        - name: ocp4-var-daemonset-limit-namespaces-exempt-regex
+          value: "^(metallb-system|nvidia-gpu-operator|portworx)$"
+          rationale: *vendorLimits
+        - name: ocp4-var-sccs-with-allowed-capabilities-regex
+          value: "^privileged$|^hostnetwork-v2$|^restricted-v2$|^restricted-v3$|^nonroot-v2$|^insights-runtime-extractor-scc|^nested-container$|^kubevirt-controller$|^nvidia-"
+          rationale: *kubevirtScc
+
+bindings:
+  - name: cis-baseline
+    profiles:
+      - name: hosted-ocp4-cis
+        kind: TailoredProfile
+      - name: ocp4-cis-node
+  - name: nist-moderate
+    profiles:
+      - name: hosted-ocp4-moderate
+        kind: TailoredProfile
+      - name: ocp4-moderate-node
+      - name: rhcos4-moderate

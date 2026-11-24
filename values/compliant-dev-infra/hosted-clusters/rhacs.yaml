@@ -1,0 +1,26 @@
+# Every hosted cluster on compliant-dev-infra (test hub): a SecuredCluster that
+# reports to the hub's Central. The cluster's own
+# values/compliant-dev-infra/<cluster>/rhacs.yaml sets its name.
+#
+# The init bundle is a credential. It is generated in the hub's Central for
+# each cluster and applied to the cluster's stackrox namespace by hand,
+# never committed (as for the hub, compliance/manifests/05-* in
+# EldritchJS/oac-eldritch-things).
+securedCluster:
+  enabled: true
+  # Through the hub's router; the workers reach it (checked 2026-10-22).
+  centralEndpoint: central-stackrox.apps.compliant-dev-infra.nist.int.massopen.cloud:443
+  spec:
+    admissionControl:
+      listenOnCreates: true
+      listenOnEvents: true
+      listenOnUpdates: true
+    perNode:
+      collector:
+        collection: CORE_BPF
+    # Local scanners need a database volume, and hosted clusters have no
+    # StorageClass until Portworx. Central on the hub scans images instead.
+    scanner:
+      scannerComponent: Disabled
+    scannerV4:
+      scannerComponent: Disabled

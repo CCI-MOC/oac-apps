@@ -1,0 +1,11 @@
+# compliant-dev-workload0 (test). tlshd as on the hub; its image needs
+# ghcr.io/eldritchjs in the hosted clusters' allowed registries (oac-apps
+# #269).
+image:
+  repository: ghcr.io/eldritchjs/tlshd
+  digest: sha256:f8bcab63ea0cd9bfe28e84e127391c95fe9470d9b5f1cf2f97d87f99cf50e50b
+ca:
+  externalSecret:
+    # The realm certificate (generated 2026-11-19, imported on the
+    # FlashBlade). Replacing it means updating this secret.
+    remoteKey: cluster/compliant-dev-workload0/nfs-tls-ca

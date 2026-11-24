@@ -1,0 +1,14 @@
+# compliant-dev-workload0. The rest comes from
+# values/compliant-dev-infra/hosted-clusters/rhacs.yaml.
+securedCluster:
+  clusterName: compliant-dev-workload0
+  spec:
+    perNode:
+      collector:
+        # The SD665-N V3s have 512 CPUs, and the collector's eBPF buffers
+        # are per CPU: at the operator's default 1Gi limit one collector
+        # sat at 971Mi and the other was killed (exit 137) in a loop
+        # (2026-11-20). Merged with the hub-wide perNode settings.
+        resources:
+          requests: {cpu: 50m, memory: 1Gi}
+          limits: {cpu: 750m, memory: 3Gi}
