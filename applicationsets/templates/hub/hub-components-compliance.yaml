@@ -1,7 +1,10 @@
 {{- $hub := required "hubName must be set" .Values.hubName }}
 # Compliance charts for the hub itself. As with hosted-cluster-compliance,
 # hosted-clusters/<hub>/compliance.yaml marks the hub compliant; without it
-# this generates nothing. This covers the hub only. On hosted workers the
+# this generates nothing. This covers the hub only: the scans and their
+# tailoring, node and platform hardening, audit logs, etcd backups, ACS,
+# NFS over TLS and guardrails for namespaces no chart owns. Each reads
+# values/<hub>/local-cluster/<component>.yaml. On hosted workers the
 # operator's AIDE init container needs /etc/kubernetes/static-pod-resources,
 # which they lack (RFE-8168); compliance-node-hardening creates it empty, and
 # with that file integrity runs on compliant-dev-workload0's workers.
@@ -22,6 +25,15 @@ spec:
           - list:
               elements:
                 - component: file-integrity
+                - component: compliance-operator
+                - component: compliance-hub-policy
+                - component: compliance-node-hardening
+                - component: platform-hardening
+                - component: audit-logging
+                - component: etcd-backup
+                - component: rhacs
+                - component: nfs-tls
+                - component: namespace-guardrails-app
   template:
     metadata:
       name: "hub-{{`{{component}}`}}"

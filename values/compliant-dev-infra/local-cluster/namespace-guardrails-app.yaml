@@ -1,0 +1,341 @@
+# compliant-dev-infra (test hub).
+#
+# Quotas (2026-10-19): every non-platform namespace. Object counts and
+# storage only, sized from what each namespace held then: pods and services
+# at twice the count (rounded up to 5; at least 10 and 5), 2 volumes and
+# 20Gi where none were used, no NodePort or LoadBalancer services.
+#
+# NetworkPolicies: the compliance charts' namespaces, and (2026-10-19) five
+# small ones whose traffic is fully known: two operators that serve only an
+# API server webhook and need only the API server, and three with no
+# ordinary pods. Neither Prometheus scrapes any of the five. ACM,
+# multicluster-engine, HyperShift and the rest wait until a spoke exists,
+# so its traffic can be measured first.
+# Rules taken from jetty (compliance/manifests/17-*, 18-*, 22-* in
+# EldritchJS/oac-eldritch-things).
+guardrails:
+  etcd-backup:
+    ingress: {}
+    # The hub's own backup runs on the host network; the hosted clusters'
+    # backups exec into their etcd pods through the API server.
+    egress:
+      apiAndDns: true
+    quota:
+      pods: '4'
+      # The hub's volume and one per hosted cluster.
+      persistentvolumeclaims: '4'
+      requests.storage: 50Gi
+      services: '0'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  rhacs-operator:
+    ingress:
+      monitoringPorts:
+      - 8443
+    egress:
+      apiAndDns: true
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  stackrox:
+    egress:
+      apiAndDns: true
+      sameNamespace: true
+    extraPolicies:
+    - name: allow-egress-https-feeds
+      spec:
+        podSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - central
+            - scanner-v4-indexer
+        policyTypes:
+        - Egress
+        egress:
+        - ports:
+          - protocol: TCP
+            port: 443
+    quota:
+      pods: '45'
+      persistentvolumeclaims: '8'
+      requests.storage: 1Ti
+      services: '20'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  assisted-installer:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  cert-manager:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  cert-manager-operator:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  default-broker:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  external-dns-operator:
+    ingress:
+      hostNetworkPorts: [9443]
+    egress:
+      apiAndDns: true
+    extraPolicies:
+    # external-dns writes the hosted clusters' records in Route 53. Its
+    # endpoints have no fixed addresses, so: HTTPS to anything outside the
+    # private ranges, from the external-dns pods only.
+    - name: allow-egress-route53
+      spec:
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/name: external-dns
+        policyTypes: [Egress]
+        egress:
+        - to:
+          - ipBlock:
+              cidr: 0.0.0.0/0
+              except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]
+          ports:
+          - port: 443
+            protocol: TCP
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  external-secrets:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  hive:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  hypershift:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  local-cluster:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  metallb-system:
+    quota:
+      pods: '15'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '15'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  moc-metrics-collector:
+    ingress: {}
+    egress: {}
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  multicluster-engine:
+    quota:
+      pods: '50'
+      # The agent install service (cim in acm.yaml): database 100Gi, files
+      # 500Gi, images 200Gi.
+      persistentvolumeclaims: '5'
+      requests.storage: 1Ti
+      services: '30'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  nfs-tls:
+    ingress: {}
+    egress: {}
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  node-labels:
+    ingress: {}
+    egress: {}
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management:
+    quota:
+      pods: '50'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '40'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-agent:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-agent-addon:
+    quota:
+      pods: '20'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-global-set:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-hub:
+    quota:
+      pods: '40'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-policies:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  patch-operator:
+    ingress:
+      hostNetworkPorts: [9443]
+    egress:
+      apiAndDns: true
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  portworx:
+    quota:
+      pods: '15'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  # Namespaces that appeared with stage D and object storage (sized
+  # 2026-10-23, same rule as above). Quota only: their traffic is not
+  # measured yet. open-cluster-management-observability held 34 pods, 20
+  # services and 13 volumes (436Gi: Thanos receivers, store, compactor,
+  # Alertmanager).
+  clusters:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '10'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  container-object-storage-system:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  hardware-inventory:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  klusterlet-compliant-dev-workload0:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  compliant-dev-workload0:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  object-storage-proxy:
+    quota:
+      pods: '10'
+      persistentvolumeclaims: '2'
+      requests.storage: 20Gi
+      services: '5'
+      services.nodeports: '0'
+      services.loadbalancers: '0'
+  open-cluster-management-observability:
+    quota:
+      pods: '70'
+      persistentvolumeclaims: '26'
+      requests.storage: 900Gi
+      services: '40'
+      services.nodeports: '0'
+      services.loadbalancers: '0'

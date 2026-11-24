@@ -1,0 +1,13 @@
+# compliant-dev-infra (test hub). Stage C only: syncing this reboots every node.
+# On a compact hub that is the whole cluster, one node at a time. Pause the
+# master pool first.
+#
+# The chart's defaults are right for the hub itself. NodePool delivery puts
+# its ConfigMap in the `clusters` namespace, which hub-hcp-config creates;
+# every hosted cluster's NodePools reference it.
+nodePool:
+  enabled: true
+  # Test only: lets FIO's AIDE pods start on hosted workers, which Red Hat
+  # does not support (see the chart's values). Without it the workload
+  # clusters have no file integrity monitoring at all.
+  fioStaticPodResourcesDir: true

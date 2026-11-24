@@ -30,6 +30,17 @@ tests:
           path: spec.generators[0].matrix.generators[1].list.elements
           content:
             component: file-integrity
+      - lengthEqual:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          count: 10
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: compliance-operator
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: namespace-guardrails-app
       - equal:
           path: spec.template.metadata.name
           value: "hub-{{component}}"

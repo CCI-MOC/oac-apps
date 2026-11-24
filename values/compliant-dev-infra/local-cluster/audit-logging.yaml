@@ -1,0 +1,34 @@
+# The bucket comes from the hub's COSI driver. Loki reaches it through the
+# object storage proxy, at s3.compliant-dev-infra.nist.int.massopen.cloud, whose
+# Let's Encrypt certificate needs no CA here.
+forwarder:
+  hostedControlPlanes: true
+loki:
+  # Test hub: the FlashBlade over NFS, the hub's only class.
+  storageClassName: pure-fb-nfsv4
+  # The hosted API servers' audit lands in the application tenant. With
+  # the WriteRequestBodies profile some lines are whole ConfigMaps (the
+  # compliance scans' results, up to 784 kB on 2026-10-23), past the
+  # default 256 kB line limit, and the tenant's rate limit refused about
+  # half of what the collector sent, retries included, though the API
+  # servers write about 50 kB/s.
+  # The hub's own API servers audit at WriteRequestBodies too, into the audit
+  # tenant: at its defaults (2 MB/s, 256 kB lines) Loki refused about 110
+  # pushes a minute and dropped whole-ConfigMap lines (2026-11-19).
+  tenantLimits:
+    application:
+      ingestion:
+        ingestionRate: 16
+        ingestionBurstSize: 32
+        maxLineSize: 2097152
+    audit:
+      ingestion:
+        ingestionRate: 16
+        ingestionBurstSize: 32
+        maxLineSize: 2097152
+# Hosted clusters that forward their node audit logs here
+# (hosted-clusters/audit-logging.yaml).
+auditWriters:
+  clusters:
+    - compliant-dev-workload0
+    - andalusia

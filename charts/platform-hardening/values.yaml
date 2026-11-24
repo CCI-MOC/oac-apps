@@ -54,3 +54,32 @@ systemUseNotice:
   backgroundColor: "#8a1c1c"
   # Full text, shown by `oc login`.
   motd: ""
+
+# Route annotations (800-53 SC-5, SC-7): close ocp4 routes-rate-limit and,
+# where set, route-ip-whitelist, on every route outside openshift-* and
+# kube-*. Operators own most such routes (HyperShift, ACS,
+# multicluster-engine), so instead of Route manifests these are ACM
+# policies that merge the annotations in (musthave) and put them back if an
+# operator drops them. Replaces route-rate-limits.sh. Hub only: enable it in
+# the hub's values and list the managed clusters by name.
+#
+# The rate limits are per source IP, TCP-level, so they also work on
+# passthrough routes. An allowlist needs the source ranges people reach the
+# cluster from; a wrong one locks everyone out, so it is per cluster.
+routeAnnotations:
+  enabled: false
+  # A namespace with a ManagedClusterSetBinding for clusterSet. ACM makes
+  # open-cluster-management-global-set with one for global.
+  policyNamespace: open-cluster-management-global-set
+  clusterSet: global
+  rateLimit:
+    clusters: []
+    concurrentTcp: 100
+    rateTcp: 100
+  # Named groups, each a policy route-allowlist-<group>. ACM limits the
+  # policy namespace plus name to 62 characters, so keep the group short.
+  #   ipAllowlists:
+  #     vpn:
+  #       clusters: [compliant-dev-workload0]
+  #       cidrs: 10.20.0.0/16        # space-separated
+  ipAllowlists: {}

@@ -1,0 +1,28 @@
+# compliant-dev-infra (test hub). Central on the hub, and the hub's own
+# SecuredCluster. Hosted clusters would later get SecuredClusters that
+# report to this Central.
+central:
+  enabled: true
+  spec:
+    central:
+      exposure:
+        route:
+          enabled: true
+      # Database PVC on the default StorageClass; nothing to set until the
+      # hub has one.
+    egress:
+      connectivityPolicy: Online
+securedCluster:
+  enabled: true
+  clusterName: compliant-dev-infra
+  centralEndpoint: central.stackrox.svc:443
+  spec:
+    admissionControl:
+      listenOnCreates: true
+      listenOnEvents: true
+      listenOnUpdates: true
+    perNode:
+      collector:
+        collection: CORE_BPF
+    scannerV4:
+      scannerComponent: AutoSense
