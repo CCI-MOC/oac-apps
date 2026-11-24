@@ -1,7 +1,7 @@
 # compliant-dev-infra (test hub). The image is public on GHCR, so no pull secret.
 image:
-  repository: ghcr.io/eldritchjs/tlshd
-  digest: sha256:f8bcab63ea0cd9bfe28e84e127391c95fe9470d9b5f1cf2f97d87f99cf50e50b
+  repository: ghcr.io/cci-moc/tlshd
+  digest: sha256:be323e30cdd912c12dd15373b004a793486a576e6e3459c29549f086f9838f41
 ca:
   externalSecret:
     # The realm certificate from the FlashBlade. Re-running the realm
