@@ -9,7 +9,7 @@ set:
     enabled: true
     domain: hcp.example.com
 tests:
-  - it: should render exactly the SA, Role, RoleBinding and Patch (no owned IngressController)
+  - it: should render exactly the SA, ClusterRole, ClusterRoleBinding and Patch (no owned IngressController)
     asserts:
       - hasDocuments:
           count: 4
@@ -17,7 +17,7 @@ tests:
   - it: should grant the service account patch access to ingresscontrollers
     documentSelector:
       path: kind
-      value: Role
+      value: ClusterRole
     asserts:
       - equal:
           path: rules[0].apiGroups[0]

@@ -115,6 +115,39 @@ pushSecrets:
 #           mode: 0600
 #           contents: |
 #             ...
+# A pool may also set `kubeletConfig`: KubeletConfig.spec.kubeletConfig
+# fields for its nodes, for example
+#   kubeletConfig:
+#     podPidsLimit: 32768
+# Changing it rolls the pool's nodes, like a machineConfigs entry.
+#
+# An entry may set `kernelArguments` instead of, or as well as, `files`,
+# and `luks` and `filesystems` (Ignition's storage.luks and
+# storage.filesystems, verbatim) to encrypt the root disk. Those apply only
+# at a node's first boot: add them to a pool with no nodes, or replace the
+# nodes, since an InPlace pool cannot change a disk.
+#
+# KubeVirt pools take these too, for GPU VMs (all optional):
+#   nodeSelector: {kubernetes.io/hostname: <node>}  # where the VMs may run
+#   hostDevices:                                     # PCI devices passed through
+#     - deviceName: nvidia.com/GH100_H100_SXM5_80GB  # a permittedHostDevices name
+#       count: 4
+#   qosClass: Guaranteed # host CPUs of the VM's own, with the static CPU
+#                        # manager on the hypervisor node
+#   rollingUpdate:       # HyperShift defaults to maxSurge 1, maxUnavailable 0:
+#     maxSurge: 0        # a replacement VM wanting GPUs that the old VM still
+#     maxUnavailable: 1  # holds never starts. Each upgrade is then downtime.
+#   nodeDrainTimeout: 10m # with one node, pods guarded by a disruption budget
+#                         # have nowhere to go and the old node never drains.
+#                         # After this long the node is removed anyway.
+#   hugepages: 1Gi       # back the VM's memory with hugepages of this size,
+#                        # which the hypervisor's nodes must have reserved.
+#                        # Set through HyperShift's kubevirt-vm-jsonpatch
+#                        # annotation, as NodePool has no field for it.
+#                        # Changing it replaces the VMs.
+# On jetty's H100s (2026-11-02), pods in a Guaranteed VM matched bare metal.
+# The hypervisor needs KubeVirt's maxHotplugRatio at 1 for VMs over 63 vCPUs:
+# at the default 4, QEMU refuses to pass GPUs to them.
 nodePools: []
 
 # ConfigMaps (by name, in this namespace) for NodePool.spec.config on every
@@ -159,6 +192,11 @@ services: {}
 issuerURL: ""
 
 ingress:
+  # LoadBalancerService (default) gives the cluster its own ingress. Set to
+  # NodePortService for a KubeVirt cluster that should reuse its hypervisor's
+  # router instead; the hypervisor must allow wildcard routes, the cluster
+  # must not get the feature-metallb label, and ipAddress below must be the
+  # hypervisor's ingress VIP, or the apps wildcard gets no DNS record.
   type: LoadBalancerService
   scope: External
   dnsManagementPolicy: Unmanaged

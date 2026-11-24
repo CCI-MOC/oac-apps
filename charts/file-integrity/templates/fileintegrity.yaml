@@ -1,0 +1,40 @@
+{{- with .Values.fileIntegrity }}
+apiVersion: fileintegrity.openshift.io/v1alpha1
+kind: FileIntegrity
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  nodeSelector:
+    {{- toYaml .nodeSelector | nindent 4 }}
+  tolerations:
+    {{- toYaml .tolerations | nindent 4 }}
+  config:
+    gracePeriod: {{ .gracePeriod }}
+    maxBackups: {{ .maxBackups }}
+    {{- if .extraExcludes }}
+    name: {{ .name }}-aide-conf
+    namespace: {{ $.Values.namespace }}
+    key: aide.conf
+    {{- end }}
+{{- if .extraExcludes }}
+---
+# The operator's default config with this cluster's exclusions appended.
+# An AIDE "!" line drops matching paths wherever it stands in the file.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-aide-conf
+  namespace: {{ $.Values.namespace }}
+data:
+  aide.conf: |
+    {{- $.Files.Get "files/aide.conf" | nindent 4 }}
+    # Added by the file-integrity chart (fileIntegrity.extraExcludes):
+    {{- range .extraExcludes }}
+    !{{ . }}
+    {{- end }}
+{{- end }}
+{{- end }}

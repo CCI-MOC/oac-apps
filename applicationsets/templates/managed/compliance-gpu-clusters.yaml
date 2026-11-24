@@ -1,0 +1,68 @@
+{{- $hub := required "hubName must be set" .Values.hubName }}
+# GPUs on a compliant hub's hosted clusters: NFD and the NVIDIA GPU
+# Operator, gated on the same compliance marker as compliance-clusters.
+# Not the feature-gpu placement (gpu-clusters), which also brings RHOAI,
+# serverless and the rest of the AI stack.
+#
+# A cluster gets them when values/<hub>/<cluster>/nvidia-gpu-operator.yaml
+# exists, which also picks the mode: on a GPU hypervisor,
+# defaultWorkload: vm-passthrough binds the GPUs to vfio-pci for KubeVirt
+# VMs; in a VM with passed-through GPUs, sandboxWorkloads off runs the
+# driver for containers.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: compliance-gpu-clusters
+  namespace: openshift-gitops
+spec:
+  syncPolicy:
+    preserveResourcesOnDeletion: true
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/CCI-MOC/oac-apps.git
+              revision: main
+              files:
+                - path: "hosted-clusters/{{ $hub }}/compliance.yaml"
+          - matrix:
+              generators:
+                # Both git generators set path; the prefix keeps the
+                # cluster's apart from the marker's.
+                - git:
+                    repoURL: https://github.com/CCI-MOC/oac-apps.git
+                    revision: main
+                    pathParamPrefix: cluster
+                    files:
+                      - path: "values/{{ $hub }}/*/nvidia-gpu-operator.yaml"
+                - list:
+                    elements:
+                      - component: nfd-operator
+                      - component: nvidia-gpu-operator
+  template:
+    metadata:
+      name: "{{`{{cluster.path.basename}}`}}-{{`{{component}}`}}"
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/CCI-MOC/oac-apps.git
+        targetRevision: main
+        path: "charts/{{`{{component}}`}}"
+        helm:
+          releaseName: "{{`{{component}}`}}"
+          ignoreMissingValueFiles: true
+          valueFiles:
+            - "/values/{{ $hub }}/hosted-clusters/{{`{{component}}`}}.yaml"
+            - "/values/{{ $hub }}/{{`{{cluster.path.basename}}`}}/{{`{{component}}`}}.yaml"
+      destination:
+        server: "https://cluster-proxy-addon-user.multicluster-engine.svc.cluster.local:9092/{{`{{cluster.path.basename}}`}}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 30s
+            factor: 2
+            maxDuration: 10m

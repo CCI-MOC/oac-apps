@@ -1,0 +1,22 @@
+{{- with .Values.systemUseNotice }}
+{{- if .enabled }}
+apiVersion: console.openshift.io/v1
+kind: ConsoleNotification
+metadata:
+  name: {{ .bannerName }}
+spec:
+  location: BannerTop
+  text: {{ required "systemUseNotice.banner is required" .banner | quote }}
+  color: {{ .color | quote }}
+  backgroundColor: {{ .backgroundColor | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: motd
+  namespace: openshift
+data:
+  message: |
+    {{- required "systemUseNotice.motd is required" .motd | nindent 4 }}
+{{- end }}
+{{- end }}

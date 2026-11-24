@@ -1,0 +1,79 @@
+# Cluster Logging and Loki operators, a LokiStack on a COSI bucket, and
+# a ClusterLogForwarder that sends audit logs there. On a hub it also
+# collects the hosted API servers' audit logs, which their audit-logs
+# sidecars write to stdout in clusters-<name>, so a hosted cluster's audit
+# trail outlives the one 10 MB file HyperShift keeps. A managed cluster
+# can instead forward to its hub's LokiStack (loki.enabled false).
+
+logging:
+  namespace: openshift-logging
+  subscription:
+    channel: stable-6.6
+    name: cluster-logging
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    installPlanApproval: Automatic
+
+loki:
+  # False on a managed cluster that forwards to its hub: no Loki operator,
+  # LokiStack or bucket, and forwarder.remote.url is required.
+  enabled: true
+  namespace: openshift-operators-redhat
+  subscription:
+    channel: stable-6.6
+    name: loki-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    installPlanApproval: Automatic
+  name: logging-loki
+  # 1x.extra-small suits a test hub; 1x.small and up for production.
+  size: 1x.extra-small
+  # Ingester WAL and index caches need PVCs. Required: the LokiStack API
+  # does not fall back to the default class.
+  storageClassName: ""
+  # Schema start date. Set once, at install, and never change it.
+  schemaEffectiveDate: "2026-10-22"
+  retentionDays: 90
+  # Per-tenant limits (LokiStack spec.limits.tenants), by tenant name:
+  # application, infrastructure, audit. Empty keeps the size's defaults
+  # (for 1x.extra-small: 4 MB/s, 6 MB burst, 256 kB lines). A batch
+  # bigger than the burst is refused every time it is retried.
+  tenantLimits: {}
+  storage:
+    # A bucket from the cluster's COSI driver.
+    bucketClassName: fb-bucket
+    bucketAccessClassName: fb-access-rw
+    secretName: logging-loki-s3
+    # ConfigMap in the logging namespace with the S3 endpoint's CA under
+    # service-ca.crt, when the endpoint's certificate is not publicly
+    # trusted. Empty for none.
+    caConfigMap: ""
+
+forwarder:
+  # The cluster's own API audit logs (kube, openshift, oauth API servers)
+  # and node auditd logs.
+  clusterAudit: true
+  # Hub only: the hosted API servers' audit-logs sidecars in clusters-*.
+  hostedControlPlanes: false
+  # AtLeastOnce: the collector buffers on the node's disk while Loki is
+  # unreachable, and resends. AtMostOnce drops what it cannot send.
+  deliveryMode: AtLeastOnce
+  remote:
+    # The hub LokiStack gateway's audit tenant, e.g.
+    # https://logging-loki-openshift-logging.apps.<hub domain>/api/logs/v1/audit
+    url: ""
+    # Trust only the hub's ingress CA, as the audit-writers policy copies
+    # it. Right for a hub with the ingress operator's self-signed
+    # certificate. Turn it off once the hub's apps certificate is publicly
+    # trusted: the copy is then the chain without its root, which the
+    # collector cannot verify, and system trust already covers it.
+    hubIngressCA: true
+
+# Hub side: the managed clusters that forward to this LokiStack. Each gets
+# a service account here that may write only the audit tenant. An ACM
+# policy copies its token, and the hub's ingress CA (the gateway route's
+# issuer), into a Secret of this name in the cluster's logging namespace.
+auditWriters:
+  clusters: []
+  clusterSet: default
+  secretName: hub-loki-audit-writer

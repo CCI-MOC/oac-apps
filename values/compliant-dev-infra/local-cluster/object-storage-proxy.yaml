@@ -1,0 +1,44 @@
+backend:
+  address: 10.9.7.10
+  verify: true
+  cacert: |
+    -----BEGIN CERTIFICATE-----
+    MIIEYDCCAsigAwIBAgIUN4D9IVtYb6/hrkTcPEF6KBtBxDIwDQYJKoZIhvcNAQEL
+    BQAwFDESMBAGA1UEAwwJMTAuOS43LjEwMB4XDTI2MTExOTE2NTkyM1oXDTI4MTEx
+    ODE2NTkyM1owFDESMBAGA1UEAwwJMTAuOS43LjEwMIIBojANBgkqhkiG9w0BAQEF
+    AAOCAY8AMIIBigKCAYEAwL5bBBgOjpiv0o1SLkzqQGIF200eLx5eJfgnpq8BYHii
+    +KKOvmLBplcNZW0vnTpbLH0IeAiW0A8+3WlgIL7+DwpMEkraQqxjnix0Rtm0rnou
+    NMm48Sho6/j2YHvjnHZtBXdKUCp4TmRCVAnNLUuhpH6W9WZwZTy3zYdNTqvyalJy
+    iPMdh+6SutVzFYWI8B4HziWUNClSKGe8RZsz0jN5LlkNFLqFM5Pa7AVmxi9mLFeL
+    Yg8oOoYKYEZa6x2TZytOMMKPxsfqRAR/nejV0iNXk8Q9wIBWo0VzTz8V5NKngP8B
+    8wWSN9LfZHtCOKpFlKc6rYdv/Z741wozWHGSgRNpJ4lEvT1qG21CsIMp90/9voEz
+    jSq0z0rNM0hSDvqUNQsfpWSjHCwgx3L5sabVIhH3BolnHBRcCHxoiHGhKXPnt7dk
+    nj9eqIJo1Y2mAlxnrUGdCkAofXCp54AZCGG1pG0IVsd3FOFXqKRxXr9S6fb0e59f
+    mzOxE+kqMpfVG6CSTFxhAgMBAAGjgakwgaYwHQYDVR0OBBYEFB9QZDfzHm/ySxVD
+    83O7MccZsDLnMB8GA1UdIwQYMBaAFB9QZDfzHm/ySxVD83O7MccZsDLnMBIGA1Ud
+    EwEB/wQIMAYBAf8CAQAwDgYDVR0PAQH/BAQDAgKkMBMGA1UdJQQMMAoGCCsGAQUF
+    BwMBMA8GA1UdEQQIMAaHBAoJBwowGgYDVR0eAQH/BBAwDqAMMAqHCAoJBwr/////
+    MA0GCSqGSIb3DQEBCwUAA4IBgQBMA0ynZ6127E1OdrX+Ut9Yb+39cGdVGLxptX1i
+    gVW1YeDOwPFTi0v1+DQX17LeYmls1NFzf16iT0zBeYNi8NbXoaa7IXXysanvIQsY
+    +GuZGqG69rRCqIay7Dh3BsMDg6sHw7YPk11hw0faVchPkktOnzCmuHmZYp22jiyd
+    FauDYJGKTHfROsRibojz/RSUuihxXl5zcwpOVoYh6/QTev8amdzygb15d5qIvKME
+    PWWbQDX+F9RVmBuXyzdZ9mduaMp6uFpARal/EguF7UMiKg4g1rXcDQCJJ8+PMex6
+    p+I0fBGE9+AmflDBEK8sDXfyQ5U1Ts6sv/2xlgKGNOXrMkP9qg/lj7hvI8eJqJFK
+    GZEf4cmeCMCq6FTguthANvFREaLJuBvAljBRqyLwiOvseaATCAdx0LAnHFN3K2bi
+    C+e/cC5Oat1aDeu5oOFXPMzC11+7eUH+1dLfC+6XXpq9bBmA2rr5TcwBx5B1OFWg
+    wxNNGuJHRGvTlpnhYcNJcrkuE7w=
+    -----END CERTIFICATE-----
+certificate:
+  dnsName: "s3.compliant-dev-infra.nist.int.massopen.cloud"
+
+network:
+  cidr: "10.9.7.0/24"
+  range:
+    start: "10.9.7.130"
+    end: "10.9.7.229"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.7.1
+
+service:
+  clusterIP: 172.30.0.53

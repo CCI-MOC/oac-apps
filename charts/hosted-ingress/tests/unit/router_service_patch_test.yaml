@@ -1,0 +1,28 @@
+suite: hosted-ingress router-default pool-pinning patch
+templates:
+  - templates/router-service-patch.yaml
+tests:
+  - it: should patch router-default with the default-ingress pool annotation
+    set:
+      ingress:
+        poolAddress: 10.20.13.10/32
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.name
+          value: router-default
+      - equal:
+          path: metadata.namespace
+          value: openshift-ingress
+      - equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-options"]
+          value: ServerSideApply=true
+      - equal:
+          path: metadata.annotations["metallb.io/address-pool"]
+          value: default-ingress
+
+  - it: should render nothing when no address is set
+    asserts:
+      - hasDocuments:
+          count: 0

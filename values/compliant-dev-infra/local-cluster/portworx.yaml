@@ -1,0 +1,32 @@
+# Opt out of the FlashBlade .snapshot directory. Thanos erroneously attempts to
+# create a lock file in this read-only directory, which prevents Thanos from
+# starting.
+portworx:
+  snapshot_directory: "false"
+  # A compliant hub: NFS over TLS only, so this class is TLS and stays the
+  # default. tlshd runs on every node (the nfs-tls chart). TLS also picks the
+  # realm's TLS export policy.
+  tls: true
+
+externalSecret:
+  secretStore: aws-secrets-manager
+  remoteKey: "cluster/compliant-dev-infra/portworx"
+
+# The workers only: the masters run no workloads (mastersSchedulable false)
+# and mount nothing.
+nodes:
+  - name: moc-r4pac10u31-s1d
+    interface: eno2
+  - name: moc-r4pac10u31-s3a
+    interface: eno2
+  - name: moc-r4pac10u31-s3b
+    interface: eno2
+
+network:
+  cidr: "10.9.7.0/24"
+  range:
+    start: "10.9.7.230"
+    end: "10.9.7.254"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.7.1

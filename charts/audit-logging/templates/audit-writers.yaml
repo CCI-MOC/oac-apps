@@ -1,0 +1,192 @@
+{{- if and .Values.loki.enabled .Values.auditWriters.clusters }}
+# Hub side. Each managed cluster in auditWriters.clusters forwards its own
+# audit logs (node auditd, OVN) to this LokiStack's gateway, as a service
+# account here that may write only the audit tenant. The policy below
+# copies that account's token, and the hub's ingress CA, into the cluster.
+# ACM encrypts hub-template secret values in the copy it sends to the
+# cluster, and the token is never in git.
+{{- range .Values.auditWriters.clusters }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: audit-writer-{{ . }}
+  namespace: {{ $.Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: audit-writer-{{ . }}-token
+  namespace: {{ $.Values.logging.namespace }}
+  annotations:
+    kubernetes.io/service-account.name: audit-writer-{{ . }}
+    argocd.argoproj.io/sync-wave: "1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: audit-writer-{{ . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-logging-write-audit-logs
+subjects:
+  - kind: ServiceAccount
+    name: audit-writer-{{ . }}
+    namespace: {{ $.Values.logging.namespace }}
+{{- end }}
+---
+# The policy's hub templates look up the tokens and the ingress CA as this
+# account, not as the policy propagator.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: audit-writers-policy
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: audit-writers-policy
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: audit-writers-policy
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: audit-writers-policy
+subjects:
+  - kind: ServiceAccount
+    name: audit-writers-policy
+    namespace: {{ .Values.logging.namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: audit-writers-policy
+  namespace: openshift-config-managed
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+rules:
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: audit-writers-policy
+  namespace: openshift-config-managed
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: audit-writers-policy
+subjects:
+  - kind: ServiceAccount
+    name: audit-writers-policy
+    namespace: {{ .Values.logging.namespace }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: {{ .Values.auditWriters.clusterSet }}
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  clusterSet: {{ .Values.auditWriters.clusterSet }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: audit-writers
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  clusterSets:
+    - {{ .Values.auditWriters.clusterSet }}
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchExpressions:
+            - key: name
+              operator: In
+              values: {{ toJson .Values.auditWriters.clusters }}
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: audit-writers
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+placementRef:
+  apiGroup: cluster.open-cluster-management.io
+  kind: Placement
+  name: audit-writers
+subjects:
+  - apiGroup: policy.open-cluster-management.io
+    kind: Policy
+    name: audit-writers
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: audit-writers
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    policy.open-cluster-management.io/standards: NIST SP 800-53
+    policy.open-cluster-management.io/categories: AU Audit and Accountability
+    policy.open-cluster-management.io/controls: AU-4, AU-9
+spec:
+  disabled: false
+  remediationAction: enforce
+  hubTemplateOptions:
+    serviceAccountName: audit-writers-policy
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: audit-writer-credentials
+        spec:
+          remediationAction: enforce
+          severity: high
+          object-templates:
+            # The cluster's audit-logging app creates the namespace; until
+            # then the policy reports NonCompliant and retries.
+            - complianceType: mustonlyhave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                type: Opaque
+                metadata:
+                  name: {{ .Values.auditWriters.secretName }}
+                  namespace: {{ .Values.logging.namespace }}
+                data:
+                  token: {{ `'{{hub fromSecret "` }}{{ .Values.logging.namespace }}{{ `" (printf "audit-writer-%s-token" .ManagedClusterName) "token" hub}}'` }}
+                  ca-bundle.crt: {{ `'{{hub fromConfigMap "openshift-config-managed" "default-ingress-cert" "ca-bundle.crt" | base64enc hub}}'` }}
+{{- end }}

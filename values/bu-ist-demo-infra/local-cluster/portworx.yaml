@@ -1,0 +1,27 @@
+# Opt out of the FlashBlade .snapshot directory. Thanos erroneously attempts to
+# create a lock file in this read-only directory, which prevents Thanos from
+# starting. Every hub needs this; the hub runs MCO's Thanos itself.
+portworx:
+  snapshot_directory: "false"
+  tls: false
+
+externalSecret:
+  secretStore: aws-secrets-manager
+  remoteKey: "cluster/bu-ist-demo-infra/portworx"
+
+nodes:
+  - name: moc-r4pac10u31-s1a
+    interface: enp1s0f1
+  - name: moc-r4pac10u33-s1d
+    interface: enp1s0f1
+  - name: moc-r4pac10u35-s1a
+    interface: enp1s0f1
+
+network:
+  cidr: "10.9.15.0/24"
+  range:
+    start: "10.9.15.230"
+    end: "10.9.15.254"
+  routes:
+    - dst: 10.3.11.50/32
+      gw: 10.9.15.1

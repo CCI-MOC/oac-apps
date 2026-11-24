@@ -1,0 +1,34 @@
+# For a compliant hub only. A compliant hub carries only compliant hosted
+# clusters, because each one's control plane, etcd and audit log live on
+# the hub. Hub-wide values in hosted-clusters/<hub>/values.yaml set the
+# right defaults; this makes the API server refuse anything that overrides
+# them, whether it comes from git or from a person.
+#
+# Checked on CREATE and UPDATE. Objects being deleted are let through, so a
+# non-compliant object that predates this policy can still be removed.
+# `oc get validatingadmissionpolicy <name> -o yaml` shows type-check
+# warnings in status.
+
+# Deny rejects. [Warn, Audit] reports without rejecting, for a first look
+# at what an existing hub would refuse.
+validationActions: [Deny]
+
+hostedCluster:
+  # HostedCluster.spec.fips. Fixed at creation.
+  requireFips: true
+  # spec.configuration.apiServer.audit.profile must be one of these.
+  # Empty list: not checked.
+  auditProfiles: [WriteRequestBodies, AllRequestBodies]
+  # spec.secretEncryption must be set (etcd encryption of Secrets).
+  requireSecretEncryption: true
+
+nodePool:
+  # ConfigMaps every NodePool must list in spec.config. The node hardening
+  # one comes from the compliance-node-hardening chart (nodePool.enabled).
+  requiredConfig: [compliance-node-hardening]
+
+storage:
+  # FlashBlade StorageClasses and volumes must mount with xprtsec=tls
+  # (templates/storage-tls.yaml). Pair with portworx.tls: true in the hub's
+  # Portworx values, or the Portworx class itself is refused.
+  requireNfsTls: true

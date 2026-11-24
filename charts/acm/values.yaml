@@ -27,3 +27,9 @@ cim:
   # Extra kernel arguments for the discovery image, e.g.
   # [{operation: append, value: fips=1}].
   kernelArguments: []
+
+# NetworkPolicies and quotas for ACM's namespaces on the hub, including the
+# ones ACM creates itself (open-cluster-management-agent-addon and others),
+# keyed by namespace. Settings are described in
+# charts/namespace-guardrails/templates/_guardrails.tpl.
+guardrails: {}

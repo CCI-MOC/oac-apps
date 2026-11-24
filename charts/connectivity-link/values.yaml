@@ -1,0 +1,34 @@
+# Red Hat Connectivity Link: the Kuadrant operator, which pulls in Authorino
+# (auth), Limitador (rate limits) and the DNS operator as OLM dependencies. All
+# four are flagged FIPS-compliant in redhat-operators; the community Kuadrant
+# and Limitador packages are not, so the source must stay redhat-operators.
+namespace: kuadrant-system
+operatorgroup:
+  targetNamespaces: false
+subscription:
+  channel: stable
+  name: rhcl-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic
+
+# OpenShift's own Gateway API implementation. Creating this GatewayClass makes
+# the ingress operator install istiod into openshift-ingress (no Service Mesh
+# subscription needed), which Kuadrant uses as its gateway provider.
+gatewayClass:
+  create: true
+  name: openshift-default
+
+# The Kuadrant instance, which starts Authorino and Limitador.
+kuadrant:
+  name: kuadrant
+
+# Gateways to put behind the cluster's existing router: each gets a ClusterIP
+# Service (no new IP, NodePort or DNS) and a reencrypt Route for its hostname.
+# A reencrypt Route, unlike passthrough, lets the router add the client's
+# address in X-Forwarded-For, so per-client rate limits work.
+#
+#   - name: api-gw                 # Gateway name
+#     namespace: my-project        # must exist; HTTPRoutes there can attach
+#     hostname: api.apps.<cluster>.<baseDomain>   # under the router's wildcard
+gateways: []

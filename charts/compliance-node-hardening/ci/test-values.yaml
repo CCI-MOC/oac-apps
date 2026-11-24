@@ -1,0 +1,4 @@
+nodePool:
+  enabled: true
+excludeRules:
+  - coreos-nousb-kernel-argument

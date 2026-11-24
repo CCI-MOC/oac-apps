@@ -83,3 +83,45 @@ tests:
             - key: nvidia.com/gpu.product
               operator: Exists
               effect: NoSchedule
+
+  - it: should permit no host devices and keep the hotplug default unless set
+    asserts:
+      - notExists:
+          path: spec.permittedHostDevices
+      - notExists:
+          path: spec.liveUpdateConfiguration
+
+  # GPU passthrough: VMs can request only devices listed here, and with a
+  # GPU over 63 vCPUs only when CPU hotplug is off (maxHotplugRatio 1).
+  - it: should render permitted host devices and the hotplug ratio
+    set:
+      permittedHostDevices:
+        pciHostDevices:
+          - pciDeviceSelector: "10DE:2330"
+            resourceName: nvidia.com/GH100_H100_SXM5_80GB
+            externalResourceProvider: true
+      maxHotplugRatio: 1
+    asserts:
+      - equal:
+          path: spec.permittedHostDevices.pciHostDevices[0].resourceName
+          value: nvidia.com/GH100_H100_SXM5_80GB
+      - equal:
+          path: spec.permittedHostDevices.pciHostDevices[0].externalResourceProvider
+          value: true
+      - equal:
+          path: spec.liveUpdateConfiguration.maxHotplugRatio
+          value: 1
+      - equal:
+          path: spec.workloads.nodePlacement.tolerations[0].operator
+          value: Exists
+
+  - it: should render host devices without tolerations
+    set:
+      workloadTolerations: []
+      maxHotplugRatio: 1
+    asserts:
+      - notExists:
+          path: spec.workloads
+      - equal:
+          path: spec.liveUpdateConfiguration.maxHotplugRatio
+          value: 1

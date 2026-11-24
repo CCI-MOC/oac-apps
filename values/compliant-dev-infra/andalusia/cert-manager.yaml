@@ -1,0 +1,9 @@
+# DNS-01 in hcp.nist.int.massopen.cloud, for this cluster's names only
+# (moc-aws cert_manager_policy_andalusia).
+aws:
+  region: us-east-1
+  roleArn: "arn:aws:iam::574733721584:role/cert-manager-andalusia"
+letsencrypt:
+  email: contact@massopen.cloud
+  cluster_issuers:
+    enabled: true

@@ -39,11 +39,9 @@ tests:
           path: spec.ingress[0].from[0].podSelector
           value: {}
 
-  # Grafana listens on 3000 without authentication, because the operator manages
-  # it over that port and cannot authenticate to the proxy. This rule is what
-  # keeps that port to the operator alone, so it is the thing that must not
-  # regress: widening it would expose Grafana to anything in the cluster.
-  - it: opens the grafana port to the operator namespace only
+  # Grafana listens on localhost only, so nothing needs port 3000 from
+  # another namespace.
+  - it: does not open port 3000 for a project with Grafana
     set:
       projects:
         - name: aibom
@@ -52,13 +50,4 @@ tests:
     asserts:
       - lengthEqual:
           path: spec.ingress
-          count: 2
-      - equal:
-          path: spec.ingress[1].from[0].namespaceSelector.matchLabels["kubernetes.io/metadata.name"]
-          value: grafana-operator
-      - equal:
-          path: spec.ingress[1].ports[0].port
-          value: 3000
-      - equal:
-          path: spec.ingress[1].ports[0].protocol
-          value: TCP
+          count: 1

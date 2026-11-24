@@ -25,6 +25,11 @@ clusterPolicy:
       enabled: true
   sandboxWorkloads:
     enabled: false
+    # What a GPU node does when it has no nvidia.com/gpu.workload.config
+    # label: container (driver and device plugin, GPUs for pods) or
+    # vm-passthrough (vfio-pci, GPUs for KubeVirt VMs). Only read when
+    # enabled is true.
+    defaultWorkload: container
   # Applied to every operator-managed daemonset. Must cover the taints that
   # nfd-operator's NodeFeatureRule puts on GPU nodes, or those nodes end up
   # with the driver stack unschedulable and zero allocatable GPUs.

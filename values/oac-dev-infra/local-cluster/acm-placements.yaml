@@ -20,3 +20,6 @@ placements:
   - name: metallb-clusters
     matchLabels:
       massopen.cloud/feature-metallb: "true"
+  - name: connectivity-link-clusters
+    matchLabels:
+      massopen.cloud/feature-connectivity-link: "true"

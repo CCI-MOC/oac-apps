@@ -1,0 +1,5 @@
+apiVersion: v2
+name: etcd-backup
+description: Nightly etcd backup of a standalone cluster (the hub) to a PVC
+version: 0.1.0
+type: application

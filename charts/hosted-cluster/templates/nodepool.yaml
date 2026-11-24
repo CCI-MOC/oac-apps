@@ -9,6 +9,10 @@ metadata:
   namespace: {{ $.Values.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    {{- if and (ne $platformType "Agent") .hugepages }}
+    {{- $patch := list (dict "op" "add" "path" "/spec/template/spec/domain/memory/hugepages" "value" (dict "pageSize" .hugepages)) }}
+    hypershift.openshift.io/kubevirt-vm-jsonpatch: {{ toJson $patch | quote }}
+    {{- end }}
 spec:
   clusterName: {{ $clusterName }}
   {{- /* A pool's own entries may be names or HyperShift's {name: ...} form. */}}
@@ -16,6 +20,9 @@ spec:
   {{- $pool := . }}
   {{- range .machineConfigs | default list }}
   {{- $config = append $config (printf "%s-%s-%s" $clusterName $pool.name .name) }}
+  {{- end }}
+  {{- if .kubeletConfig }}
+  {{- $config = append $config (printf "%s-%s-kubelet" $clusterName $pool.name) }}
   {{- end }}
   {{- range .config | default list }}
   {{- if kindIs "map" . }}
@@ -35,6 +42,12 @@ spec:
     autoRepair: {{ .autoRepair | default false }}
     {{- if eq $platformType "KubeVirt" }}
     upgradeType: {{ .upgradeType | default "Replace" }}
+    {{- with .rollingUpdate }}
+    replace:
+      strategy: RollingUpdate
+      rollingUpdate:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
     {{- else }}
     upgradeType: {{ .upgradeType | default "InPlace" }}
     {{- end }}
@@ -52,17 +65,31 @@ spec:
           {{- toYaml .agentLabelSelector | nindent 10 }}
     type: Agent
   {{- else }}
+  {{- with .nodeDrainTimeout }}
+  nodeDrainTimeout: {{ . }}
+  {{- end }}
   platform:
     type: KubeVirt
     kubevirt:
       compute:
         cores: {{ .cpu }}
         memory: {{ .memory }}
+        {{- with .qosClass }}
+        qosClass: {{ . }}
+        {{- end }}
+      {{- with .nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .hostDevices }}
+      hostDevices:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       rootVolume:
         persistent:
           size: {{ .disk.size }}
-          {{- with .disk.storageClassName }}
-          storageClassName: {{ . }}
+          {{- with .disk.storageClass }}
+          storageClass: {{ . }}
           {{- end }}
         type: Persistent
   {{- end }}

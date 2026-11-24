@@ -1,0 +1,8 @@
+# andalusia is a KubeVirt hosted cluster whose worker VM has four H100s
+# passed through from compliant-dev-workload0 (MOC-issues #788). Inside the
+# VM they go to pods: container mode, the chart default, with the driver
+# built in the guest. Set here so it is not mistaken for workload0's
+# vm-passthrough values.
+clusterPolicy:
+  sandboxWorkloads:
+    enabled: false

@@ -32,10 +32,15 @@ ca:
     remoteKey: ""
     property: ""
 
+# tlshd idles at about 2Mi, but it forks a process per handshake. When a
+# node has several volumes waiting (at first sync, or after a reboot), the
+# kernel asks for their handshakes at once, and 256Mi was not enough: tlshd
+# was OOMKilled three times on a worker with four waiting volumes, and each
+# kill fails every pending mount on that node.
 resources:
   requests:
     cpu: 10m
     memory: 32Mi
   limits:
     cpu: 500m
-    memory: 256Mi
+    memory: 1Gi

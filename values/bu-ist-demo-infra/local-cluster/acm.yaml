@@ -1,0 +1,7 @@
+multiClusterHub:
+  availabilityConfig: High
+
+cim:
+  enabled: true
+  sshAuthorizedKey: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPLkUr21ST6wr5kY3abKc+YBEhSzXWk6TV6LB6xajEQt quanmp@bu.edu
+  location: MGHPCC

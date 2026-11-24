@@ -1,0 +1,103 @@
+{{- if or .Values.forwarder.clusterAudit .Values.forwarder.hostedControlPlanes }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: audit-collector
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+{{- $roles := list "logging-collector-logs-writer" }}
+{{- if .Values.forwarder.clusterAudit }}{{ $roles = append $roles "collect-audit-logs" }}{{ end }}
+{{- if .Values.forwarder.hostedControlPlanes }}{{ $roles = append $roles "collect-application-logs" }}{{ end }}
+{{- range $roles }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: audit-collector-{{ . }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ . }}
+subjects:
+  - kind: ServiceAccount
+    name: audit-collector
+    namespace: {{ $.Values.logging.namespace }}
+{{- end }}
+---
+apiVersion: observability.openshift.io/v1
+kind: ClusterLogForwarder
+metadata:
+  name: audit
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  serviceAccount:
+    name: audit-collector
+  {{- if .Values.forwarder.hostedControlPlanes }}
+  inputs:
+    # The hosted API servers' audit logs, as their audit-logs sidecars
+    # stream them. They land in Loki's application tenant, readable by
+    # whoever can read the clusters-<name> namespace.
+    - name: hosted-api-audit
+      type: application
+      application:
+        includes:
+          - namespace: "clusters-*"
+            container: audit-logs
+  {{- end }}
+  outputs:
+    {{- if .Values.loki.enabled }}
+    - name: loki
+      type: lokiStack
+      lokiStack:
+        target:
+          name: {{ .Values.loki.name }}
+          namespace: {{ .Values.logging.namespace }}
+        authentication:
+          token:
+            from: serviceAccount
+        tuning:
+          deliveryMode: {{ .Values.forwarder.deliveryMode }}
+      tls:
+        ca:
+          configMapName: openshift-service-ca.crt
+          key: service-ca.crt
+    {{- else }}
+    # The hub's LokiStack, through its gateway route. The hub's
+    # audit-writers policy puts the token and the hub's ingress CA here.
+    - name: loki
+      type: loki
+      loki:
+        url: {{ required "forwarder.remote.url is required when loki.enabled is false" .Values.forwarder.remote.url }}
+        authentication:
+          token:
+            from: secret
+            secret:
+              name: {{ .Values.auditWriters.secretName }}
+              key: token
+        tuning:
+          deliveryMode: {{ .Values.forwarder.deliveryMode }}
+      {{- if .Values.forwarder.remote.hubIngressCA }}
+      tls:
+        ca:
+          secretName: {{ .Values.auditWriters.secretName }}
+          key: ca-bundle.crt
+      {{- end }}
+    {{- end }}
+  pipelines:
+    {{- if .Values.forwarder.clusterAudit }}
+    - name: cluster-audit
+      inputRefs: [audit]
+      outputRefs: [loki]
+    {{- end }}
+    {{- if .Values.forwarder.hostedControlPlanes }}
+    - name: hosted-api-audit
+      inputRefs: [hosted-api-audit]
+      outputRefs: [loki]
+    {{- end }}
+{{- end }}

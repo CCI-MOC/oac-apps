@@ -1,0 +1,31 @@
+{{- if .Values.machineConfigs.enabled }}
+{{- range $role := list "master" "worker" }}
+{{- range include "cnh.rules" (list $ $role) | fromJsonArray }}
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  name: {{ .name }}
+  labels:
+    machineconfiguration.openshift.io/role: {{ $role }}
+spec:
+  {{- toYaml .spec | nindent 2 }}
+{{- end }}
+{{- if $.Values.sshdAllowUsers.enabled }}
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  name: {{ $.Values.sshdAllowUsers.namePrefix }}-{{ $role }}-sshd-allowusers
+  labels:
+    machineconfiguration.openshift.io/role: {{ $role }}
+spec:
+  config:
+    ignition:
+      version: 3.4.0
+    storage:
+      files:
+        - {{- include "cnh.sshdFile" $ | fromJson | toYaml | nindent 10 }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -79,3 +79,8 @@ These repositories allow us to view the current state and a change history. Idea
    * [Infrastructure Configuration](workload-cluster-deployment.md#infrastructure-configuration)
    * [Cluster Deployment and Configuration](workload-cluster-deployment.md#cluster-deployment-and-configuration)
    * [*Example: OAC Prod Workload0 Cluster*](workload-cluster-deployment.md#example-oac-prod-workload0-cluster)
+
+* [**Virtualized Workload Cluster**](virtualized-workload-cluster-deployment.md): a hosted workload cluster running on VMs instead of bare metal
+   * [Infrastructure Configuration](virtualized-workload-cluster-deployment.md#infrastructure-configuration)
+   * [Cluster Deployment and Configuration](virtualized-workload-cluster-deployment.md#cluster-deployment-and-configuration)
+   * [*Example: OAC Dev Workload2 Cluster*](virtualized-workload-cluster-deployment.md#example-oac-dev-workload2-cluster)

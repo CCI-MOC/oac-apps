@@ -1,0 +1,86 @@
+suite: hosted cluster etcd backup
+templates:
+  - templates/hosted-etcd-backup.yaml
+set:
+  image: quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+tests:
+  - it: should render nothing without hosted clusters
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render an account, role, binding, volume and job per cluster
+    set:
+      hostedClusters:
+        - name: wl0
+        - name: wl1
+    asserts:
+      - hasDocuments:
+          count: 10
+
+  # Exec in the hosted control plane namespace, nothing else.
+  - it: should grant only pod reads and exec in clusters-<name>
+    set:
+      hostedClusters: [{name: wl0}]
+    asserts:
+      - isKind:
+          of: Role
+        documentIndex: 1
+      - equal:
+          path: metadata.namespace
+          value: clusters-wl0
+        documentIndex: 1
+      - equal:
+          path: rules
+          value:
+            - apiGroups: [""]
+              resources: [pods]
+              verbs: [get, list]
+            - apiGroups: [""]
+              resources: [pods/exec]
+              verbs: [create]
+        documentIndex: 1
+      - equal:
+          path: subjects[0]
+          value:
+            kind: ServiceAccount
+            name: etcd-backup-wl0
+            namespace: etcd-backup
+        documentIndex: 2
+
+  # Unlike the hub's job, it needs no host access.
+  - it: should run the job unprivileged, as etcd-backup-<name>
+    set:
+      hostedClusters: [{name: wl0}]
+    asserts:
+      - isKind:
+          of: CronJob
+        documentIndex: 4
+      - equal:
+          path: metadata.name
+          value: etcd-backup-wl0
+        documentIndex: 4
+      - equal:
+          path: spec.schedule
+          value: "0 3 * * *"
+        documentIndex: 4
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.securityContext.runAsNonRoot
+          value: true
+        documentIndex: 4
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.containers[0].securityContext.capabilities.drop
+          value: [ALL]
+        documentIndex: 4
+      - notExists:
+          path: spec.jobTemplate.spec.template.spec.hostNetwork
+        documentIndex: 4
+      - equal:
+          path: spec.jobTemplate.spec.template.spec.volumes[0].persistentVolumeClaim.claimName
+          value: etcd-backup-wl0
+        documentIndex: 4
+      - contains:
+          path: spec.jobTemplate.spec.template.spec.containers[0].env
+          content: {name: NS, value: clusters-wl0}
+        documentIndex: 4

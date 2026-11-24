@@ -1,0 +1,92 @@
+{{- range .Values.gateways }}
+{{- $name := required "gateways[].name is required" .name }}
+{{- $ns := required "gateways[].namespace is required" .namespace }}
+{{- $host := required "gateways[].hostname is required" .hostname }}
+{{- $class := $.Values.gatewayClass.name }}
+{{- /* Istio names the Service and Deployment it makes "<gateway>-<class>". */}}
+{{- $svc := printf "%s-%s" $name $class }}
+{{- $cert := printf "%s-serving-cert" $name }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $name }}
+  namespace: {{ $ns }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    # Must be on the Gateway itself: under spec.infrastructure it is ignored
+    # and Istio makes a LoadBalancer Service, which also opens NodePorts.
+    networking.istio.io/service-type: ClusterIP
+spec:
+  gatewayClassName: {{ $class }}
+  infrastructure:
+    annotations:
+      # These are copied onto the Service and pods Istio makes; on the
+      # Gateway's own annotations they are ignored.
+      # The service CA issues the certificate the router checks when it
+      # re-encrypts, so the Route needs no CA of its own.
+      service.beta.openshift.io/serving-cert-secret-name: {{ $cert }}
+      # Trust one proxy hop (the router) for the client address. Safe only
+      # because the NetworkPolicy below lets nothing else reach the gateway.
+      proxy.istio.io/config: '{"gatewayTopology":{"numTrustedProxies":1}}'
+  listeners:
+    # No hostname: the router's SNI is not the public hostname. HTTPRoutes
+    # still match on the Host header.
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: {{ $cert }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ $name }}
+  namespace: {{ $ns }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  host: {{ $host }}
+  to:
+    kind: Service
+    name: {{ $svc }}
+  port:
+    targetPort: 443
+  tls:
+    # The router terminates the client's TLS with its own certificate, adds
+    # X-Forwarded-For, and re-encrypts to the gateway. Passthrough would hide
+    # the client's address and every client would share one rate limit.
+    # It also keeps TLS 1.3 for clients: on a FIPS cluster the gateway's
+    # Istio runs with COMPLIANCE_POLICY=fips-140-2, which allows only
+    # TLS 1.2, while the router does 1.3. Only the router-to-gateway hop
+    # is 1.2. Anything exposing a gateway directly gets 1.2 only.
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $name }}-from-router
+  namespace: {{ $ns }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  podSelector:
+    matchLabels:
+      gateway.networking.k8s.io/gateway-name: {{ $name }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              policy-group.network.openshift.io/ingress: ""
+      ports:
+        - port: 443
+          protocol: TCP
+{{- end }}

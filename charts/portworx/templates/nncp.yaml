@@ -23,6 +23,11 @@ spec:
       ipv4:
         dhcp: true
         enabled: true
+        # Storage traffic only: no DNS servers and no default route from
+        # the storage network's DHCP. Other DHCP routes stay (oac-dev-infra
+        # reaches the FlashBlade's management address through one).
+        auto-dns: false
+        auto-gateway: false
       ipv6:
         enabled: false
       mtu: 9000

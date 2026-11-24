@@ -1,0 +1,9 @@
+# LVM Storage for the hosted clusters' etcd (lvms-vg0, the hosted-cluster
+# chart's default), on each worker's second disk. The workers are three
+# FC430s; node-labels marks every worker massopen.cloud/lvmcluster. Each
+# worker's second disk is LUKS2-encrypted against Tang at install
+# (oac-infra hub-images, lvms_drive_wwn) and opened as /dev/mapper/lvms
+# before kubelet starts.
+volumegroup:
+  devices:
+    - /dev/mapper/lvms

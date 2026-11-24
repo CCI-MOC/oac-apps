@@ -1,0 +1,5 @@
+clusterDomain: bu-ist-demo-workload0.hcp.bu-ist-demo.int.massopen.cloud
+certificates:
+  issuer_name: letsencrypt-prod-dns01
+  api:
+    enabled: false

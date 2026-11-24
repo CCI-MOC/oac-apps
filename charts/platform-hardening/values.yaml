@@ -1,0 +1,56 @@
+# Registry allowlist: closes ocp4 allowed-registries,
+# allowed-registries-for-import and reject-unsigned-images-by-default.
+# The last one only checks that policy.json defaults to reject; pulls are
+# restricted by REGISTRY, not verified by signature (outside the release
+# payload). Say so in the SSP.
+#
+# There is no default list on purpose. A registry missing from it means
+# ImagePullBackOff on the next pull, so build the list from an inventory of
+# every image reference on the cluster. Running pods are not enough: also
+# check scaled-down workloads, CronJobs, CatalogSources, CSV relatedImages,
+# ImageStreams and BuildConfig bases.
+#
+# Hosted clusters: leave this off. Their image config is
+# HostedCluster.spec.configuration.image on the hub (hosted-cluster chart).
+imageConfig:
+  enabled: false
+  allowedRegistries: []
+  allowedRegistriesForImport: []
+  # With samplesRegistry empty, the samples operator creates imagestreams
+  # only if allowedRegistries holds both registry.redhat.io and a bare
+  # quay.io; otherwise openshift-samples goes Degraded
+  # (GlobalImageStreamConfigRegistryMismatch). Naming a listed registry
+  # here passes that check without allowing all of quay.io. The operator
+  # then rewrites every sample pull spec from docker.io, registry.redhat.io,
+  # registry.access.redhat.com and quay.io to it.
+  samplesRegistry: ""
+
+# API server audit profile (800-53 AU-2, AU-3, AU-12): closes
+# audit-profile-set. WriteRequestBodies logs the request and response of
+# every write, except for Secrets, service account tokens, token reviews,
+# OAuth clients, routes and MachineConfigs, which stay at Metadata
+# (OpenShift's policy, checked on nist-dev-infra 2026-10-26). Secret
+# values stay out of the log; the bodies of other writes, ConfigMaps
+# included, do not. Changing it rolls the kube-apiservers, one
+# control-plane node at a time.
+#
+# Hosted clusters: leave this off. Their audit profile is
+# HostedCluster.spec.configuration.apiServer.audit on the hub.
+apiServerAudit:
+  enabled: false
+  profile: WriteRequestBodies
+
+# System use notification (800-53 AC-8): closes banner-or-login-template-set
+# and openshift-motd-exists. The wording must come from the organisation's
+# legal or compliance office and match every other login point; there is no
+# default. The check looks for a ConsoleNotification with exactly this
+# name, so do not rename it.
+systemUseNotice:
+  enabled: false
+  bannerName: classification-banner
+  # One line, shown at the top of the console.
+  banner: ""
+  color: "#ffffff"
+  backgroundColor: "#8a1c1c"
+  # Full text, shown by `oc login`.
+  motd: ""

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: compliance-hub-policy
+description: Make a compliant hub refuse HostedClusters and NodePools that are not compliant
+version: 0.1.0
+type: application

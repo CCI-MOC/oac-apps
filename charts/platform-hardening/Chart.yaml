@@ -1,0 +1,5 @@
+apiVersion: v2
+name: platform-hardening
+description: Registry allowlist and system use notice
+version: 0.1.0
+type: application

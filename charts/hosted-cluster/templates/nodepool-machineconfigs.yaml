@@ -16,6 +16,17 @@
       "spec" (dict "config" (dict
         "ignition" (dict "version" "3.2.0")
         "storage" (dict "files" $files))) }}
+{{- with .kernelArguments }}
+{{- $_ := set $mc.spec "kernelArguments" . }}
+{{- end }}
+{{- /* Ignition storage.luks and storage.filesystems, verbatim: root disk
+     encryption, applied at a node's first boot only. */}}
+{{- with .luks }}
+{{- $_ := set $mc.spec.config.storage "luks" . }}
+{{- end }}
+{{- with .filesystems }}
+{{- $_ := set $mc.spec.config.storage "filesystems" . }}
+{{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap

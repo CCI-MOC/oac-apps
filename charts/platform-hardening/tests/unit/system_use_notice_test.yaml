@@ -1,0 +1,68 @@
+suite: System use notice
+templates:
+  - templates/system-use-notice.yaml
+
+tests:
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # The wording comes from the organisation, so there is no default.
+  - it: should require the banner
+    set:
+      systemUseNotice:
+        enabled: true
+        motd: Notice.
+    asserts:
+      - failedTemplate:
+          errorMessage: systemUseNotice.banner is required
+
+  - it: should require the login notice
+    set:
+      systemUseNotice:
+        enabled: true
+        banner: Banner
+    asserts:
+      - failedTemplate:
+          errorMessage: systemUseNotice.motd is required
+
+  # The compliance check looks for these exact names.
+  - it: should render the console banner and the login notice
+    set:
+      systemUseNotice:
+        enabled: true
+        banner: Authorized use only
+        motd: |
+          Authorized use only.
+          Activity is monitored.
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: ConsoleNotification
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: classification-banner
+        documentIndex: 0
+      - equal:
+          path: spec
+          value:
+            location: BannerTop
+            text: Authorized use only
+            color: "#ffffff"
+            backgroundColor: "#8a1c1c"
+        documentIndex: 0
+      - equal:
+          path: metadata
+          value:
+            name: motd
+            namespace: openshift
+        documentIndex: 1
+      - equal:
+          path: data.message
+          value: |
+            Authorized use only.
+            Activity is monitored.
+        documentIndex: 1

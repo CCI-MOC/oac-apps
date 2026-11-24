@@ -1,0 +1,33 @@
+suite: acm namespace guardrails
+templates:
+  - templates/guardrails.yaml
+
+# The settings themselves are tested in the cert-manager chart.
+tests:
+  - it: should render nothing by default
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render guardrails for a namespace ACM creates itself
+    set:
+      guardrails:
+        open-cluster-management-agent-addon:
+          quota:
+            pods: "20"
+            services.nodeports: "0"
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: ResourceQuota
+      - equal:
+          path: metadata
+          value:
+            name: oac-objects
+            namespace: open-cluster-management-agent-addon
+      - equal:
+          path: spec.hard
+          value:
+            pods: "20"
+            services.nodeports: "0"

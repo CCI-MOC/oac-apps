@@ -1,0 +1,61 @@
+# Hub-level values shared by every hosted cluster on the compliant-dev-infra hub,
+# a compliant hub (FIPS, NIST 800-171). The hosted-clusters ApplicationSet
+# layers each cluster's own hosted-clusters/compliant-dev-infra/<cluster>/values.yaml
+# on top of this file. A cluster that overrides fips, nodePoolConfig,
+# apiServer.audit or imageConfig is refused by the hub's
+# compliant-hosted-clusters admission policy.
+baseDomain: hcp.nist.int.massopen.cloud
+managementCluster: compliant-dev-infra
+
+# Internal only: no firewall NAT, so no external domain. The hosted clusters'
+# OAuth, Konnectivity and Ignition routes resolve to the hcp-config router.
+hcpInternalDomain: hcp-int.nist.int.massopen.cloud
+
+# Fixed when the HostedCluster is created.
+fips: true
+
+# Rendered in the clusters namespace by compliance-node-hardening
+# (nodePool.enabled). Added to every NodePool, ahead of its own config.
+nodePoolConfig:
+  - compliance-node-hardening
+
+apiServer:
+  audit:
+    profile: WriteRequestBodies
+
+# NIST 800-53 AC-12: tokens expire after a day, and after 10 minutes unused
+# (ocp4-moderate oauth-or-oauthclient-token-maxage and -inactivity-timeout).
+oauth:
+  tokenConfig:
+    accessTokenMaxAgeSeconds: 86400
+    accessTokenInactivityTimeout: 10m0s
+
+imageConfig:
+  registrySources:
+    allowedRegistries:
+      - quay.io
+      - registry.redhat.io
+      - registry.connect.redhat.com
+      - registry.access.redhat.com
+      - nvcr.io
+      # Storage, as on the hub: CSI sidecars, the Portworx CSI driver and
+      # attacher, object-storage-proxy, and tlshd (nfs-tls).
+      - registry.k8s.io/sig-storage
+      - docker.io/portworx
+      - docker.io/library/haproxy
+      - ghcr.io/eldritchjs
+      # pure-cosi's FIPS images (oac-apps #279).
+      - ghcr.io/cci-moc
+      # llm-d's vLLM images, for the AI UAT Harness GPU tests.
+      - ghcr.io/llm-d
+  # Where ImageStreams may import from (ocp4-moderate
+  # ocp-allowed-registries-for-import); as on jetty.
+  allowedRegistriesForImport:
+    - {domainName: quay.io, insecure: false}
+    - {domainName: registry.access.redhat.com, insecure: false}
+    - {domainName: registry.redhat.io, insecure: false}
+
+# Hosted etcd uses the hosted-cluster chart's default, lvms-vg0: LVM Storage
+# on each worker's second disk (values/compliant-dev-infra/local-cluster/
+# lvmcluster.yaml). nist-dev-infra put it on the FlashBlade over NFS, which
+# Red Hat does not support for etcd.

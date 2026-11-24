@@ -1,0 +1,52 @@
+suite: hub-components-compliance ApplicationSet
+templates:
+  - templates/hub/hub-components-compliance.yaml
+
+tests:
+  - it: should fail closed when hubName is not set
+    asserts:
+      - failedTemplate:
+          errorPattern: hubName must be set
+
+  - it: should be gated on the hub's compliance marker
+    set:
+      hubName: nist-dev-infra
+    asserts:
+      - hasDocuments:
+          count: 1
+      - containsDocument:
+          kind: ApplicationSet
+          apiVersion: argoproj.io/v1alpha1
+          name: hub-components-compliance
+      - equal:
+          path: spec.generators[0].matrix.generators[0].git.files[0].path
+          value: "hosted-clusters/nist-dev-infra/compliance.yaml"
+
+  - it: should deploy the file integrity chart to the hub
+    set:
+      hubName: nist-dev-infra
+    asserts:
+      - contains:
+          path: spec.generators[0].matrix.generators[1].list.elements
+          content:
+            component: file-integrity
+      - equal:
+          path: spec.template.metadata.name
+          value: "hub-{{component}}"
+      - equal:
+          path: spec.template.spec.destination.server
+          value: https://kubernetes.default.svc
+
+  - it: should layer hub-wide then local-cluster value files
+    set:
+      hubName: nist-dev-infra
+    asserts:
+      - equal:
+          path: spec.template.spec.source.path
+          value: "charts/{{component}}"
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[0]
+          value: "/values/nist-dev-infra/{{component}}.yaml"
+      - equal:
+          path: spec.template.spec.source.helm.valueFiles[1]
+          value: "/values/nist-dev-infra/local-cluster/{{component}}.yaml"

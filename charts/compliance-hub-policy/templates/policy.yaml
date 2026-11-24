@@ -1,0 +1,58 @@
+{{- $hc := .Values.hostedCluster }}
+{{- $hcOn := or $hc.requireFips $hc.auditProfiles $hc.requireSecretEncryption .Values.nodePool.requiredConfig }}
+{{- if not (or $hcOn .Values.storage.requireNfsTls) }}
+{{- fail "compliance-hub-policy: every check is switched off; leave the chart out instead" }}
+{{- end }}
+{{- if $hcOn }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: compliant-hosted-clusters
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [hypershift.openshift.io]
+        apiVersions: ["*"]
+        operations: [CREATE, UPDATE]
+        resources: [hostedclusters, nodepools]
+  matchConditions:
+    - name: not-being-deleted
+      expression: "!has(object.metadata.deletionTimestamp)"
+  validations:
+    {{- if $hc.requireFips }}
+    - expression: >-
+        request.resource.resource != 'hostedclusters' ||
+        (has(object.spec.fips) && object.spec.fips == true)
+      message: "HostedCluster must set spec.fips: true on this hub"
+    {{- end }}
+    {{- with $hc.auditProfiles }}
+    - expression: >-
+        request.resource.resource != 'hostedclusters' ||
+        (has(object.spec.configuration) && has(object.spec.configuration.apiServer) &&
+         has(object.spec.configuration.apiServer.audit) &&
+         has(object.spec.configuration.apiServer.audit.profile) &&
+         object.spec.configuration.apiServer.audit.profile in {{ toJson . | replace "\"" "'" }})
+      message: "HostedCluster must set spec.configuration.apiServer.audit.profile to one of {{ join ", " . }} on this hub"
+    {{- end }}
+    {{- if $hc.requireSecretEncryption }}
+    - expression: >-
+        request.resource.resource != 'hostedclusters' || has(object.spec.secretEncryption)
+      message: "HostedCluster must set spec.secretEncryption on this hub"
+    {{- end }}
+    {{- range .Values.nodePool.requiredConfig }}
+    - expression: >-
+        request.resource.resource != 'nodepools' ||
+        (has(object.spec.config) && object.spec.config.exists(c, c.name == '{{ . }}'))
+      message: "NodePool must list ConfigMap {{ . }} in spec.config on this hub"
+    {{- end }}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: compliant-hosted-clusters
+spec:
+  policyName: compliant-hosted-clusters
+  validationActions:
+    {{- toYaml .Values.validationActions | nindent 4 }}
+{{- end }}

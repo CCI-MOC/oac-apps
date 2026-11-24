@@ -1,0 +1,83 @@
+suite: Gateways behind the router
+templates:
+  - templates/gateways.yaml
+
+set:
+  gateways:
+    - name: api-gw
+      namespace: my-project
+      hostname: api.apps.example.test
+
+tests:
+  - it: renders nothing by default
+    set:
+      gateways: []
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders a Gateway, a Route and a NetworkPolicy per gateway
+    asserts:
+      - hasDocuments:
+          count: 3
+
+  # On spec.infrastructure this is ignored, and the Service becomes a
+  # LoadBalancer with NodePorts on every node.
+  - it: keeps the gateway's Service ClusterIP
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: metadata.annotations["networking.istio.io/service-type"]
+          value: ClusterIP
+
+  - it: trusts exactly one proxy hop and uses the service CA
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: spec.infrastructure.annotations["proxy.istio.io/config"]
+          value: '{"gatewayTopology":{"numTrustedProxies":1}}'
+      - equal:
+          path: spec.infrastructure.annotations["service.beta.openshift.io/serving-cert-secret-name"]
+          value: api-gw-serving-cert
+      - equal:
+          path: spec.listeners[0].tls.certificateRefs[0].name
+          value: api-gw-serving-cert
+      - notExists:
+          path: spec.listeners[0].hostname
+
+  # Passthrough would hide the client's address.
+  - it: routes through the router with reencrypt
+    documentIndex: 1
+    asserts:
+      - isKind:
+          of: Route
+      - equal:
+          path: spec.tls.termination
+          value: reencrypt
+      - equal:
+          path: spec.to.name
+          value: api-gw-openshift-default
+      - equal:
+          path: spec.host
+          value: api.apps.example.test
+
+  - it: lets only the router reach the gateway
+    documentIndex: 2
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: spec.podSelector.matchLabels["gateway.networking.k8s.io/gateway-name"]
+          value: api-gw
+      - equal:
+          path: spec.ingress[0].from[0].namespaceSelector.matchLabels["policy-group.network.openshift.io/ingress"]
+          value: ""
+
+  - it: fails without a hostname
+    set:
+      gateways:
+        - name: api-gw
+          namespace: my-project
+    asserts:
+      - failedTemplate:
+          errorPattern: gateways\[\].hostname is required

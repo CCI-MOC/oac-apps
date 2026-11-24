@@ -1,0 +1,20 @@
+# Not operator-library.namespace, which takes no labels; Red Hat's install
+# procedure labels this namespace.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    # Platform Prometheus loads the operator's alert rule only from a
+    # namespace with this label.
+    openshift.io/cluster-monitoring: "true"
+    # The AIDE DaemonSet is privileged and mounts the host root read-only.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+---
+{{ include "operator-library.operatorgroup" . }}
+---
+{{ include "operator-library.subscription" . }}

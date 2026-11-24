@@ -1,0 +1,63 @@
+suite: compliant-hosted-clusters policy
+templates:
+  - templates/policy.yaml
+tests:
+  - it: should check fips, audit profile, secret encryption and node hardening by default
+    documentIndex: 0
+    asserts:
+      - lengthEqual:
+          path: spec.validations
+          count: 4
+      - matchRegex:
+          path: spec.validations[1].expression
+          pattern: "in \\['WriteRequestBodies','AllRequestBodies'\\]"
+      - matchRegex:
+          path: spec.validations[3].expression
+          pattern: "c.name == 'compliance-node-hardening'"
+
+  - it: should leave out checks that are switched off
+    documentIndex: 0
+    set:
+      hostedCluster:
+        requireFips: false
+        auditProfiles: []
+        requireSecretEncryption: false
+    asserts:
+      - lengthEqual:
+          path: spec.validations
+          count: 1
+
+  - it: should refuse to render with every check off
+    set:
+      hostedCluster:
+        requireFips: false
+        auditProfiles: []
+        requireSecretEncryption: false
+      nodePool:
+        requiredConfig: []
+      storage:
+        requireNfsTls: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "compliance-hub-policy: every check is switched off; leave the chart out instead"
+
+  - it: should deny by default and allow warn-only
+    documentIndex: 1
+    set:
+      validationActions: [Warn, Audit]
+    asserts:
+      - equal:
+          path: spec.validationActions
+          value: [Warn, Audit]
+
+  - it: should leave out the hosted cluster policy when only the storage check is on
+    set:
+      hostedCluster:
+        requireFips: false
+        auditProfiles: []
+        requireSecretEncryption: false
+      nodePool:
+        requiredConfig: []
+    asserts:
+      - hasDocuments:
+          count: 0
