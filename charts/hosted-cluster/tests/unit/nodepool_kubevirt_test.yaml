@@ -254,3 +254,34 @@ tests:
     asserts:
       - notExists:
           path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
+
+  - it: should patch the VM's eviction strategy when a pool sets one
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          cpu: 64
+          memory: 128Gi
+          evictionStrategy: None
+          disk:
+            size: 300Gi
+    asserts:
+      - equal:
+          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
+          value: '[{"op":"add","path":"/spec/template/spec/evictionStrategy","value":"None"}]'
+
+  - it: should put hugepages and the eviction strategy in one patch
+    set:
+      nodePools:
+        - name: gpu
+          replicas: 1
+          cpu: 64
+          memory: 128Gi
+          hugepages: 1Gi
+          evictionStrategy: None
+          disk:
+            size: 300Gi
+    asserts:
+      - equal:
+          path: metadata.annotations["hypershift.openshift.io/kubevirt-vm-jsonpatch"]
+          value: '[{"op":"add","path":"/spec/template/spec/domain/memory/hugepages","value":{"pageSize":"1Gi"}},{"op":"add","path":"/spec/template/spec/evictionStrategy","value":"None"}]'

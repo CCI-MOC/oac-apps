@@ -58,6 +58,13 @@ nodePools:
     # starts too slowly for virt-handler, and disk hot-plug fails
     # (MOC-issues #788).
     hugepages: 1Gi
+    # The VM can't live-migrate, and with HyperShift's External eviction a
+    # workload0 drain waits on CAPK, which fails on a separate infra
+    # cluster (MOC-issues #826). With None the drain shuts the VM down and
+    # KubeVirt restarts it on the other node. The Machine may then show
+    # Failed; clear it by hand (runbook 4.8). No autoRepair: it would
+    # replace a VM stopped on purpose to free the GPUs.
+    evictionStrategy: None
     disk:
       size: 300Gi
       storageClass: pure-fb-nfsv4

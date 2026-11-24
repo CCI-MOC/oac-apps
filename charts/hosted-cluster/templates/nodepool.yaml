@@ -9,9 +9,18 @@ metadata:
   namespace: {{ $.Values.namespace }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
-    {{- if and (ne $platformType "Agent") .hugepages }}
-    {{- $patch := list (dict "op" "add" "path" "/spec/template/spec/domain/memory/hugepages" "value" (dict "pageSize" .hugepages)) }}
-    hypershift.openshift.io/kubevirt-vm-jsonpatch: {{ toJson $patch | quote }}
+    {{- if ne $platformType "Agent" }}
+    {{- /* VM settings NodePool has no field for, as one JSON patch. */}}
+    {{- $patch := list }}
+    {{- with .hugepages }}
+    {{- $patch = append $patch (dict "op" "add" "path" "/spec/template/spec/domain/memory/hugepages" "value" (dict "pageSize" .)) }}
+    {{- end }}
+    {{- with .evictionStrategy }}
+    {{- $patch = append $patch (dict "op" "add" "path" "/spec/template/spec/evictionStrategy" "value" .) }}
+    {{- end }}
+    {{- with $patch }}
+    hypershift.openshift.io/kubevirt-vm-jsonpatch: {{ toJson . | quote }}
+    {{- end }}
     {{- end }}
 spec:
   clusterName: {{ $clusterName }}
