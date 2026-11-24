@@ -1,0 +1,4 @@
+loki:
+  storageClassName: test-class
+forwarder:
+  hostedControlPlanes: true

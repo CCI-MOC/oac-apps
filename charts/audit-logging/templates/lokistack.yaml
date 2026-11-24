@@ -1,0 +1,34 @@
+{{- if .Values.loki.enabled }}
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: {{ .Values.loki.name }}
+  namespace: {{ .Values.logging.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  size: {{ .Values.loki.size }}
+  storageClassName: {{ required "loki.storageClassName is required" .Values.loki.storageClassName }}
+  storage:
+    schemas:
+      - version: v13
+        effectiveDate: {{ .Values.loki.schemaEffectiveDate | quote }}
+    secret:
+      name: {{ .Values.loki.storage.secretName }}
+      type: s3
+    {{- with .Values.loki.storage.caConfigMap }}
+    tls:
+      caName: {{ . }}
+    {{- end }}
+  limits:
+    global:
+      retention:
+        days: {{ .Values.loki.retentionDays }}
+    {{- with .Values.loki.tenantLimits }}
+    tenants:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  tenants:
+    mode: openshift-logging
+{{- end }}
