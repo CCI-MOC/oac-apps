@@ -1,0 +1,16 @@
+# Every cluster on compliant-dev-infra (the hub's own and its hosted
+# clusters), unless a cluster's own file overrides it.
+defaultGrafana:
+  # The chart's default is docker.io/grafana/grafana, which is not a FIPS
+  # build and is not an allowed registry on a compliant cluster. Red Hat's
+  # own grafana RPM in a UBI 9 image is: Red Hat builds and patches it
+  # against RHEL's OpenSSL, so Go's crypto goes through the FIPS provider
+  # on a FIPS-mode node (MOC-issues #742, compliance/GRAFANA-FIPS-IMAGE.md
+  # in EldritchJS/oac-eldritch-things).
+  #
+  # Built by CCI-MOC/grafana-fips, pinned by digest. ghcr.io/cci-moc is
+  # already in these clusters' allowed registries. The image holds RHEL
+  # packages installed with MOC's subscription and is public for now;
+  # requiring authentication to pull it is an accepted, recorded exception
+  # (MOC-issues #780), as for tlshd.
+  image: ghcr.io/cci-moc/grafana-fips@sha256:12f564f544e9ee3f58bc1ce92514f0a56dac34bbfbe51246b22d669c68073bc8
