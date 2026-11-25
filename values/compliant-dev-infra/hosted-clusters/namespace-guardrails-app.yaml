@@ -59,8 +59,11 @@ guardrails:
       apiAndDns: true
     quota: *smallQuota
   stackrox:
-    # The operator ships the ingress policies; egress as on the hub, plus
-    # the hub's Central (route on the hub's apps address).
+    # The operator ships an ingress policy per pod; this namespace-wide
+    # deny is a backstop for a pod type that arrives without one, and adds
+    # nothing for the pods running today (checked 2026-11-25). Egress as on
+    # the hub, plus the hub's Central (route on the hub's apps address).
+    ingress: {}
     egress:
       apiAndDns: true
       sameNamespace: true
