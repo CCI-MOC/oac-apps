@@ -1,0 +1,5 @@
+apiVersion: v2
+name: invoicing
+description: Cronjobs to run daily and monthly invoicing for OAC projects
+type: application
+version: 0.1.0
