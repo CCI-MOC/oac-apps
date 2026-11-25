@@ -42,6 +42,13 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   stackrox:
+    # The operator ships an ingress policy per pod, so this adds nothing
+    # for the pods running today (checked on both clusters, 2026-11-25):
+    # every one is already selected by one of its policies, and a
+    # deny-all-ingress adds nothing to the union of allows. It is here so
+    # that an ACS pod type arriving without its own policy is closed
+    # rather than open (verify.sh T-25, MOC-issues #832).
+    ingress: {}
     egress:
       apiAndDns: true
       sameNamespace: true
