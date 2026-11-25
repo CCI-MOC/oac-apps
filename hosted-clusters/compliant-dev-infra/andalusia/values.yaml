@@ -14,8 +14,13 @@ platform:
     # From the hub's hcp-config (hypervisorClusters).
     infraKubeConfigSecretName: compliant-dev-workload0-kubeconfig
 
-# kubeadmin only for now: a test cluster with no other users. MOC SSO needs
-# a moc-keycloak client first, as compliant-dev-workload0 has.
+# Log in through MOC SSO. The Keycloak client comes from moc-keycloak
+# (CCI-MOC/moc-keycloak#71), which writes its secret to
+# cluster/compliant-dev-infra/hostedcluster/andalusia/keycloak-oidc.
+# HyperShift removes kubeadmin once an identity provider is set.
+oauth:
+  mocsso:
+    enabled: true
 
 services:
   APIServer:
