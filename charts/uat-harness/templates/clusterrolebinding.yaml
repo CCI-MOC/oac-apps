@@ -1,0 +1,178 @@
+# The privileged SCC is built in. This binding gives it to the compliance
+# account only. SCC access is cluster RBAC, so the binding is cluster-scoped;
+# the pods that use it still run only in uat-admin.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: uat-admin-scc-privileged
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+  - kind: ServiceAccount
+    name: uat-admin-sa
+    namespace: uat-admin
+---
+# The reads the compliance checks use. Cluster-scoped objects and the
+# namespaced objects whose namespaces may not exist are read cluster-wide.
+# No secrets and no general ConfigMap reads. The only ConfigMap is the named
+# hosted control-plane apiserver config on a hub. No pod logs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: uat-admin-read
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "persistentvolumeclaims"]
+    verbs: ["get", "list"]
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    verbs: ["get", "list"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["get"]
+    resourceNames: ["gpu-modality-switcher"]
+  - apiGroups: ["machineconfiguration.openshift.io"]
+    resources: ["machineconfigs", "machineconfigpools"]
+    verbs: ["get", "list"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get"]
+    resourceNames: ["hostedclusters.hypershift.openshift.io", "virtualmachines.kubevirt.io"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingadmissionpolicies"]
+    verbs: ["get"]
+    resourceNames: ["gpu-modality-switch-guard", "nvidia-runtimeclass-operator-only"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingadmissionpolicybindings"]
+    verbs: ["get"]
+    resourceNames: ["gpu-modality-switch-guard", "nvidia-runtimeclass-operator-only", "compliant-hosted-clusters", "flashblade-nfs-tls"]
+  - apiGroups: ["config.openshift.io"]
+    resources: ["images", "oauths", "apiservers", "infrastructures", "authentications"]
+    verbs: ["get"]
+    resourceNames: ["cluster"]
+  - apiGroups: ["config.openshift.io"]
+    resources: ["clusterversions"]
+    verbs: ["get"]
+    resourceNames: ["version"]
+  - apiGroups: ["hypershift.openshift.io"]
+    resources: ["hostedclusters", "nodepools"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+    resourceNames: ["openshift-apiserver"]
+  - apiGroups: ["authorization.k8s.io"]
+    resources: ["subjectaccessreviews"]
+    verbs: ["create"]
+  - apiGroups: ["nvidia.com"]
+    resources: ["clusterpolicies"]
+    verbs: ["get", "list"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list"]
+  - apiGroups: ["nfd.openshift.io"]
+    resources: ["nodefeatures"]
+    verbs: ["get", "list"]
+  - apiGroups: ["cdi.kubevirt.io"]
+    resources: ["storageprofiles"]
+    verbs: ["get", "list"]
+  - apiGroups: ["compliance.openshift.io"]
+    resources: ["compliancesuites", "compliancescans", "compliancecheckresults", "scansettings"]
+    verbs: ["get", "list"]
+  - apiGroups: ["platform.stackrox.io"]
+    resources: ["centrals"]
+    verbs: ["get"]
+    resourceNames: ["stackrox-central-services"]
+  - apiGroups: ["platform.stackrox.io"]
+    resources: ["securedclusters"]
+    verbs: ["get"]
+    resourceNames: ["stackrox-secured-cluster-services"]
+  - apiGroups: ["hco.kubevirt.io"]
+    resources: ["hyperconvergeds"]
+    verbs: ["get"]
+    resourceNames: ["kubevirt-hyperconverged"]
+  - apiGroups: ["kubevirt.io"]
+    resources: ["kubevirts"]
+    verbs: ["get"]
+    resourceNames: ["kubevirt-kubevirt-hyperconverged"]
+  - apiGroups: ["logging.openshift.io"]
+    resources: ["clusterlogforwarders"]
+    verbs: ["get", "list"]
+  - apiGroups: ["loki.grafana.com"]
+    resources: ["lokistacks"]
+    verbs: ["get", "list"]
+  - apiGroups: ["fileintegrity.openshift.io"]
+    resources: ["fileintegrities"]
+    verbs: ["get"]
+    resourceNames: ["all-nodes"]
+  - apiGroups: ["fileintegrity.openshift.io"]
+    resources: ["fileintegritynodestatuses"]
+    verbs: ["get", "list"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["prometheusrules"]
+    verbs: ["get"]
+    resourceNames: ["file-integrity"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get"]
+    resourceNames: ["console", "oauth-openshift"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: uat-admin-read-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: uat-admin-read
+subjects:
+  - kind: ServiceAccount
+    name: uat-admin-sa
+    namespace: uat-admin
+---
+# The inventory checks list pods, workloads, VMs and CSVs across every
+# namespace. They cannot be expressed as per-namespace RoleBindings.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: uat-admin-inventory-read
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list"]
+  - apiGroups: ["kubevirt.io"]
+    resources: ["virtualmachines", "virtualmachineinstances"]
+    verbs: ["get", "list"]
+  - apiGroups: ["operators.coreos.com"]
+    resources: ["clusterserviceversions"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: uat-admin-inventory-read-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: uat-admin-inventory-read
+subjects:
+  - kind: ServiceAccount
+    name: uat-admin-sa
+    namespace: uat-admin

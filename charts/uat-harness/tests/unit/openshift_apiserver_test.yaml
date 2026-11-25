@@ -1,0 +1,45 @@
+suite: uat-harness openshift-apiserver RBAC
+templates:
+  - templates/openshift-apiserver-rbac.yaml
+
+tests:
+  # T-03 and T-04 read one named ConfigMap. A cluster-wide ConfigMap read
+  # would expose every ConfigMap in every namespace.
+  - it: should let the compliance account read the apiserver config
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          kind: Role
+          apiVersion: rbac.authorization.k8s.io/v1
+          name: uat-admin-read
+          namespace: openshift-apiserver
+          any: true
+      - equal:
+          path: rules
+          value:
+            - apiGroups: [""]
+              resources: ["configmaps"]
+              verbs: ["get"]
+              resourceNames: ["config"]
+        documentSelector:
+          path: metadata.name
+          value: uat-admin-read
+      - equal:
+          path: roleRef
+          value:
+            kind: Role
+            name: uat-admin-read
+            apiGroup: rbac.authorization.k8s.io
+        documentSelector:
+          path: metadata.name
+          value: uat-admin-read-binding
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: uat-admin-sa
+              namespace: uat-admin
+        documentSelector:
+          path: metadata.name
+          value: uat-admin-read-binding
