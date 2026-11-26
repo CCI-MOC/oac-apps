@@ -62,3 +62,14 @@ storage:
 hostedClusters: []
 # 30 minutes after the hub's own backup.
 hostedSchedule: "0 3 * * *"
+
+# Alert when a backup CronJob stops succeeding. Without this a failed run is
+# silent: the Job gives up after its backoffLimit and the next is a day away
+# (MOC-issues #833). Note that firing is not the same as reaching anybody —
+# Alertmanager carries only the default empty receivers today, so this shows
+# in the console and in ACM observability until a destination exists (P9).
+staleAlert:
+  enabled: true
+  # Hours without a successful Job before firing. The CronJobs run daily, so
+  # this allows one missed run plus some slack, and matches verify.sh T-14.
+  hours: 26
