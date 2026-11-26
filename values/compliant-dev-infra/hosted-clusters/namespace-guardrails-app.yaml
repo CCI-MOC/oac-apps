@@ -165,8 +165,27 @@ guardrails:
   # services, no volumes (2026-10-23).
   external-secrets:
     quota: *smallQuota
-  # MetalLB ships its own NetworkPolicy; quota only, as on the hub.
+  # MetalLB ships a NetworkPolicy, but it selects only the controller pods
+  # (app=metallb,component=controller). The operator's own two pods are not
+  # covered, so the namespace was open in both directions (MOC-issues #832).
+  # speaker is hostNetwork, so no policy here applies to it either way: this
+  # closes the operator, it does not protect the speakers.
+  #
+  # Measured with ACS's Network Graph over seven days, the same on this
+  # cluster and the hub:
+  #   ingress  9443 for the validating webhooks (the Services publish 443
+  #            and target 9443), 7472 and 8080 for metrics. Every caller is
+  #            the API server, which reaches the webhook over host network
+  #            on the hub and through the konnectivity agent here - and that
+  #            agent is itself hostNetwork, so hostNetworkPorts covers both.
+  #   egress   the API server and DNS, nothing else.
+  # ACS also shows high ephemeral ports inbound; those are the reply side of
+  # the operator's own connections, not listeners, so they are not allowed.
   metallb-system:
+    ingress:
+      hostNetworkPorts: [9443, 8080, 7472]
+    egress:
+      apiAndDns: true
     quota:
       pods: '15'
       services: '15'

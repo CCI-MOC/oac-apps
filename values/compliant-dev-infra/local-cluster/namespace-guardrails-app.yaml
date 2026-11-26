@@ -169,7 +169,18 @@ guardrails:
       services: '5'
       services.nodeports: '0'
       services.loadbalancers: '0'
+  # MetalLB ships a NetworkPolicy, but it selects only the controller pods
+  # (app=metallb,component=controller). The operator's own two pods are not
+  # covered, so the namespace was open in both directions (MOC-issues #832).
+  # speaker is hostNetwork, so no policy here applies to it either way: this
+  # closes the operator, it does not protect the speakers. Measured with
+  # ACS's Network Graph over seven days; see the hosted-clusters values for
+  # what was observed. The entry is deliberately identical on both.
   metallb-system:
+    ingress:
+      hostNetworkPorts: [9443, 8080, 7472]
+    egress:
+      apiAndDns: true
     quota:
       pods: '15'
       persistentvolumeclaims: '2'
