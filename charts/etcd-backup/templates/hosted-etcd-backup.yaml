@@ -112,10 +112,26 @@ spec:
 
                   dest=/backup/$ts
                   mkdir -p "$dest"
-                  ex cat "$snap" > "$dest/snapshot.db"
-                  got=$(sha256sum "$dest/snapshot.db" | awk '{print $1}')
+                  # The snapshot is streamed out through `oc exec`, which
+                  # truncates often enough at this size to lose a day of
+                  # backups: on 2026-11-25 all three attempts for
+                  # compliant-dev-workload0 failed the check below on a 218 MB
+                  # snapshot, while a manual run of the same snapshot copied
+                  # cleanly first time (MOC-issues #833). Retry the copy here,
+                  # rather than leaving it to the Job's backoffLimit, which
+                  # takes a fresh snapshot each time and gives up after three.
+                  got=
+                  for attempt in 1 2 3 4 5; do
+                    ex cat "$snap" > "$dest/snapshot.db" || true
+                    got=$(sha256sum "$dest/snapshot.db" | awk '{print $1}')
+                    [ "$got" = "$want" ] && break
+                    echo "copy attempt $attempt: hash $got != $want, retrying" >&2
+                    rm -f "$dest/snapshot.db"
+                    sleep 5
+                  done
                   # Integrity: the copy must match the file etcdutl checked.
-                  [ "$got" = "$want" ] || { echo "copy hash $got != $want" >&2; rm -rf "$dest"; exit 1; }
+                  [ "$got" = "$want" ] || { echo "copy hash $got != $want after 5 attempts" >&2; rm -rf "$dest"; exit 1; }
+                  [ "$attempt" = 1 ] || echo "== copy succeeded on attempt $attempt"
                   echo "$got  snapshot.db" > "$dest/SHA256SUMS"
                   printf '%s %s\n' "$ts" "$pod" > /backup/LATEST
 
