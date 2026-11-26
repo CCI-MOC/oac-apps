@@ -1,8 +1,22 @@
+{{- /*
+The operator's namespace. .Values.namespaceLabels, a map, is rendered as its
+labels; several operators need openshift.io/cluster-monitoring: "true" there,
+because they ship ServiceMonitors written for platform monitoring (a bearer
+token file and that Prometheus's certificate paths) and the platform
+Prometheus reads only namespaces carrying the label. Without it the monitors
+fall to user workload monitoring, which refuses any ServiceMonitor that
+reads the filesystem, and the metrics are collected nowhere while the
+namespace looks monitored (MOC-issues #834).
+*/}}
 {{- define "operator-library.namespace" -}}
 apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Values.namespace }}
+  {{- with .Values.namespaceLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec: {}
