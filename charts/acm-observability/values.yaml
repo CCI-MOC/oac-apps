@@ -34,3 +34,14 @@ customAllowlist:
 # Node state and reboots of the hub's fleet, in the MCO Grafana.
 hardwareDashboard:
   enabled: true
+
+# Slack receivers for the ACM Alertmanager. Opt-in: default receiver drops all alerts.
+# alerts1 = broad, alerts2 = filtered subset, to compare routing during test phase.
+alertmanager:
+  enabled: false
+  alerts1:
+    awsKey: moc/alertmanager/slack-test-alerts1
+    channel: "#moc_2_0_test_alerts1"
+  alerts2:
+    awsKey: moc/alertmanager/slack-test-alerts2
+    channel: "#moc_2_0_test_alerts2"
