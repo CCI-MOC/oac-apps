@@ -1,4 +1,10 @@
 namespace: external-dns-operator
+
+# These operators ship ServiceMonitors written for platform monitoring, so
+# the platform Prometheus must be allowed to read this namespace or the
+# metrics are collected nowhere (MOC-issues #834).
+namespaceLabels:
+  openshift.io/cluster-monitoring: "true"
 operatorgroup:
   targetNamespaces: true
 subscription:
