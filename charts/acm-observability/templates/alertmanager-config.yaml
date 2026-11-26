@@ -33,8 +33,50 @@ spec:
                 matchers:
                   - alertname = "Watchdog"
               - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, namespace, persistentvolumeclaim]
                 matchers:
-                  - alertname = ""
+                  - alertname =~ "CustomStoragePersistentVolume.*"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, namespace, instance]
+                matchers:
+                  - alertname =~ "CustomContainerMemoryUsage"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, namespace, pod, container]
+                matchers:
+                  - alertname =~ "CustomContainerCpuUsage"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, pool]
+                matchers:
+                  - alertname =~ "CustomCephStorage.*"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname]
+                matchers:
+                  - alertname =~ "CustomNetworkInterfaceErrors"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, instance]
+                matchers:
+                  - alertname =~ "CustomIpmi.*"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, node]
+                matchers:
+                  - alertname =~ "CustomNodeNotReady"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, node]
+                group_wait: 1m
+                matchers:
+                  - alertname =~ "CustomNodeLowAvailableMemory"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname]
+                matchers:
+                  - alertname =~ "LokiStackWriteRequestErrors|LokiRequestErrors|LokiRequestLatency|NooBaaBucketErrorState|NooBaaResourceErrorState|ClusterOperatorDown|ClusterOperatorDegraded|ClusterOperatorFlapping|ClusterVersionOperatorDown|ClusterMonitoringOperatorReconciliationErrors"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, pool]
+                matchers:
+                  - alertname =~ "CustomBlockedMachineConfigUpdate|CustomMachineConfigHighUnavailable|CustomMachineConfigPoolDegraded"
+              - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, node, deviceid]
+                matchers:
+                  - alertname =~ "LowPCIeBandwidth|DCGMLevel1Errors|GPUPowerSlowdownEnabled|RemappedRowsActive|DCGMLevel3Errors|PingFailures|PVCAlert|GPUNodeHealth|AutopilotPodsFailing"
           receivers:
             - name: default
             - name: slack-alerts1
