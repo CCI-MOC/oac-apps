@@ -1,0 +1,63 @@
+{{- /*
+MCO owns alertmanager-config; this ExternalSecret overwrites it.
+MOC 1.0 does the same since ACM 2.13. Verify on dev-infra before promoting to prod.
+*/}}
+{{- if .Values.alertmanager.enabled }}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: acm-alertmanager-config
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: ClusterSecretStore
+  target:
+    name: alertmanager-config
+    template:
+      data:
+        alertmanager.yaml: |
+          route:
+            receiver: default
+            group_by: [managed_cluster, alertname, namespace]
+            group_wait: 5m
+            group_interval: 1d
+            repeat_interval: 1d
+            routes:
+              - receiver: slack-alerts1
+                continue: true
+                matchers:
+                  - alertname = "Watchdog"
+              - receiver: slack-alerts2
+                matchers:
+                  - alertname = ""
+          receivers:
+            - name: default
+            - name: slack-alerts1
+              slack_configs:
+                - channel: '{{ .Values.alertmanager.alerts1.channel }}'
+                  api_url: "{{ "{{ .slack_api_url_1 }}" }}"
+                  title: '{{ "{{ template \"slack.default.title\" . }}" }}'
+                  text: '{{ "{{ template \"slack.default.text\" . }}" }}'
+                  send_resolved: true
+            - name: slack-alerts2
+              slack_configs:
+                - channel: '{{ .Values.alertmanager.alerts2.channel }}'
+                  api_url: "{{ "{{ .slack_api_url_2 }}" }}"
+                  title: '{{ "{{ template \"slack.default.title\" . }}" }}'
+                  text: '{{ "{{ template \"slack.default.text\" . }}" }}'
+                  send_resolved: true
+  data:
+    - secretKey: slack_api_url_1
+      remoteRef:
+        key: {{ .Values.alertmanager.alerts1.awsKey }}
+        property: api_url
+    - secretKey: slack_api_url_2
+      remoteRef:
+        key: {{ .Values.alertmanager.alerts2.awsKey }}
+        property: api_url
+{{- end }}

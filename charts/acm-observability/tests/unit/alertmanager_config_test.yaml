@@ -1,0 +1,96 @@
+suite: Alertmanager Slack receiver config
+templates:
+  - templates/alertmanager-config.yaml
+
+tests:
+  - it: should render nothing when disabled
+    set:
+      alertmanager.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: should render an ExternalSecret when enabled
+    set:
+      alertmanager.enabled: true
+      alertmanager.alerts1.awsKey: moc/alertmanager/slack-test-alerts1
+      alertmanager.alerts1.channel: "#moc_2_0_test_alerts1"
+      alertmanager.alerts2.awsKey: moc/alertmanager/slack-test-alerts2
+      alertmanager.alerts2.channel: "#moc_2_0_test_alerts2"
+    asserts:
+      - isKind:
+          of: ExternalSecret
+      - equal:
+          path: spec.target.name
+          value: alertmanager-config
+      - equal:
+          path: spec.secretStoreRef
+          value:
+            name: aws-secrets-manager
+            kind: ClusterSecretStore
+
+  - it: should read the two webhook keys from AWS Secrets Manager
+    set:
+      alertmanager.enabled: true
+      alertmanager.alerts1.awsKey: moc/alertmanager/slack-test-alerts1
+      alertmanager.alerts2.awsKey: moc/alertmanager/slack-test-alerts2
+    asserts:
+      - equal:
+          path: spec.data[0].remoteRef.key
+          value: moc/alertmanager/slack-test-alerts1
+      - equal:
+          path: spec.data[0].remoteRef.property
+          value: api_url
+      - equal:
+          path: spec.data[1].remoteRef.key
+          value: moc/alertmanager/slack-test-alerts2
+      - equal:
+          path: spec.data[1].remoteRef.property
+          value: api_url
+
+  - it: should embed the channel names in the alertmanager config
+    set:
+      alertmanager.enabled: true
+      alertmanager.alerts1.awsKey: moc/alertmanager/slack-test-alerts1
+      alertmanager.alerts1.channel: "#moc_2_0_test_alerts1"
+      alertmanager.alerts2.awsKey: moc/alertmanager/slack-test-alerts2
+      alertmanager.alerts2.channel: "#moc_2_0_test_alerts2"
+    asserts:
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "channel: '#moc_2_0_test_alerts1'"
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "channel: '#moc_2_0_test_alerts2'"
+
+  - it: should keep the external-secrets template braces intact
+    set:
+      alertmanager.enabled: true
+      alertmanager.alerts1.awsKey: moc/alertmanager/slack-test-alerts1
+      alertmanager.alerts2.awsKey: moc/alertmanager/slack-test-alerts2
+    asserts:
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: 'api_url: "{{ .slack_api_url_1 }}"'
+
+  - it: should use opt-in routing with null as the default receiver
+    set:
+      alertmanager.enabled: true
+      alertmanager.alerts1.awsKey: moc/alertmanager/slack-test-alerts1
+      alertmanager.alerts2.awsKey: moc/alertmanager/slack-test-alerts2
+    asserts:
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "receiver: default"
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "- name: default\n"
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "continue: true"
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: 'alertname = "Watchdog"'
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: 'alertname = ""'
