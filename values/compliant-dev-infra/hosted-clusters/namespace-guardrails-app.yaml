@@ -182,11 +182,15 @@ guardrails:
   # ACS also shows high ephemeral ports inbound; those are the reply side of
   # the operator's own connections, not listeners, so they are not allowed.
   #
-  # There is no monitoring allow because nothing scrapes MetalLB: its
-  # ServiceMonitors are rejected on every cluster, production included
-  # (MOC-issues #834). Whoever fixes that by labelling the namespace for
-  # platform monitoring must add monitoringPorts: [9120] in the same
-  # change, or the scrape will be denied the moment it starts working.
+  # There is no monitoring allow, and none is needed. Nothing scrapes
+  # MetalLB today: its ServiceMonitors are rejected on every cluster,
+  # production included (MOC-issues #834). When that is fixed by labelling
+  # the namespace for platform monitoring, the scrape still works through
+  # these policies, checked on compliant-dev-infra with the label and all
+  # four policies in place: all seven targets up, real metrics flowing.
+  # The controller is already allowed on 9120 by MetalLB's own policy,
+  # whose named port metricshttps resolves to kube-rbac-proxy's container
+  # port, and the speakers are hostNetwork so no policy reaches them.
   metallb-system:
     ingress:
       hostNetworkPorts: [9443, 8080, 7472]

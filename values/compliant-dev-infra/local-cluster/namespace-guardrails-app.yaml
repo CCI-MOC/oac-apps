@@ -177,7 +177,7 @@ guardrails:
   # ACS's Network Graph over seven days; see the hosted-clusters values for
   # what was observed. The entry is deliberately identical on both, and the
   # note there about MetalLB's unscraped metrics (MOC-issues #834) applies
-  # here too: add monitoringPorts: [9120] if that is ever fixed.
+  # here too, including that fixing it needs no change to this entry.
   metallb-system:
     ingress:
       hostNetworkPorts: [9443, 8080, 7472]
