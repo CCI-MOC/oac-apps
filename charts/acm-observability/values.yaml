@@ -45,3 +45,8 @@ alertmanager:
   alerts2:
     awsKey: moc/alertmanager/slack-test-alerts2
     channel: "#moc_2_0_test_alerts2"
+
+# Custom alert rules for Thanos Ruler (ported from MOC 1.0).
+# Excludes OPE/RHODS-specific groups.
+customRules:
+  enabled: false
