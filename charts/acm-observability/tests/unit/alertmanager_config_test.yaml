@@ -93,4 +93,10 @@ tests:
           pattern: 'alertname = "Watchdog"'
       - matchRegex:
           path: spec.target.template.data["alertmanager.yaml"]
-          pattern: 'alertname = ""'
+          pattern: "CustomStoragePersistentVolume"
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "GPUNodeHealth"
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "CustomCronJob"
