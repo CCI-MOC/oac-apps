@@ -74,6 +74,10 @@ spec:
                 matchers:
                   - alertname =~ "CustomBlockedMachineConfigUpdate|CustomMachineConfigHighUnavailable|CustomMachineConfigPoolDegraded"
               - receiver: slack-alerts2
+                group_by: [managed_cluster, alertname, namespace, cronjob]
+                matchers:
+                  - alertname =~ "CustomCronJob.*"
+              - receiver: slack-alerts2
                 group_by: [managed_cluster, alertname, node, deviceid]
                 matchers:
                   - alertname =~ "LowPCIeBandwidth|DCGMLevel1Errors|GPUPowerSlowdownEnabled|RemappedRowsActive|DCGMLevel3Errors|PingFailures|PVCAlert|GPUNodeHealth|AutopilotPodsFailing"

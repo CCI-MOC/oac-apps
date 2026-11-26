@@ -97,3 +97,6 @@ tests:
       - matchRegex:
           path: spec.target.template.data["alertmanager.yaml"]
           pattern: "GPUNodeHealth"
+      - matchRegex:
+          path: spec.target.template.data["alertmanager.yaml"]
+          pattern: "CustomCronJob"
