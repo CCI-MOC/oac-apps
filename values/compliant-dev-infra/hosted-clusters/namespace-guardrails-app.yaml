@@ -181,6 +181,12 @@ guardrails:
   #   egress   the API server and DNS, nothing else.
   # ACS also shows high ephemeral ports inbound; those are the reply side of
   # the operator's own connections, not listeners, so they are not allowed.
+  #
+  # There is no monitoring allow because nothing scrapes MetalLB: its
+  # ServiceMonitors are rejected on every cluster, production included
+  # (MOC-issues #834). Whoever fixes that by labelling the namespace for
+  # platform monitoring must add monitoringPorts: [9120] in the same
+  # change, or the scrape will be denied the moment it starts working.
   metallb-system:
     ingress:
       hostNetworkPorts: [9443, 8080, 7472]

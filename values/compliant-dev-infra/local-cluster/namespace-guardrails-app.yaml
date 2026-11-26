@@ -175,7 +175,9 @@ guardrails:
   # speaker is hostNetwork, so no policy here applies to it either way: this
   # closes the operator, it does not protect the speakers. Measured with
   # ACS's Network Graph over seven days; see the hosted-clusters values for
-  # what was observed. The entry is deliberately identical on both.
+  # what was observed. The entry is deliberately identical on both, and the
+  # note there about MetalLB's unscraped metrics (MOC-issues #834) applies
+  # here too: add monitoringPorts: [9120] if that is ever fixed.
   metallb-system:
     ingress:
       hostNetworkPorts: [9443, 8080, 7472]
