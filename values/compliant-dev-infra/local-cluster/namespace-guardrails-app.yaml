@@ -100,6 +100,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   default-broker:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -162,6 +167,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   local-cluster:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -242,6 +252,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   open-cluster-management-global-set:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -258,6 +273,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   open-cluster-management-policies:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -291,6 +311,11 @@ guardrails:
   # services and 13 volumes (436Gi: Thanos receivers, store, compactor,
   # Alertmanager).
   clusters:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -307,6 +332,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   hardware-inventory:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -323,6 +353,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   compliant-dev-workload0:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -337,6 +372,11 @@ guardrails:
   # andalusia is KubeVirt. Sized from 65 pods, 25 services (one
   # LoadBalancer) and three 8Gi etcd volumes, with room for a roll.
   andalusia:
+    # No pods at all (counted 2026-11-27): ACM and HyperShift keep their
+    # objects here, not workloads, so a default-deny both ways denies
+    # nothing that exists. MOC-issues #756.
+    ingress: {}
+    egress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
