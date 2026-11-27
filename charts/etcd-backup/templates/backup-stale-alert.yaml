@@ -35,8 +35,23 @@ spec:
           # kube_cronjob_status_last_successful_time is absent until the
           # first success, so a CronJob that has never succeeded has nothing
           # for the first arm to subtract from and would slip through. The
-          # second arm catches it: every unsuspended CronJob, less the ones
-          # that have a success. Suspended ones are excluded on purpose.
+          # second arm catches it, keyed on last_schedule_time rather than on
+          # the CronJob existing: a CronJob that has not yet had a run has no
+          # last_schedule_time either, so a freshly deployed one stays quiet
+          # until its first run instead of alerting 30m after it is created
+          # (schwesig on oac-apps#300). last_schedule_time is set when the Job
+          # is created and the success only when it finishes, so for: 30m
+          # covers a run in flight; the observed runs take 42 to 47 seconds.
+          #
+          # The suspend guard wraps BOTH arms, not just the second. A CronJob
+          # suspended after it has succeeded keeps its last_successful_time,
+          # so the first arm would otherwise fire on something deliberately
+          # not running.
+          #
+          # kube_cronjob_created would express the grace period more directly
+          # but does not exist here: kube-state-metrics has the *_created
+          # metrics as opt-in and OpenShift does not enable them. Checked on
+          # compliant-dev-infra 2026-11-27, no series on any namespace.
           expr: |
             (
               time() - max by (cronjob) (kube_cronjob_status_last_successful_time{namespace="{{ .Values.namespace }}"})
@@ -44,9 +59,11 @@ spec:
             )
             or
             (
-              max by (cronjob) (kube_cronjob_spec_suspend{namespace="{{ .Values.namespace }}"} == 0)
+              max by (cronjob) (kube_cronjob_status_last_schedule_time{namespace="{{ .Values.namespace }}"})
               unless max by (cronjob) (kube_cronjob_status_last_successful_time{namespace="{{ .Values.namespace }}"})
             )
+            unless on (cronjob)
+              max by (cronjob) (kube_cronjob_spec_suspend{namespace="{{ .Values.namespace }}"} == 1)
           for: 30m
           labels:
             severity: warning
