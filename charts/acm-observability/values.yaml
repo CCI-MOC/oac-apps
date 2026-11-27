@@ -21,6 +21,12 @@ customAllowlist:
     # Memory errors, until the BMC is readable.
     - node_edac_correctable_errors_total
     - node_edac_uncorrectable_errors_total
+    # Required by custom alert rules (thanos-ruler-custom-rules).
+    - autopilot_health_checks
+    - node_memory_MemAvailable_bytes
+    - node_memory_MemTotal_bytes
+    - node_network_transmit_errs_total
+    - kube_persistentvolumeclaim_status_phase
   # vllm names its metrics per model, so a list would go stale with the next
   # deployment.
   matches:
@@ -30,6 +36,11 @@ customAllowlist:
     - __name__=~"^node_filesystem_(readonly|device_error)$",fstype=~"ext4|xfs"
     # All of DCGM; the three billing ones stay in names in case this fails.
     - __name__=~"^DCGM_.*"
+    # Required by custom alert rules (thanos-ruler-custom-rules).
+    - __name__=~"^ipmi_.*"
+    - __name__=~"^ceph_.*"
+    - __name__=~"^mco_.*"
+    - __name__=~"^kube_(?:node|pod|job|cronjob|namespace)_.*"
 
 # Node state and reboots of the hub's fleet, in the MCO Grafana.
 hardwareDashboard:
