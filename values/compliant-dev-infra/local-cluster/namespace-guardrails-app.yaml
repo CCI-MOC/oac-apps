@@ -406,6 +406,40 @@ guardrails:
       services.nodeports: '2'
       services.loadbalancers: '2'
   object-storage-proxy:
+    # Measured with ACS's policy generator 2026-11-27, because this one is
+    # not enumerable: it is the FlashBlade's S3 endpoint and its clients are
+    # ordinary pods, invisible in any webhook, ServiceMonitor or Route.
+    # Eight of them, in two namespaces, all using it as their object store:
+    # LokiStack's ingester and compactor in openshift-logging, and Thanos
+    # receive, compact, rule and the three store shards in
+    # open-cluster-management-observability. A default-deny without these
+    # would take out hub log storage and ACM metrics storage at once.
+    #
+    # ACS named each client pod individually. Allowing the two namespaces on
+    # the two ports instead is deliberate: the generated selectors include
+    # shard labels such as store.observatorium.io/shard, which change when
+    # Thanos is rescaled, and a policy that breaks on a rescale is worse
+    # than one scoped a namespace wider. Ports are the pods' 8080 and 8443;
+    # the Service's 80 and 443 target its named http and https ports.
+    ingress: {}
+    extraPolicies:
+      - name: allow-ingress-object-store-clients
+        spec:
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: object-storage-proxy
+          policyTypes: [Ingress]
+          ingress:
+            - from:
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: openshift-logging
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: open-cluster-management-observability
+              ports:
+                - {protocol: TCP, port: 8443}
+                - {protocol: TCP, port: 8080}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
