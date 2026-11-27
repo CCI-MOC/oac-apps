@@ -1,0 +1,70 @@
+{{- if .Values.staleAlert.enabled }}
+{{- /* A backup CronJob that stops succeeding is silent today: the Job gives
+up after its backoffLimit, the next run is a day later, and the only signal
+is verify.sh T-14 the next time somebody runs it. On 2026-11-25
+compliant-dev-workload0 went two days without a successful backup that way
+(MOC-issues #833). This fires on the hub, where both the hub's own CronJob
+and the hosted clusters' run (NIST 800-53 CP-9).
+
+A rule in a user namespace is evaluated by Thanos Ruler, not by
+prometheus-user-workload. That matters here: kube_cronjob_* comes from the
+platform kube-state-metrics, which prometheus-user-workload does not scrape,
+so the same rule somewhere that Prometheus evaluated it would be a silent
+no-op. Thanos Ruler queries through thanos-querier and does see it. Checked
+on compliant-dev-infra 2026-11-25: a probe rule in this namespace loaded
+into Thanos Ruler, evaluated ok, and returned the three CronJobs. */}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: etcd-backup-stale
+  namespace: {{ .Values.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  groups:
+    - name: etcd-backup
+      rules:
+        - alert: EtcdBackupStale
+          annotations:
+            summary: |-
+              An etcd backup CronJob has had no successful run for
+              {{ .Values.staleAlert.hours }} hours. The snapshot is streamed
+              out of the etcd pod and the copy is verified against a hash, so
+              a run that fails leaves no backup rather than a corrupt one.
+            description: "{{ `{{ $labels.cronjob }}` }} in {{ .Values.namespace }} has no successful Job in the last {{ .Values.staleAlert.hours }}h."
+          # kube_cronjob_status_last_successful_time is absent until the
+          # first success, so a CronJob that has never succeeded has nothing
+          # for the first arm to subtract from and would slip through. The
+          # second arm catches it, keyed on last_schedule_time rather than on
+          # the CronJob existing: a CronJob that has not yet had a run has no
+          # last_schedule_time either, so a freshly deployed one stays quiet
+          # until its first run instead of alerting 30m after it is created
+          # (schwesig on oac-apps#300). last_schedule_time is set when the Job
+          # is created and the success only when it finishes, so for: 30m
+          # covers a run in flight; the observed runs take 42 to 47 seconds.
+          #
+          # The suspend guard wraps BOTH arms, not just the second. A CronJob
+          # suspended after it has succeeded keeps its last_successful_time,
+          # so the first arm would otherwise fire on something deliberately
+          # not running.
+          #
+          # kube_cronjob_created would express the grace period more directly
+          # but does not exist here: kube-state-metrics has the *_created
+          # metrics as opt-in and OpenShift does not enable them. Checked on
+          # compliant-dev-infra 2026-11-27, no series on any namespace.
+          expr: |
+            (
+              time() - max by (cronjob) (kube_cronjob_status_last_successful_time{namespace="{{ .Values.namespace }}"})
+                > {{ mul .Values.staleAlert.hours 3600 }}
+            )
+            or
+            (
+              max by (cronjob) (kube_cronjob_status_last_schedule_time{namespace="{{ .Values.namespace }}"})
+              unless max by (cronjob) (kube_cronjob_status_last_successful_time{namespace="{{ .Values.namespace }}"})
+            )
+            unless on (cronjob)
+              max by (cronjob) (kube_cronjob_spec_suspend{namespace="{{ .Values.namespace }}"} == 1)
+          for: 30m
+          labels:
+            severity: warning
+{{- end }}
