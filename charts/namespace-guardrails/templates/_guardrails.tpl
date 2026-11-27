@@ -20,6 +20,7 @@ Per namespace, every key is optional:
               sameNamespace: true          pods in the namespace
               monitoringPorts: [...]       from openshift-monitoring
               hostNetworkPorts: [...]      from host-network (API server webhooks)
+              routerPorts: [...]           from the IngressController (Routes)
   egress:   default-deny egress plus
               apiAndDns: true              API server and DNS
               sameNamespace: true          pods in the namespace
@@ -109,6 +110,41 @@ spec:
         - namespaceSelector:
             matchLabels:
               policy-group.network.openshift.io/host-network: ""
+      ports:
+        {{- range . }}
+        - {port: {{ . }}, protocol: TCP}
+        {{- end }}
+{{- end }}
+{{- with $i.routerPorts }}
+---
+# A namespace with a Route needs the IngressController's traffic, and that
+# traffic is not always attributed to openshift-ingress. The default
+# IngressController on this fleet uses the HostNetwork publishing strategy,
+# so its router pods are host-network and OVN-Kubernetes attributes them to
+# the host-network policy group instead of to their namespace; a second
+# controller for the hosted clusters' routes runs on the pod network and is
+# attributed to openshift-ingress. Both are allowed here, so the policy is
+# right under either strategy and survives one being changed.
+#
+# These are POD ports. The router connects to the Service's targetPort, not
+# to its port, and a named targetPort resolves against the pod's container
+# port.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-router
+  namespace: {{ $ns }}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              policy-group.network.openshift.io/host-network: ""
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-ingress
       ports:
         {{- range . }}
         - {port: {{ . }}, protocol: TCP}
