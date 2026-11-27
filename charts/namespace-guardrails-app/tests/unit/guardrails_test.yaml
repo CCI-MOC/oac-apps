@@ -61,3 +61,40 @@ tests:
       - equal:
           path: metadata.namespace
           value: present
+
+  - it: should allow the router from both host-network and openshift-ingress
+    set:
+      guardrails:
+        example-operator:
+          ingress:
+            routerPorts: [8443, 9090]
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: spec.ingress
+          value:
+            - from:
+                - namespaceSelector:
+                    matchLabels:
+                      policy-group.network.openshift.io/host-network: ""
+                - namespaceSelector:
+                    matchLabels:
+                      kubernetes.io/metadata.name: openshift-ingress
+              ports:
+                - {port: 8443, protocol: TCP}
+                - {port: 9090, protocol: TCP}
+        documentSelector:
+          path: metadata.name
+          value: allow-ingress-from-router
+
+  - it: should render no router policy when routerPorts is absent
+    set:
+      guardrails:
+        example-operator:
+          ingress:
+            monitoringPorts: [8443]
+    asserts:
+      - notFailedTemplate: {}
+      - hasDocuments:
+          count: 2
