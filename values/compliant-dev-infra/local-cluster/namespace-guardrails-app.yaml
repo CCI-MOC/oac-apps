@@ -259,6 +259,23 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   open-cluster-management-agent-addon:
+    # Held back at first because ACS's generator returned "allow all" for four
+    # of the eight pods, meaning it saw inbound it could not attribute. The
+    # Network Graph says what that was: port 8000 to all four and 8888 to
+    # cluster-proxy, from an unattributed in-cluster source. Both are
+    # livenessProbe ports on /healthz, so the source is the kubelet, which
+    # NetworkPolicy does not govern. Nothing else reached them in seven days,
+    # including the agents' other listeners (workmgr 8080, cluster-proxy 8093
+    # and 7443, managed-serviceaccount 38080 and 38081), so those stay closed.
+    #
+    # What is left is the scrape: 8443 on the four policy and hypershift
+    # agents, and 8388 for mc-subscription-metrics.
+    #
+    # The hosted clusters' entry allows ingress on 8888 and 8000 for
+    # cluster-proxy. On this hub's copy that is redundant for the reason
+    # above, and worth re-checking there rather than assumed.
+    ingress:
+      monitoringPorts: [8443, 8388]
     quota:
       pods: '20'
       persistentvolumeclaims: '2'
