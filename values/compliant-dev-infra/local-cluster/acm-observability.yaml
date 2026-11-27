@@ -1,2 +1,4 @@
 alertmanager:
   enabled: true
+customRules:
+  enabled: true
