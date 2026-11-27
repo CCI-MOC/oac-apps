@@ -84,6 +84,14 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   cert-manager:
+    # Ingress only (MOC-issues #756). Every listener is accounted for: the
+    # API server calls the webhook on pod port 10250 (its Service's 443
+    # targets it), and 9402 is the metrics port the hosted clusters' entry
+    # already allows. 9403 and 6080 are healthz, probed by kubelet, which
+    # NetworkPolicy does not affect.
+    ingress:
+      hostNetworkPorts: [10250]
+      monitoringPorts: [9402]
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -92,6 +100,10 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   cert-manager-operator:
+    # Ingress only: one pod, one listener, 8443 metrics, as on the hosted
+    # clusters.
+    ingress:
+      monitoringPorts: [8443]
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -146,6 +158,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   hive:
+    # Ingress only: the only listener is hiveadmission on 9443, an
+    # aggregated APIService the API server calls. The controllers' 2112 and
+    # 6060 are metrics and pprof that nothing scrapes here.
+    ingress:
+      hostNetworkPorts: [9443]
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -154,6 +171,11 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   hypershift:
+    # Ingress only: 9443 is the webhook the API server calls, 9000 the
+    # scraped metrics port. 8081 is healthz, probed by kubelet.
+    ingress:
+      hostNetworkPorts: [9443]
+      monitoringPorts: [9000]
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -226,6 +248,9 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   open-cluster-management-agent:
+    # Ingress only: the klusterlet and its agents dial the hub outbound. No
+    # Service, no declared port.
+    ingress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -250,6 +275,10 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   open-cluster-management-hub:
+    # Ingress only: the three webhook Deployments listen on 9443 and the
+    # API server calls them. The controllers declare no ports.
+    ingress:
+      hostNetworkPorts: [9443]
     quota:
       pods: '40'
       persistentvolumeclaims: '2'
@@ -278,6 +307,14 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   portworx:
+    # Ingress only: 9443 is the operator's webhook, called by the API
+    # server, and 8999 and 9091 are the scraped metrics ports. 9814 is CSI
+    # internal and nothing reaches it. px-pure-csi-node is hostNetwork and
+    # so outside NetworkPolicy entirely, which is why this namespace is
+    # only half closed by it.
+    ingress:
+      hostNetworkPorts: [9443]
+      monitoringPorts: [8999, 9091]
     quota:
       pods: '15'
       persistentvolumeclaims: '2'
@@ -299,6 +336,9 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   container-object-storage-system:
+    # Ingress only: one pod, no Service and no declared port, so nothing
+    # addresses it. The COSI driver creates buckets outbound.
+    ingress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -315,6 +355,8 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   klusterlet-compliant-dev-workload0:
+    # Ingress only: as klusterlet-andalusia.
+    ingress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
@@ -345,6 +387,9 @@ guardrails:
       services.nodeports: '0'
       services.loadbalancers: '0'
   klusterlet-andalusia:
+    # Ingress only: the registration and work agents dial the managed
+    # cluster outbound. No Service, no declared port.
+    ingress: {}
     quota:
       pods: '10'
       persistentvolumeclaims: '2'
